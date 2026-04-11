@@ -149,6 +149,7 @@ export default function DashboardPage() {
                 New Booking
               </button>
             </Link>
+            <NotificationBell />
             <button onClick={handleLogout} className="btn-ghost px-3 py-2 text-sm">
               Sign out
             </button>
@@ -161,7 +162,7 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="mb-8 stagger">
           <h1 className="font-display text-3xl font-700 text-riden-white mb-1">
-            Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'} ð
+            Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'} Ã°ÂÂÂ
           </h1>
           <p className="text-riden-text">Here's what's happening with your bookings today</p>
         </div>
@@ -169,10 +170,10 @@ export default function DashboardPage() {
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stagger">
           {[
-            { label: 'Active Trips', value: stats.activeTrips, icon: 'ð', color: 'text-riden-teal', alert: false },
-            { label: 'Pending Confirm', value: stats.pendingConfirmations, icon: 'â³', color: 'text-yellow-400', alert: stats.pendingConfirmations > 0 },
-            { label: 'Completed (7d)', value: stats.completedThisWeek, icon: 'â', color: 'text-green-400', alert: false },
-            { label: 'Payments Due', value: stats.paymentsPending, icon: 'ð³', color: 'text-blue-400', alert: stats.paymentsPending > 0 },
+            { label: 'Active Trips', value: stats.activeTrips, icon: 'Ã°ÂÂÂ', color: 'text-riden-teal', alert: false },
+            { label: 'Pending Confirm', value: stats.pendingConfirmations, icon: 'Ã¢ÂÂ³', color: 'text-yellow-400', alert: stats.pendingConfirmations > 0 },
+            { label: 'Completed (7d)', value: stats.completedThisWeek, icon: 'Ã¢ÂÂ', color: 'text-green-400', alert: false },
+            { label: 'Payments Due', value: stats.paymentsPending, icon: 'Ã°ÂÂÂ³', color: 'text-blue-400', alert: stats.paymentsPending > 0 },
           ].map((stat) => (
             <div key={stat.label} className={`glass glass-hover rounded-xl p-5 relative overflow-hidden ${stat.alert ? 'border-yellow-400/20' : ''}`}>
               {stat.alert && <div className="absolute top-3 right-3 w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />}
@@ -190,7 +191,7 @@ export default function DashboardPage() {
             <p className="text-red-300 text-sm">
               <span className="font-medium">{stats.pendingConfirmations} booking{stats.pendingConfirmations > 1 ? 's' : ''}</span> awaiting confirmation from operators
             </p>
-            <Link href="/bookings" className="ml-auto text-riden-teal text-sm hover:underline">View all â</Link>
+            <Link href="/bookings" className="ml-auto text-riden-teal text-sm hover:underline">View all Ã¢ÂÂ</Link>
           </div>
         )}
 
@@ -202,13 +203,13 @@ export default function DashboardPage() {
               <div className="px-6 py-4 border-b border-riden-border flex items-center justify-between">
                 <h2 className="font-display font-600 text-riden-white">Recent Bookings</h2>
                 <Link href="/bookings" className="text-riden-teal text-sm hover:text-riden-teal-light transition-colors">
-                  View all â
+                  View all Ã¢ÂÂ
                 </Link>
               </div>
 
               {recentBookings.length === 0 ? (
                 <div className="px-6 py-12 text-center">
-                  <div className="text-4xl mb-3">ð</div>
+                  <div className="text-4xl mb-3">Ã°ÂÂÂ</div>
                   <p className="text-riden-text text-sm mb-4">No bookings yet</p>
                   <Link href="/bookings/new">
                     <button className="btn-primary px-5 py-2.5 text-sm">Create First Booking</button>
@@ -249,10 +250,13 @@ export default function DashboardPage() {
               <h2 className="font-display font-600 text-riden-white mb-4">Quick Actions</h2>
               <div className="space-y-3">
                 {[
-                  { label: 'New Booking', icon: 'â', href: '/bookings/new', primary: true },
-                  { label: 'View All Bookings', icon: 'ð', href: '/bookings', primary: false },
-                  { label: 'Active Trips', icon: 'ð', href: '/trips', primary: false },
-                  { label: 'Payments', icon: 'ð³', href: '/payments', primary: false },
+                  { label: 'New Booking', icon: 'Ã¢ÂÂ', href: '/bookings/new', primary: true },
+                  { label: 'View All Bookings', icon: 'Ã°ÂÂÂ', href: '/bookings', primary: false },
+                  { label: 'Active Trips', icon: 'Ã°ÂÂÂ', href: '/trips', primary: false },
+                  { label: '📅 Calendar', icon: '📅', href: '/calendar', primary: false },
+                  { label: '📈 Reports', icon: '📈', href: '/reports', primary: false },
+                  { label: '🎧 Support', icon: '🎧', href: '/support', primary: false },
+                  { label: 'Payments', icon: 'Ã°ÂÂÂ³', href: '/payments', primary: false },
                 ].map((action) => (
                   <Link href={action.href} key={action.label}>
                     <button className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 transition-all ${
@@ -455,7 +459,7 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="mb-8 stagger">
           <h1 className="font-display text-3xl font-700 text-riden-white mb-1">
-            Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'} 👋
+            Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'} ð
           </h1>
           <p className="text-riden-text">Here's what's happening with your bookings today</p>
         </div>
@@ -463,10 +467,10 @@ export default function DashboardPage() {
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stagger">
           {[
-            { label: 'Active Trips', value: stats.activeTrips, icon: '🚗', color: 'text-riden-teal', alert: false },
-            { label: 'Pending Confirm', value: stats.pendingConfirmations, icon: '⏳', color: 'text-yellow-400', alert: stats.pendingConfirmations > 0 },
-            { label: 'Completed (7d)', value: stats.completedThisWeek, icon: '✅', color: 'text-green-400', alert: false },
-            { label: 'Payments Due', value: stats.paymentsPending, icon: '💳', color: 'text-blue-400', alert: stats.paymentsPending > 0 },
+            { label: 'Active Trips', value: stats.activeTrips, icon: 'ð', color: 'text-riden-teal', alert: false },
+            { label: 'Pending Confirm', value: stats.pendingConfirmations, icon: 'â³', color: 'text-yellow-400', alert: stats.pendingConfirmations > 0 },
+            { label: 'Completed (7d)', value: stats.completedThisWeek, icon: 'â', color: 'text-green-400', alert: false },
+            { label: 'Payments Due', value: stats.paymentsPending, icon: 'ð³', color: 'text-blue-400', alert: stats.paymentsPending > 0 },
           ].map((stat) => (
             <div key={stat.label} className={`glass glass-hover rounded-xl p-5 relative overflow-hidden ${stat.alert ? 'border-yellow-400/20' : ''}`}>
               {stat.alert && <div className="absolute top-3 right-3 w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />}
@@ -484,7 +488,7 @@ export default function DashboardPage() {
             <p className="text-red-300 text-sm">
               <span className="font-medium">{stats.pendingConfirmations} booking{stats.pendingConfirmations > 1 ? 's' : ''}</span> awaiting confirmation from operators
             </p>
-            <Link href="/bookings" className="ml-auto text-riden-teal text-sm hover:underline">View all →</Link>
+            <Link href="/bookings" className="ml-auto text-riden-teal text-sm hover:underline">View all â</Link>
           </div>
         )}
 
@@ -496,13 +500,13 @@ export default function DashboardPage() {
               <div className="px-6 py-4 border-b border-riden-border flex items-center justify-between">
                 <h2 className="font-display font-600 text-riden-white">Recent Bookings</h2>
                 <Link href="/bookings" className="text-riden-teal text-sm hover:text-riden-teal-light transition-colors">
-                  View all →
+                  View all â
                 </Link>
               </div>
 
               {recentBookings.length === 0 ? (
                 <div className="px-6 py-12 text-center">
-                  <div className="text-4xl mb-3">📋</div>
+                  <div className="text-4xl mb-3">ð</div>
                   <p className="text-riden-text text-sm mb-4">No bookings yet</p>
                   <Link href="/bookings/new">
                     <button className="btn-primary px-5 py-2.5 text-sm">Create First Booking</button>
@@ -543,10 +547,10 @@ export default function DashboardPage() {
               <h2 className="font-display font-600 text-riden-white mb-4">Quick Actions</h2>
               <div className="space-y-3">
                 {[
-                  { label: 'New Booking', icon: '➕', href: '/bookings/new', primary: true },
-                  { label: 'View All Bookings', icon: '📋', href: '/bookings', primary: false },
-                  { label: 'Active Trips', icon: '🚗', href: '/trips', primary: false },
-                  { label: 'Payments', icon: '💳', href: '/payments', primary: false },
+                  { label: 'New Booking', icon: 'â', href: '/bookings/new', primary: true },
+                  { label: 'View All Bookings', icon: 'ð', href: '/bookings', primary: false },
+                  { label: 'Active Trips', icon: 'ð', href: '/trips', primary: false },
+                  { label: 'Payments', icon: 'ð³', href: '/payments', primary: false },
                 ].map((action) => (
                   <Link href={action.href} key={action.label}>
                     <button className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 transition-all ${
