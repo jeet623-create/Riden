@@ -56,7 +56,7 @@ export default function RegisterPage() {
             <span className="font-display text-2xl font-800 text-riden-white tracking-wider">RIDEN</span>
           </div>
           <h1 className="font-display text-3xl font-700 text-riden-white mb-2">Create account</h1>
-          <p className="text-riden-text text-sm">60 days free trial — no credit card needed</p>
+          <p className="text-riden-text text-sm">60 days free trial â no credit card needed</p>
         </div>
 
         <div className="glass rounded-2xl p-8 shadow-card stagger">
@@ -79,11 +79,11 @@ export default function RegisterPage() {
             </div>
 
             <div className="glass rounded-xl p-4 mt-2">
-              <p className="text-riden-text text-xs">🎁 Free Trial includes:</p>
+              <p className="text-riden-text text-xs">ð Free Trial includes:</p>
               <ul className="mt-2 space-y-1">
                 {['60 days free', '30 bookings included', 'Full LINE bot automation', 'Live driver tracking'].map(item => (
                   <li key={item} className="text-riden-teal text-xs flex items-center gap-2">
-                    <span>✓</span>{item}
+                    <span>â</span>{item}
                   </li>
                 ))}
               </ul>
@@ -92,7 +92,7 @@ export default function RegisterPage() {
             <button type="submit" disabled={loading} className="btn-primary w-full py-3.5 mt-2 flex items-center justify-center gap-2">
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : 'Create Free Account →'}
+              ) : 'Create Free Account â'}
             </button>
           </form>
 
@@ -103,8 +103,9 @@ export default function RegisterPage() {
             </p>
           </div>
         </div>
-        <p className="text-center text-riden-muted text-xs mt-8 font-mono">ไรเด็น — Where Gears Meet Green</p>
+        <p className="text-center text-riden-muted text-xs mt-8 font-mono">à¹à¸£à¹à¸à¹à¸ â Where Gears Meet Green</p>
       </div>
+      <p className="text-center mt-3"><Link href="/privacy" className="text-riden-muted text-xs hover:text-riden-teal transition-colors">Privacy Policy</Link><span className="text-riden-border mx-2">·</span><span className="text-riden-muted text-xs">Thailand PDPA</span></p>
     </div>
   )
 }
