@@ -88,7 +88,7 @@ export default function LoginPage() {
               <input
                 type="password"
                 className="riden-input"
-                placeholder="••••••••"
+                placeholder="â¢â¢â¢â¢â¢â¢â¢â¢"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
@@ -125,9 +125,10 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="text-center text-riden-muted text-xs mt-8 font-mono">
-          ไรเด็น — Where Gears Meet Green
+          à¹à¸£à¹à¸à¹à¸ â Where Gears Meet Green
         </p>
       </div>
+      <p className="text-center mt-3"><Link href="/privacy" className="text-riden-muted text-xs hover:text-riden-teal transition-colors">Privacy Policy</Link><span className="text-riden-border mx-2">·</span><span className="text-riden-muted text-xs">Thailand PDPA</span></p>
     </div>
   )
 }
