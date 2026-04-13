@@ -3,132 +3,71 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
-import toast from 'react-hot-toast'
 
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [pass, setPass] = useState('')
+  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      toast.error(error.message)
-      setLoading(false)
-    } else {
-      toast.success('Welcome back!')
-      router.push('/dashboard')
-    }
+  const [lang, setLang] = useState<'en'|'th'>(() => typeof window !== 'undefined' ? (localStorage.getItem('riden_lang') as 'en'|'th' || 'en') : 'en')
+  const T = {
+    en:{h:'Move Thailand.',sub:'The B2B platform connecting DMCs, operators and drivers seamlessly.',email:'Email',pass:'Password',btn:'Sign in',noAcc:"Don't have an account?",reg:'Register',forgot:'Forgot password?'},
+    th:{h:'ขับเคลื่อนไทย.',sub:'แพลตฟอร์ม B2B ที่เชื่อมต่อ DMC ผู้ประกอบการ และคนขับ',email:'อีเมล',pass:'รหัสผ่าน',btn:'เข้าสู่ระบบ',noAcc:'ยังไม่มีบัญชี?',reg:'สมัคร',forgot:'ลืมรหัสผ่าน?'}
   }
-
+  const t = T[lang]
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault(); setLoading(true); setError('')
+    const {error:err} = await createClient().auth.signInWithPassword({email,password:pass})
+    if (err) {setError(err.message);setLoading(false)} else router.push('/dashboard')
+  }
+  function toggleLang(l: 'en'|'th') { setLang(l); localStorage.setItem('riden_lang',l) }
   return (
-    <div className="min-h-screen bg-riden-black flex items-center justify-center relative overflow-hidden">
-
-      {/* Background effects */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-100" />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-riden-teal/5 rounded-full blur-[120px]" />
-      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-riden-teal/3 rounded-full blur-[100px]" />
-
-      {/* Floating orbs */}
-      <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-riden-teal rounded-full animate-pulse-teal" />
-      <div className="absolute top-3/4 right-1/3 w-1.5 h-1.5 bg-riden-teal/60 rounded-full animate-pulse-teal" style={{animationDelay: '1s'}} />
-      <div className="absolute top-1/2 right-1/4 w-1 h-1 bg-riden-teal/40 rounded-full animate-pulse-teal" style={{animationDelay: '2s'}} />
-
-      <div className="w-full max-w-md px-6 relative z-10">
-
-        {/* Logo */}
-        <div className="text-center mb-10 stagger">
-          <div className="inline-flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-riden-teal rounded-xl flex items-center justify-center shadow-teal">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-                <path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/>
-                <path d="M15 19l2 2 4-4"/>
-                <rect x="9" y="11" width="14" height="10" rx="2"/>
-              </svg>
-            </div>
-            <span className="font-display text-2xl font-800 text-riden-white tracking-wider">RIDEN</span>
+    <div className="page-bg" style={{minHeight:'100vh',display:'flex',position:'relative'}}>
+      <div className="grid-bg" />
+      <div className="anim-fade-in" style={{flex:'0 0 44%',display:'flex',flexDirection:'column',justifyContent:'space-between',padding:'48px 52px',borderRight:'1px solid var(--c-border)',background:'linear-gradient(160deg,rgba(25,201,119,0.05) 0%,transparent 60%)'}}>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <div style={{width:36,height:36,background:'var(--c-teal)',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 0 20px rgba(25,201,119,0.35)'}}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
-          <h1 className="font-display text-3xl font-700 text-riden-white mb-2">
-            Welcome back
-          </h1>
-          <p className="text-riden-text text-sm">Sign in to your DMC portal</p>
+          <span style={{fontWeight:800,fontSize:22,letterSpacing:'-0.04em'}}>RIDEN</span>
         </div>
-
-        {/* Card */}
-        <div className="glass rounded-2xl p-8 shadow-card stagger">
-          <form onSubmit={handleLogin} className="space-y-5">
-
-            <div>
-              <label className="block text-riden-text text-xs font-mono uppercase tracking-widest mb-2">
-                Email Address
-              </label>
-              <input
-                type="email"
-                className="riden-input"
-                placeholder="your@company.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-              />
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="text-riden-text text-xs font-mono uppercase tracking-widest">
-                  Password
-                </label>
-                <Link href="/forgot-password" className="text-riden-teal text-xs hover:text-riden-teal-light transition-colors">
-                  Forgot password?
-                </Link>
-              </div>
-              <input
-                type="password"
-                className="riden-input"
-                placeholder="â¢â¢â¢â¢â¢â¢â¢â¢"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary w-full py-3.5 mt-2 flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  <span>Sign In</span>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                  </svg>
-                </>
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6 pt-6 border-t border-riden-border text-center">
-            <p className="text-riden-text text-sm">
-              New to RIDEN?{' '}
-              <Link href="/register" className="text-riden-teal hover:text-riden-teal-light font-medium transition-colors">
-                Create account
-              </Link>
-            </p>
+        <div>
+          <h1 className="t-display anim-fade-up s1" style={{fontSize:52,marginBottom:16}}>{t.h}</h1>
+          <p className="anim-fade-up s2" style={{fontSize:16,color:'var(--c-text2)',lineHeight:1.6,maxWidth:340}}>{t.sub}</p>
+          <div className="anim-fade-up s3" style={{display:'flex',gap:40,marginTop:48}}>
+            {[['12+','Edge Functions'],['15','DB Tables'],['3','Countries']].map(([n,l])=>(
+              <div key={l}><div style={{fontSize:28,fontWeight:800,letterSpacing:'-0.04em',color:'var(--c-teal)'}}>{n}</div><div className="t-label" style={{marginTop:2}}>{l}</div></div>
+            ))}
           </div>
         </div>
-
-        {/* Footer */}
-        <p className="text-center text-riden-muted text-xs mt-8 font-mono">
-          à¹à¸£à¹à¸à¹à¸ â Where Gears Meet Green
-        </p>
+        <div style={{display:'flex',alignItems:'center',gap:16}}>
+          <Link href="/privacy" style={{fontSize:12,color:'var(--c-text3)',textDecoration:'none'}}>Privacy Policy</Link>
+          <span style={{color:'var(--c-border-hi)'}}>·</span>
+          <span style={{fontSize:12,color:'var(--c-text3)'}}>© 2026 RIDEN Co., Ltd.</span>
+        </div>
       </div>
-      <p className="text-center mt-3"><Link href="/privacy" className="text-riden-muted text-xs hover:text-riden-teal transition-colors">Privacy Policy</Link><span className="text-riden-border mx-2">·</span><span className="text-riden-muted text-xs">Thailand PDPA</span></p>
+      <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:48,position:'relative'}}>
+        <div style={{position:'absolute',top:32,right:32}}>
+          <div className="toggle-pill">
+            {(['en','th'] as const).map(l=>(<button key={l} className={`toggle-opt ${lang===l?'on':''}`} onClick={()=>toggleLang(l)}>{l==='en'?'EN':'ไทย'}</button>))}
+          </div>
+        </div>
+        <div className="anim-fade-up" style={{width:'100%',maxWidth:380}}>
+          <h2 className="t-heading" style={{fontSize:26,marginBottom:8}}>{lang==='en'?'Welcome back':'ยินดีต้อนรับ'}</h2>
+          <p style={{color:'var(--c-text2)',fontSize:14,marginBottom:36}}>{lang==='en'?'Sign in to your DMC portal':'เข้าสู่ระบบพอร์ทัล DMC'}</p>
+          <form onSubmit={handleSubmit} style={{display:'flex',flexDirection:'column',gap:16}}>
+            <div><label className="t-label" style={{display:'block',marginBottom:8}}>{t.email}</label><input className="input" type="email" value={email} onChange={e=>setEmail(e.target.value)} required placeholder="company@example.com" /></div>
+            <div>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}><label className="t-label">{t.pass}</label><span style={{fontSize:12,color:'var(--c-teal)',cursor:'pointer'}}>{t.forgot}</span></div>
+              <input className="input" type="password" value={pass} onChange={e=>setPass(e.target.value)} required placeholder="••••••••" />
+            </div>
+            {error&&<div style={{padding:'10px 14px',borderRadius:10,background:'rgba(248,113,113,0.08)',border:'1px solid rgba(248,113,113,0.2)',color:'var(--c-error)',fontSize:13}}>{error}</div>}
+            <button className="btn btn-primary" type="submit" disabled={loading} style={{width:'100%',padding:'12px',marginTop:8,fontSize:15}}>{loading?'...':t.btn}</button>
+          </form>
+          <p style={{textAlign:'center',marginTop:28,fontSize:13,color:'var(--c-text2)'}}>{t.noAcc} <Link href="/register" style={{color:'var(--c-teal)',textDecoration:'none',fontWeight:600}}>{t.reg}</Link></p>
+        </div>
+      </div>
     </div>
   )
 }
