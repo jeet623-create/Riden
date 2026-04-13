@@ -5,14 +5,95 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 
-const VEHICLE_TYPES = ['sedan','van_9','van_12','minibus_15','minibus_20','coach_30','coach_40plus','suv','pickup']
-const BOOKING_TYPES = ['airport_transfer','hotel_transfer','sightseeing','day_tour','custom']
 const TEAL = '#19C977'
+const BG = '#07100D', S2 = '#111F15', S3 = '#16271A'
+const BORDER = 'rgba(255,255,255,0.08)', BORDER_HI = 'rgba(255,255,255,0.14)'
+const TEXT = '#EDF5F0', TEXT2 = '#7A9A87', TEXT3 = '#3D5C47'
+const F = "'Inter',-apple-system,sans-serif"
+const FM = "'JetBrains Mono',monospace"
+
+const VEHICLE_TYPES = [
+  {v:'sedan',l:'Sedan'},
+  {v:'suv',l:'SUV'},
+  {v:'van_9',l:'Van 9 Seats'},
+  {v:'van_12',l:'Van 12 Seats'},
+  {v:'minibus_15',l:'Minibus 15'},
+  {v:'minibus_20',l:'Minibus 20'},
+  {v:'coach_30',l:'Coach 30'},
+  {v:'coach_40plus',l:'Coach 40+'},
+]
+
+const BOOKING_TYPES = [
+  {v:'airport_transfer',l:'✈️ Airport Transfer'},
+  {v:'hotel_transfer',l:'🏨 Hotel Transfer'},
+  {v:'sightseeing',l:'🗺 Sightseeing'},
+  {v:'day_tour',l:'🌅 Day Tour'},
+  {v:'custom',l:'⚙️ Custom'},
+]
+
+const TRIP_TYPES = [
+  {v:'airport_pickup',l:'✈️ Airport Pickup',icon:'✈️'},
+  {v:'airport_drop',l:'🛬 Airport Drop',icon:'🛬'},
+  {v:'city_tour',l:'🏙 City Tour',icon:'🏙'},
+  {v:'hotel_transfer',l:'🏨 Hotel Transfer',icon:'🏨'},
+  {v:'sightseeing',l:'🗺 Sightseeing',icon:'🗺'},
+  {v:'custom',l:'⚙️ Custom',icon:'⚙️'},
+]
+
+const QUICK_REQS = ['Wheelchair','Baby Seat','VIP','Halal Food','English Guide','Thai Guide','Child Seat','Extra Luggage']
+
+const SAVED_LOCATIONS = [
+  'Suvarnabhumi Airport (BKK)',
+  'Don Mueang Airport (DMK)',
+  'Phuket Airport (HKT)',
+  'Chiang Mai Airport (CNX)',
+  'Centrara Grand Bangkok',
+  'Mandarin Oriental Bangkok',
+  'Anantara Riverside Bangkok',
+  'W Hotel Bangkok',
+  'Pattaya City Center',
+  'Chiang Mai Old City',
+]
+
+function suggestVehicle(pax: number): string {
+  if (pax <= 3) return 'sedan'
+  if (pax <= 4) return 'suv'
+  if (pax <= 9) return 'van_9'
+  if (pax <= 12) return 'van_12'
+  if (pax <= 15) return 'minibus_15'
+  if (pax <= 20) return 'minibus_20'
+  if (pax <= 30) return 'coach_30'
+  return 'coach_40plus'
+}
+
+type Day = {
+  trip_date: string
+  pickup_time: string
+  trip_type: string
+  pickup_location: string
+  dropoff_location: string
+  vehicle_type: string
+  pax_count: number
+  flight_number: string
+  terminal: string
+  notes: string
+}
 
 type Operator = { id:string; company_name:string; status:string; is_verified:boolean; base_location:string|null; line_user_id:string|null }
 
+function makeDay(pax=1, overrides: Partial<Day> = {}): Day {
+  return {
+    trip_date:'', pickup_time:'09:00', trip_type:'airport_pickup',
+    pickup_location:'', dropoff_location:'',
+    vehicle_type: suggestVehicle(pax),
+    pax_count: pax, flight_number:'', terminal:'', notes:'',
+    ...overrides
+  }
+}
+
 export default function NewBookingPage() {
   const router = useRouter()
+  const [step, setStep] = useState<1|2>(1)
   const [submitting, setSubmitting] = useState(false)
   const [operators, setOperators] = useState<Operator[]>([])
   const [showDispatch, setShowDispatch] = useState(false)
@@ -21,32 +102,65 @@ export default function NewBookingPage() {
   const [createdBookingId, setCreatedBookingId] = useState<string|null>(null)
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
+  const [locationSuggest, setLocationSuggest] = useState<{dayIdx:number;field:'pickup'|'drop'}|null>(null)
 
-  const [form, setForm] = useState({
-    client_name:'', booking_type:'airport_transfer', flight_number:'',
-    adults_count:1, children_count:0, special_requirements:'', notes:'',
-    days:[{ trip_date:'', pickup_time:'09:00', pickup_location:'', dropoff_location:'', vehicle_type:'van_9', pax_count:1 }]
-  })
+  // Step 1
+  const [clientName, setClientName] = useState('')
+  const [mobileNumber, setMobileNumber] = useState('')
+  const [contactPerson, setContactPerson] = useState('')
+  const [numDays, setNumDays] = useState(1)
+  const [bookingType, setBookingType] = useState('airport_transfer')
+  const [totalPax, setTotalPax] = useState(1)
+  const [quickReqs, setQuickReqs] = useState<string[]>([])
+  const [notes, setNotes] = useState('')
+
+  // Step 2
+  const [days, setDays] = useState<Day[]>([makeDay(1)])
 
   useEffect(() => {
-    createClient().from('operators').select('id,company_name,status,is_verified,base_location,line_user_id')
+    createClient().from('operators')
+      .select('id,company_name,status,is_verified,base_location,line_user_id')
       .eq('status','active').order('company_name')
       .then(({data}) => setOperators(data ?? []))
   }, [])
 
-  function setF(k:string, v:any) { setForm(f=>({...f,[k]:v})) }
-  function setDay(i:number, k:string, v:any) {
-    setForm(f=>{ const d=[...f.days]; d[i]={...d[i],[k]:v}; return {...f,days:d} })
-  }
-  function addDay() {
-    setForm(f=>({...f,days:[...f.days,{trip_date:'',pickup_time:'09:00',pickup_location:'',dropoff_location:'',vehicle_type:'van_9',pax_count:1}]}))
-  }
-  function removeDay(i:number) {
-    if (form.days.length===1) return
-    setForm(f=>({...f,days:f.days.filter((_,idx)=>idx!==i)}))
+  // When numDays or totalPax changes, sync day cards
+  function goToStep2() {
+    if (!clientName.trim()) { toast.error('Client name is required'); return }
+    if (!mobileNumber.trim()) { toast.error('Mobile number is required'); return }
+    const n = Math.max(1, numDays)
+    const existing = days.slice(0, n)
+    while (existing.length < n) existing.push(makeDay(totalPax))
+    // set pax from totalPax on all days that haven't been customized
+    setDays(existing.map(d => ({...d, pax_count: d.pax_count || totalPax, vehicle_type: d.vehicle_type || suggestVehicle(totalPax)})))
+    setStep(2)
   }
 
-  async function handleSubmit(e:React.FormEvent) {
+  function setDay(i: number, k: keyof Day, v: any) {
+    setDays(prev => { const d=[...prev]; d[i]={...d[i],[k]:v};
+      // auto-suggest vehicle when pax changes
+      if (k==='pax_count') d[i].vehicle_type = suggestVehicle(Number(v))
+      return d })
+  }
+
+  function duplicateDay(i: number) {
+    setDays(prev => { const d=[...prev]; d[i+1]={...d[i], trip_date:''}; return d })
+    toast.success('Day copied — update the date')
+  }
+
+  function applyTemplate(i: number, ttype: string) {
+    const templates: Record<string,Partial<Day>> = {
+      airport_pickup: { trip_type:'airport_pickup', pickup_location:'Suvarnabhumi Airport (BKK)', pickup_time:'09:00' },
+      airport_drop:   { trip_type:'airport_drop',   dropoff_location:'Suvarnabhumi Airport (BKK)', pickup_time:'08:00' },
+      city_tour:      { trip_type:'city_tour',       pickup_location:'Hotel Lobby', dropoff_location:'Hotel Lobby', pickup_time:'09:00' },
+      hotel_transfer: { trip_type:'hotel_transfer',  pickup_time:'12:00' },
+      sightseeing:    { trip_type:'sightseeing',      pickup_location:'Hotel Lobby', dropoff_location:'Hotel Lobby', pickup_time:'08:00' },
+    }
+    const t = templates[ttype] || {}
+    setDays(prev => { const d=[...prev]; d[i]={...d[i],...t}; return d })
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSubmitting(true)
     const sb = createClient()
@@ -54,23 +168,39 @@ export default function NewBookingPage() {
     if (!user) { router.push('/login'); return }
 
     const ref = 'BK' + Date.now().toString().slice(-6)
+    const specialReqs = [quickReqs.join(', '), notes].filter(Boolean).join(' | ')
+
     const {data:booking, error:bErr} = await sb.from('bookings').insert({
-      dmc_id:user.id, booking_ref:ref, booking_type:form.booking_type,
-      client_name:form.client_name, flight_number:form.flight_number||null,
-      adults_count:form.adults_count, children_count:form.children_count,
-      total_days:form.days.length, status:'pending',
-      special_requirements:form.special_requirements||null, notes:form.notes||null
+      dmc_id: user.id,
+      booking_ref: ref,
+      booking_type: bookingType,
+      client_name: clientName,
+      mobile_number: mobileNumber,
+      contact_person: contactPerson || null,
+      adults_count: totalPax,
+      children_count: 0,
+      total_days: days.length,
+      status: 'pending',
+      special_requirements: specialReqs || null,
+      notes: null,
     }).select().single()
 
-    if (bErr||!booking) { toast.error(bErr?.message||'Error'); setSubmitting(false); return }
+    if (bErr || !booking) { toast.error(bErr?.message || 'Error saving'); setSubmitting(false); return }
 
-    for (let i=0; i<form.days.length; i++) {
-      const d = form.days[i]
+    for (let i = 0; i < days.length; i++) {
+      const d = days[i]
       await sb.from('trips').insert({
-        booking_id:booking.id, dmc_id:user.id, day_number:i+1,
-        trip_date:d.trip_date, pickup_time:d.pickup_time,
-        pickup_location:d.pickup_location, dropoff_location:d.dropoff_location,
-        vehicle_type:d.vehicle_type, pax_count:d.pax_count, status:'pending'
+        booking_id: booking.id,
+        dmc_id: user.id,
+        day_number: i + 1,
+        trip_date: d.trip_date,
+        pickup_time: d.pickup_time,
+        pickup_location: d.pickup_location,
+        dropoff_location: d.dropoff_location,
+        vehicle_type: d.vehicle_type,
+        pax_count: d.pax_count,
+        status: 'pending',
+        notes: [d.trip_type, d.flight_number, d.terminal, d.notes].filter(Boolean).join(' | ') || null,
       })
     }
 
@@ -83,33 +213,29 @@ export default function NewBookingPage() {
     if (!createdBookingId) return
     setSending(true)
     const sb = createClient()
-    if (dispatchMode==='pool') {
-      await sb.functions.invoke('booking-created',{body:{bookingId:createdBookingId}})
+    if (dispatchMode === 'pool') {
+      await sb.functions.invoke('booking-created', {body:{bookingId:createdBookingId}})
     } else {
       for (const opId of selectedOps) {
-        await sb.functions.invoke('booking-created',{body:{bookingId:createdBookingId,operatorId:opId}})
+        await sb.functions.invoke('booking-created', {body:{bookingId:createdBookingId, operatorId:opId}})
       }
     }
     setSending(false); setSent(true)
-    setTimeout(()=>router.push('/bookings'),1800)
+    setTimeout(() => router.push('/bookings'), 1800)
   }
 
-  async function skipDispatch() {
-    router.push('/bookings')
+  function toggleReq(r: string) {
+    setQuickReqs(prev => prev.includes(r) ? prev.filter(x=>x!==r) : [...prev,r])
   }
 
-  function toggleOp(id:string) {
+  function toggleOp(id: string) {
     if (dispatchMode==='single') setSelectedOps([id])
-    else setSelectedOps(p=>p.includes(id)?p.filter(x=>x!==id):[...p,id])
+    else setSelectedOps(p => p.includes(id) ? p.filter(x=>x!==id) : [...p,id])
   }
 
-  const BG='#07100D', S2='#111F15', S3='#16271A'
-  const BORDER='rgba(255,255,255,0.08)', BORDER_HI='rgba(255,255,255,0.14)'
-  const TEXT='#EDF5F0', TEXT2='#7A9A87', TEXT3='#3D5C47'
-  const F="'Inter',-apple-system,sans-serif"
-  const FM="'JetBrains Mono',monospace"
   const inp = {width:'100%',background:S3,border:`1px solid ${BORDER}`,borderRadius:10,color:TEXT,fontFamily:F,fontSize:14,padding:'10px 13px',outline:'none',boxSizing:'border-box' as const}
   const lbl = {display:'block' as const,fontSize:10,fontFamily:FM,letterSpacing:'0.1em',textTransform:'uppercase' as const,color:TEXT3,marginBottom:7}
+  const card = {background:S2,border:`1px solid ${BORDER}`,borderRadius:16,padding:'20px',marginBottom:14}
 
   return (
     <div style={{minHeight:'100vh',background:BG,fontFamily:F,WebkitFontSmoothing:'antialiased'}}>
@@ -119,78 +245,150 @@ export default function NewBookingPage() {
         input::placeholder,textarea::placeholder{color:${TEXT3}}
         select option{background:${S3}}
         ::-webkit-calendar-picker-indicator{filter:invert(1)}
+        .quick-btn{padding:6px 12px;border-radius:8px;border:1px solid ${BORDER};background:transparent;color:${TEXT2};font-size:12px;font-weight:500;cursor:pointer;transition:all 0.12s;font-family:${F}}
+        .quick-btn.on{background:rgba(25,201,119,0.12);border-color:${TEAL};color:${TEAL}}
+        .tmpl-btn{padding:7px 11px;border-radius:9px;border:1px solid ${BORDER};background:transparent;color:${TEXT2};font-size:11px;font-weight:600;cursor:pointer;transition:all 0.12s;font-family:${F};white-space:nowrap}
+        .tmpl-btn:hover{background:${S3};color:${TEXT};border-color:${BORDER_HI}}
       `}</style>
 
       {/* Nav */}
-      <nav style={{borderBottom:`1px solid ${BORDER}`,background:'rgba(7,16,13,0.9)',backdropFilter:'blur(20px)',padding:'0 24px',height:56,display:'flex',alignItems:'center',gap:16,position:'sticky',top:0,zIndex:40}}>
-        <Link href="/bookings" style={{color:TEXT2,textDecoration:'none',display:'flex',alignItems:'center',gap:6,fontSize:13}}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-          Bookings
-        </Link>
-        <span style={{color:BORDER_HI}}>|</span>
-        <span style={{fontWeight:700,fontSize:15,color:TEXT}}>New Booking</span>
+      <nav style={{borderBottom:`1px solid ${BORDER}`,background:'rgba(7,16,13,0.92)',backdropFilter:'blur(20px)',padding:'0 24px',height:56,display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:40}}>
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <Link href="/bookings" style={{color:TEXT2,textDecoration:'none',display:'flex',alignItems:'center',gap:6,fontSize:13}}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            Bookings
+          </Link>
+          <span style={{color:BORDER_HI}}>|</span>
+          <span style={{fontWeight:700,fontSize:15,color:TEXT}}>New Booking</span>
+        </div>
+        {/* Step pills */}
+        <div style={{display:'flex',alignItems:'center',gap:6}}>
+          {[{n:1,l:'Customer'},{n:2,l:'Itinerary'}].map(({n,l},i)=>(
+            <div key={n} style={{display:'flex',alignItems:'center',gap:6}}>
+              <div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 12px',borderRadius:100,background:step===n?'rgba(25,201,119,0.12)':'transparent',border:`1px solid ${step===n?TEAL:BORDER}`}}>
+                <div style={{width:18,height:18,borderRadius:'50%',background:step>n?TEAL:step===n?TEAL:S3,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:'#fff',flexShrink:0}}>
+                  {step>n?'✓':n}
+                </div>
+                <span style={{fontSize:12,fontWeight:600,color:step===n?TEAL:TEXT3}}>{l}</span>
+              </div>
+              {i===0&&<div style={{width:16,height:1,background:BORDER_HI}}/>}
+            </div>
+          ))}
+        </div>
       </nav>
 
-      <main style={{maxWidth:720,margin:'0 auto',padding:'32px 24px'}}>
-        <h1 style={{fontSize:22,fontWeight:800,letterSpacing:'-0.03em',color:TEXT,marginBottom:28}}>New Booking</h1>
+      <main style={{maxWidth:680,margin:'0 auto',padding:'28px 24px 80px'}}>
 
-        <form onSubmit={handleSubmit}>
-          {/* Booking Details */}
-          <div style={{background:S2,border:`1px solid ${BORDER}`,borderRadius:16,padding:'24px 20px',marginBottom:20}}>
-            <h2 style={{fontSize:13,fontFamily:FM,letterSpacing:'0.08em',textTransform:'uppercase',color:TEAL,marginBottom:20}}>Booking Details</h2>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
-              <div style={{gridColumn:'1/-1'}}>
-                <label style={lbl}>Client Name *</label>
-                <input style={inp} value={form.client_name} onChange={e=>setF('client_name',e.target.value)} required placeholder="e.g. Wang Family" />
-              </div>
-              <div>
-                <label style={lbl}>Booking Type</label>
-                <select style={inp} value={form.booking_type} onChange={e=>setF('booking_type',e.target.value)}>
-                  {BOOKING_TYPES.map(t=><option key={t} value={t}>{t.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={lbl}>Flight Number</label>
-                <input style={inp} value={form.flight_number} onChange={e=>setF('flight_number',e.target.value)} placeholder="TG305 (optional)" />
-              </div>
-              <div>
-                <label style={lbl}>Adults</label>
-                <input style={inp} type="number" min="1" value={form.adults_count} onChange={e=>setF('adults_count',Number(e.target.value))} />
-              </div>
-              <div>
-                <label style={lbl}>Children</label>
-                <input style={inp} type="number" min="0" value={form.children_count} onChange={e=>setF('children_count',Number(e.target.value))} />
-              </div>
-              <div style={{gridColumn:'1/-1'}}>
-                <label style={lbl}>Special Requirements</label>
-                <textarea style={{...inp,resize:'none'}} rows={2} value={form.special_requirements} onChange={e=>setF('special_requirements',e.target.value)} placeholder="Wheelchair, baby seat, etc." />
-              </div>
-              <div style={{gridColumn:'1/-1'}}>
-                <label style={lbl}>Internal Notes</label>
-                <textarea style={{...inp,resize:'none'}} rows={2} value={form.notes} onChange={e=>setF('notes',e.target.value)} placeholder="Visible only to your team" />
-              </div>
-            </div>
-          </div>
+        {/* ═══ STEP 1: Customer ═══ */}
+        {step===1&&(
+          <div>
+            <h1 style={{fontSize:21,fontWeight:800,letterSpacing:'-0.03em',color:TEXT,marginBottom:4}}>Customer Details</h1>
+            <p style={{fontSize:13,color:TEXT2,marginBottom:24}}>Basic info and number of days</p>
 
-          {/* Trip Days */}
-          <div style={{marginBottom:20}}>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
-              <h2 style={{fontSize:13,fontFamily:FM,letterSpacing:'0.08em',textTransform:'uppercase',color:TEAL}}>Trip Days ({form.days.length})</h2>
-              <button type="button" onClick={addDay} style={{padding:'6px 14px',background:'transparent',border:`1px solid ${TEAL}`,color:TEAL,borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:F}}>+ Add Day</button>
-            </div>
-
-            {form.days.map((day,i)=>(
-              <div key={i} style={{background:S2,border:`1px solid ${BORDER}`,borderRadius:16,padding:'20px',marginBottom:12}}>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
-                  <div style={{display:'flex',alignItems:'center',gap:10}}>
-                    <div style={{width:26,height:26,background:TEAL,borderRadius:7,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#fff'}}>{i+1}</div>
-                    <span style={{fontWeight:600,color:TEXT}}>Day {i+1}</span>
-                  </div>
-                  {form.days.length>1&&(
-                    <button type="button" onClick={()=>removeDay(i)} style={{padding:'3px 10px',background:'transparent',border:'1px solid rgba(248,113,113,0.3)',color:'#F87171',borderRadius:6,fontSize:12,cursor:'pointer',fontFamily:F}}>Remove</button>
-                  )}
+            <div style={card}>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+                {/* Client name */}
+                <div style={{gridColumn:'1/-1'}}>
+                  <label style={lbl}>Client / Group Name *</label>
+                  <input style={inp} value={clientName} onChange={e=>setClientName(e.target.value)} placeholder="e.g. Wang Family, ABC Corp Tour" />
                 </div>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+                {/* Mobile */}
+                <div>
+                  <label style={lbl}>Mobile Number *</label>
+                  <input style={inp} value={mobileNumber} onChange={e=>setMobileNumber(e.target.value)} placeholder="+66 81 234 5678" type="tel" />
+                </div>
+                {/* Contact person */}
+                <div>
+                  <label style={lbl}>Contact Person</label>
+                  <input style={inp} value={contactPerson} onChange={e=>setContactPerson(e.target.value)} placeholder="Guide / Agent name" />
+                </div>
+                {/* Number of days */}
+                <div>
+                  <label style={lbl}>Number of Days *</label>
+                  <input style={inp} type="number" min="1" max="30" value={numDays} onChange={e=>setNumDays(Number(e.target.value))} />
+                </div>
+                {/* Total pax */}
+                <div>
+                  <label style={lbl}>Total Group Size *</label>
+                  <input style={inp} type="number" min="1" value={totalPax} onChange={e=>setTotalPax(Number(e.target.value))} placeholder="Total pax" />
+                </div>
+                {/* Booking type */}
+                <div style={{gridColumn:'1/-1'}}>
+                  <label style={lbl}>Booking Type</label>
+                  <div style={{display:'flex',gap:8,flexWrap:'wrap' as const}}>
+                    {BOOKING_TYPES.map(bt=>(
+                      <button key={bt.v} type="button" className={`quick-btn ${bookingType===bt.v?'on':''}`} onClick={()=>setBookingType(bt.v)}>{bt.l}</button>
+                    ))}
+                  </div>
+                </div>
+                {/* Special requirements */}
+                <div style={{gridColumn:'1/-1'}}>
+                  <label style={lbl}>Special Requirements</label>
+                  <div style={{display:'flex',gap:6,flexWrap:'wrap' as const,marginBottom:10}}>
+                    {QUICK_REQS.map(r=>(
+                      <button key={r} type="button" className={`quick-btn ${quickReqs.includes(r)?'on':''}`} onClick={()=>toggleReq(r)}>{r}</button>
+                    ))}
+                  </div>
+                  <textarea style={{...inp,resize:'none'}} rows={2} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Any other requirements..." />
+                </div>
+              </div>
+            </div>
+
+            <button type="button" onClick={goToStep2}
+              style={{width:'100%',padding:'14px',background:TEAL,color:'#fff',border:'none',borderRadius:12,fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:F,boxShadow:'0 4px 16px rgba(25,201,119,0.3)'}}>
+              Next: Add {numDays} Day{numDays>1?'s':''} Itinerary →
+            </button>
+          </div>
+        )}
+
+        {/* ═══ STEP 2: Itinerary ═══ */}
+        {step===2&&(
+          <form onSubmit={handleSubmit}>
+            <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:20}}>
+              <div>
+                <h1 style={{fontSize:21,fontWeight:800,letterSpacing:'-0.03em',color:TEXT,marginBottom:4}}>Trip Itinerary</h1>
+                <p style={{fontSize:13,color:TEXT2}}>
+                  <span style={{color:TEAL,fontWeight:600}}>{clientName}</span>
+                  {' · '}{totalPax} pax{' · '}{days.length} day{days.length>1?'s':''}
+                </p>
+              </div>
+              <button type="button" onClick={()=>setDays(prev=>[...prev,makeDay(totalPax)])}
+                style={{padding:'7px 14px',background:'transparent',border:`1px solid ${TEAL}`,color:TEAL,borderRadius:9,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:F,flexShrink:0}}>+ Add Day</button>
+            </div>
+
+            {days.map((day,i)=>(
+              <div key={i} style={{...card,position:'relative'}}>
+                {/* Day header */}
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10}}>
+                    <div style={{width:28,height:28,background:TEAL,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:800,color:'#fff',flexShrink:0}}>D{i+1}</div>
+                    <span style={{fontWeight:700,fontSize:14,color:TEXT}}>Day {i+1}</span>
+                    <span style={{fontSize:12,color:TEXT2}}>{day.pax_count} pax</span>
+                  </div>
+                  <div style={{display:'flex',gap:6}}>
+                    {i>0&&<button type="button" onClick={()=>duplicateDay(i-1)}
+                      style={{padding:'3px 9px',background:'transparent',border:`1px solid ${BORDER_HI}`,color:TEXT2,borderRadius:6,fontSize:11,cursor:'pointer',fontFamily:F}}>Copy Day {i}</button>}
+                    {days.length>1&&<button type="button" onClick={()=>setDays(prev=>prev.filter((_,idx)=>idx!==i))}
+                      style={{padding:'3px 9px',background:'transparent',border:'1px solid rgba(248,113,113,0.25)',color:'#F87171',borderRadius:6,fontSize:11,cursor:'pointer',fontFamily:F}}>Remove</button>}
+                  </div>
+                </div>
+
+                {/* Quick templates */}
+                <div style={{marginBottom:14}}>
+                  <div style={{fontSize:10,fontFamily:FM,letterSpacing:'0.08em',textTransform:'uppercase',color:TEXT3,marginBottom:8}}>Quick Template</div>
+                  <div style={{display:'flex',gap:6,flexWrap:'wrap' as const}}>
+                    {TRIP_TYPES.map(tt=>(
+                      <button key={tt.v} type="button" className="tmpl-btn"
+                        style={{background:day.trip_type===tt.v?'rgba(25,201,119,0.1)':'transparent',borderColor:day.trip_type===tt.v?TEAL:BORDER,color:day.trip_type===tt.v?TEAL:TEXT2}}
+                        onClick={()=>applyTemplate(i,tt.v)}>{tt.l}</button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{height:1,background:BORDER,marginBottom:14}}/>
+
+                {/* Day fields */}
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
                   <div>
                     <label style={lbl}>Date *</label>
                     <input style={inp} type="date" value={day.trip_date} onChange={e=>setDay(i,'trip_date',e.target.value)} required />
@@ -199,64 +397,124 @@ export default function NewBookingPage() {
                     <label style={lbl}>Pickup Time</label>
                     <input style={inp} type="time" value={day.pickup_time} onChange={e=>setDay(i,'pickup_time',e.target.value)} />
                   </div>
-                  <div style={{gridColumn:'1/-1'}}>
+
+                  {/* Pickup */}
+                  <div style={{gridColumn:'1/-1',position:'relative'}}>
                     <label style={lbl}>Pickup Location *</label>
-                    <input style={inp} value={day.pickup_location} onChange={e=>setDay(i,'pickup_location',e.target.value)} required placeholder="e.g. Suvarnabhumi Airport" />
+                    <input style={inp} value={day.pickup_location}
+                      onChange={e=>setDay(i,'pickup_location',e.target.value)}
+                      onFocus={()=>setLocationSuggest({dayIdx:i,field:'pickup'})}
+                      onBlur={()=>setTimeout(()=>setLocationSuggest(null),150)}
+                      required placeholder="e.g. Suvarnabhumi Airport" />
+                    {locationSuggest?.dayIdx===i&&locationSuggest.field==='pickup'&&(
+                      <div style={{position:'absolute',top:'100%',left:0,right:0,background:S2,border:`1px solid ${BORDER_HI}`,borderRadius:10,zIndex:50,overflow:'hidden',boxShadow:'0 8px 24px rgba(0,0,0,0.5)'}}>
+                        {SAVED_LOCATIONS.filter(l=>l.toLowerCase().includes(day.pickup_location.toLowerCase())||day.pickup_location==='')
+                          .slice(0,5).map(loc=>(
+                          <div key={loc} onMouseDown={()=>setDay(i,'pickup_location',loc)}
+                            style={{padding:'10px 14px',cursor:'pointer',fontSize:13,color:TEXT2,borderBottom:`1px solid ${BORDER}`}}
+                            onMouseEnter={e=>(e.currentTarget.style.background=S3)}
+                            onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>{loc}</div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <div style={{gridColumn:'1/-1'}}>
+
+                  {/* Dropoff */}
+                  <div style={{gridColumn:'1/-1',position:'relative'}}>
                     <label style={lbl}>Drop-off Location *</label>
-                    <input style={inp} value={day.dropoff_location} onChange={e=>setDay(i,'dropoff_location',e.target.value)} required placeholder="e.g. Centara Grand Hotel" />
+                    <input style={inp} value={day.dropoff_location}
+                      onChange={e=>setDay(i,'dropoff_location',e.target.value)}
+                      onFocus={()=>setLocationSuggest({dayIdx:i,field:'drop'})}
+                      onBlur={()=>setTimeout(()=>setLocationSuggest(null),150)}
+                      required placeholder="e.g. Centara Grand Hotel" />
+                    {locationSuggest?.dayIdx===i&&locationSuggest.field==='drop'&&(
+                      <div style={{position:'absolute',top:'100%',left:0,right:0,background:S2,border:`1px solid ${BORDER_HI}`,borderRadius:10,zIndex:50,overflow:'hidden',boxShadow:'0 8px 24px rgba(0,0,0,0.5)'}}>
+                        {SAVED_LOCATIONS.filter(l=>l.toLowerCase().includes(day.dropoff_location.toLowerCase())||day.dropoff_location==='')
+                          .slice(0,5).map(loc=>(
+                          <div key={loc} onMouseDown={()=>setDay(i,'dropoff_location',loc)}
+                            style={{padding:'10px 14px',cursor:'pointer',fontSize:13,color:TEXT2,borderBottom:`1px solid ${BORDER}`}}
+                            onMouseEnter={e=>(e.currentTarget.style.background=S3)}
+                            onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>{loc}</div>
+                        ))}
+                      </div>
+                    )}
                   </div>
+
+                  {/* Pax for this day */}
                   <div>
-                    <label style={lbl}>Vehicle Type</label>
+                    <label style={lbl}>Pax This Day</label>
+                    <input style={inp} type="number" min="1" value={day.pax_count}
+                      onChange={e=>setDay(i,'pax_count',Number(e.target.value))} />
+                    <div style={{fontSize:11,color:TEXT3,marginTop:4}}>Total group: {totalPax}</div>
+                  </div>
+
+                  {/* Vehicle */}
+                  <div>
+                    <label style={lbl}>Vehicle <span style={{color:TEAL,fontWeight:400}}>(auto-suggested)</span></label>
                     <select style={inp} value={day.vehicle_type} onChange={e=>setDay(i,'vehicle_type',e.target.value)}>
-                      {VEHICLE_TYPES.map(t=><option key={t} value={t}>{t.replace(/_/g,' ')}</option>)}
+                      {VEHICLE_TYPES.map(vt=>(<option key={vt.v} value={vt.v}>{vt.l}</option>))}
                     </select>
                   </div>
-                  <div>
-                    <label style={lbl}>Passengers</label>
-                    <input style={inp} type="number" min="1" value={day.pax_count} onChange={e=>setDay(i,'pax_count',Number(e.target.value))} />
+
+                  {/* Flight / terminal — show if airport trip */}
+                  {(day.trip_type==='airport_pickup'||day.trip_type==='airport_drop')&&<>
+                    <div>
+                      <label style={lbl}>Flight Number</label>
+                      <input style={inp} value={day.flight_number} onChange={e=>setDay(i,'flight_number',e.target.value)} placeholder="TG305" />
+                    </div>
+                    <div>
+                      <label style={lbl}>Terminal</label>
+                      <input style={inp} value={day.terminal} onChange={e=>setDay(i,'terminal',e.target.value)} placeholder="T1, T2..." />
+                    </div>
+                  </>}
+
+                  {/* Day notes */}
+                  <div style={{gridColumn:'1/-1'}}>
+                    <label style={lbl}>Day Notes (optional)</label>
+                    <input style={inp} value={day.notes} onChange={e=>setDay(i,'notes',e.target.value)} placeholder="Special instructions for this day" />
                   </div>
                 </div>
               </div>
             ))}
-          </div>
 
-          {/* Submit */}
-          <button type="submit" disabled={submitting} style={{width:'100%',padding:'14px',background:submitting?'#148f55':TEAL,color:'#fff',border:'none',borderRadius:12,fontSize:15,fontWeight:700,cursor:submitting?'not-allowed':'pointer',fontFamily:F,boxShadow:'0 4px 16px rgba(25,201,119,0.3)',letterSpacing:'-0.01em'}}>
-            {submitting?'Saving booking...':'Save & Send to Operator →'}
-          </button>
-        </form>
+            <div style={{display:'flex',gap:10,marginTop:8}}>
+              <button type="button" onClick={()=>setStep(1)}
+                style={{padding:'13px 20px',background:'transparent',border:`1px solid ${BORDER_HI}`,color:TEXT2,borderRadius:12,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:F,flexShrink:0}}>← Back</button>
+              <button type="submit" disabled={submitting}
+                style={{flex:1,padding:'13px',background:submitting?'#148f55':TEAL,color:'#fff',border:'none',borderRadius:12,fontSize:15,fontWeight:700,cursor:submitting?'not-allowed':'pointer',fontFamily:F,boxShadow:'0 4px 16px rgba(25,201,119,0.3)'}}>
+                {submitting?'Saving...':'Save Booking →'}
+              </button>
+            </div>
+          </form>
+        )}
       </main>
 
-      {/* ── Operator Dispatch Modal ── */}
+      {/* ═══ OPERATOR DISPATCH MODAL ═══ */}
       {showDispatch&&(
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.8)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:24}}>
-          <div style={{background:S2,border:`1px solid ${BORDER_HI}`,borderRadius:20,width:'100%',maxWidth:520,maxHeight:'88vh',display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 32px 80px rgba(0,0,0,0.7)'}}>
-
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.82)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+          <div style={{background:S2,border:`1px solid ${BORDER_HI}`,borderRadius:20,width:'100%',maxWidth:500,maxHeight:'88vh',display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 32px 80px rgba(0,0,0,0.7)'}}>
             {sent?(
               <div style={{padding:56,textAlign:'center'}}>
-                <div style={{fontSize:52,marginBottom:16}}>✅</div>
+                <div style={{fontSize:52,marginBottom:14}}>✅</div>
                 <h3 style={{fontWeight:800,fontSize:20,color:TEXT,marginBottom:8}}>Sent via LINE!</h3>
-                <p style={{color:TEXT2,fontSize:14}}>Operator will receive the job notification now.</p>
-                <p style={{color:TEXT3,fontSize:12,marginTop:8}}>Redirecting to bookings...</p>
+                <p style={{color:TEXT2,fontSize:14}}>Operator will receive the booking now.</p>
               </div>
             ):(
               <>
-                {/* Header */}
-                <div style={{padding:'20px 24px',borderBottom:`1px solid ${BORDER}`,display:'flex',alignItems:'flex-start',justifyContent:'space-between'}}>
+                <div style={{padding:'18px 22px',borderBottom:`1px solid ${BORDER}`,display:'flex',alignItems:'flex-start',justifyContent:'space-between'}}>
                   <div>
-                    <h3 style={{fontWeight:800,fontSize:17,color:TEXT,marginBottom:3}}>Send Booking to Operator</h3>
-                    <p style={{fontSize:12,color:TEXT2}}>Booking saved ✔ Choose who receives this job via LINE</p>
+                    <h3 style={{fontWeight:800,fontSize:16,color:TEXT,marginBottom:3}}>Send to Operator via LINE</h3>
+                    <p style={{fontSize:12,color:TEXT2}}>Booking saved ✔ {days.length} day{days.length>1?'s':''} · {clientName}</p>
                   </div>
-                  <button onClick={()=>setShowDispatch(false)} style={{width:28,height:28,borderRadius:'50%',background:S3,border:`1px solid ${BORDER}`,color:TEXT2,cursor:'pointer',fontSize:18,lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginLeft:12}}>×</button>
+                  <button onClick={()=>{setShowDispatch(false);router.push('/bookings')}} style={{width:26,height:26,borderRadius:'50%',background:S3,border:`1px solid ${BORDER}`,color:TEXT2,cursor:'pointer',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginLeft:10}}>×</button>
                 </div>
 
-                {/* Mode picker */}
-                <div style={{padding:'16px 24px 0'}}>
+                {/* Mode */}
+                <div style={{padding:'14px 22px 0'}}>
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
-                    {([['single','Single Operator','Best for one'],['multiple','Multiple','Pick several'],['pool','Broadcast All','First to accept']] as const).map(([mode,label,sub])=>(
-                      <button key={mode} onClick={()=>{setDispatchMode(mode);setSelectedOps([])}} type="button" style={{padding:'11px 10px',background:dispatchMode===mode?'rgba(25,201,119,0.1)':S3,border:`2px solid ${dispatchMode===mode?TEAL:BORDER}`,borderRadius:12,cursor:'pointer',textAlign:'left',transition:'all 0.15s',fontFamily:F}}>
+                    {([['single','Single','One operator'],['multiple','Multiple','Select several'],['pool','Broadcast','First accepts']] as const).map(([mode,label,sub])=>(
+                      <button key={mode} onClick={()=>{setDispatchMode(mode);setSelectedOps([])}} type="button"
+                        style={{padding:'10px 8px',background:dispatchMode===mode?'rgba(25,201,119,0.1)':S3,border:`2px solid ${dispatchMode===mode?TEAL:BORDER}`,borderRadius:11,cursor:'pointer',textAlign:'left',fontFamily:F}}>
                         <div style={{fontSize:12,fontWeight:700,color:dispatchMode===mode?TEAL:TEXT,marginBottom:2}}>{label}</div>
                         <div style={{fontSize:10,color:TEXT3}}>{sub}</div>
                       </button>
@@ -264,56 +522,46 @@ export default function NewBookingPage() {
                   </div>
                 </div>
 
-                {/* Operator list OR Pool message */}
+                {/* Operator list */}
                 {dispatchMode!=='pool'?(
-                  <div style={{flex:1,overflowY:'auto',padding:'14px 24px'}}>
-                    <div style={{fontSize:10,fontFamily:FM,letterSpacing:'0.1em',textTransform:'uppercase',color:TEXT3,marginBottom:10}}>
-                      {operators.length} active operators
-                    </div>
+                  <div style={{flex:1,overflowY:'auto',padding:'12px 22px'}}>
+                    <div style={{fontSize:10,fontFamily:FM,letterSpacing:'0.1em',textTransform:'uppercase',color:TEXT3,marginBottom:8}}>{operators.length} active operators</div>
                     {operators.length===0?(
-                      <div style={{padding:'28px 0',textAlign:'center',color:TEXT2,fontSize:13}}>No active operators. Add operators via Admin panel.</div>
+                      <div style={{padding:'24px 0',textAlign:'center',color:TEXT2,fontSize:13}}>No active operators yet.</div>
                     ):operators.map(op=>{
-                      const sel = selectedOps.includes(op.id)
+                      const sel=selectedOps.includes(op.id)
                       return (
-                        <div key={op.id} onClick={()=>toggleOp(op.id)} style={{display:'flex',alignItems:'center',gap:14,padding:'12px 14px',background:sel?'rgba(25,201,119,0.08)':'transparent',border:`1px solid ${sel?TEAL:BORDER}`,borderRadius:12,marginBottom:8,cursor:'pointer',transition:'all 0.12s'}}>
-                          <div style={{width:38,height:38,borderRadius:10,background:sel?TEAL:S3,display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,fontWeight:800,color:sel?'#fff':TEXT2,flexShrink:0}}>
-                            {op.company_name.charAt(0).toUpperCase()}
-                          </div>
+                        <div key={op.id} onClick={()=>toggleOp(op.id)}
+                          style={{display:'flex',alignItems:'center',gap:12,padding:'11px 12px',background:sel?'rgba(25,201,119,0.08)':'transparent',border:`1px solid ${sel?TEAL:BORDER}`,borderRadius:11,marginBottom:7,cursor:'pointer',transition:'all 0.12s'}}>
+                          <div style={{width:36,height:36,borderRadius:9,background:sel?TEAL:S3,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:800,color:sel?'#fff':TEXT2,flexShrink:0}}>{op.company_name.charAt(0)}</div>
                           <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontWeight:600,fontSize:14,color:TEXT,marginBottom:2}}>{op.company_name}</div>
-                            <div style={{fontSize:12,color:TEXT2}}>
-                              {op.base_location||'No location'}
-                              {op.line_user_id?' · 📱 LINE connected':' · No LINE ID'}
-                              {op.is_verified?' · ✓ Verified':''}
-                            </div>
+                            <div style={{fontWeight:600,fontSize:13,color:TEXT}}>{op.company_name}</div>
+                            <div style={{fontSize:11,color:TEXT2}}>{op.base_location||'—'}{op.line_user_id?' · 📱 LINE':' · No LINE'}{op.is_verified?' · ✓':''}</div>
                           </div>
-                          <div style={{width:20,height:20,borderRadius:'50%',background:sel?TEAL:'transparent',border:`2px solid ${sel?TEAL:BORDER_HI}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                            {sel&&<span style={{color:'#fff',fontSize:11,lineHeight:1}}>✓</span>}
+                          <div style={{width:18,height:18,borderRadius:'50%',background:sel?TEAL:'transparent',border:`2px solid ${sel?TEAL:BORDER_HI}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                            {sel&&<span style={{color:'#fff',fontSize:10}}>✓</span>}
                           </div>
                         </div>
                       )
                     })}
                   </div>
                 ):(
-                  <div style={{padding:'32px 24px',textAlign:'center'}}>
-                    <div style={{fontSize:40,marginBottom:12}}>📡</div>
-                    <p style={{color:TEXT,fontWeight:700,fontSize:15,marginBottom:6}}>Broadcast to All Operators</p>
-                    <p style={{color:TEXT2,fontSize:13,lineHeight:1.6}}>{operators.length} active operators will receive this job simultaneously via LINE.
-The first operator to accept gets the booking.</p>
+                  <div style={{padding:'28px 22px',textAlign:'center'}}>
+                    <div style={{fontSize:36,marginBottom:10}}>📡</div>
+                    <p style={{color:TEXT,fontWeight:700,fontSize:14,marginBottom:4}}>Broadcast to All Operators</p>
+                    <p style={{color:TEXT2,fontSize:12}}>{operators.length} operators get this simultaneously. First to accept wins.</p>
                   </div>
                 )}
 
-                {/* Footer buttons */}
-                <div style={{padding:'14px 24px 20px',borderTop:`1px solid ${BORDER}`,display:'flex',flexDirection:'column',gap:8}}>
+                <div style={{padding:'12px 22px 18px',borderTop:`1px solid ${BORDER}`,display:'flex',flexDirection:'column',gap:7}}>
                   <button onClick={handleDispatch} disabled={sending||(dispatchMode!=='pool'&&selectedOps.length===0)} type="button"
-                    style={{width:'100%',padding:'13px',background:(sending||(dispatchMode!=='pool'&&selectedOps.length===0))?S3:TEAL,color:(dispatchMode!=='pool'&&selectedOps.length===0)?TEXT3:'#fff',border:'none',borderRadius:12,fontSize:14,fontWeight:700,cursor:(sending||(dispatchMode!=='pool'&&selectedOps.length===0))?'not-allowed':'pointer',fontFamily:F,transition:'all 0.15s'}}>
-                    {sending?'Sending via LINE...':
+                    style={{width:'100%',padding:'12px',background:(sending||(dispatchMode!=='pool'&&selectedOps.length===0))?S3:TEAL,color:(dispatchMode!=='pool'&&selectedOps.length===0)?TEXT3:'#fff',border:'none',borderRadius:11,fontSize:14,fontWeight:700,cursor:(sending||(dispatchMode!=='pool'&&selectedOps.length===0))?'not-allowed':'pointer',fontFamily:F}}>
+                    {sending?'Sending...':
                      dispatchMode==='pool'?`📡 Broadcast to All ${operators.length} Operators`:
-                     `📱 Send to ${selectedOps.length||0} Operator${selectedOps.length!==1?'s':''} via LINE`}
+                     `📱 Send to ${selectedOps.length} Operator${selectedOps.length!==1?'s':''} via LINE`}
                   </button>
-                  <button onClick={skipDispatch} type="button" style={{width:'100%',padding:'10px',background:'transparent',border:'none',color:TEXT3,fontSize:13,cursor:'pointer',fontFamily:F}}>
-                    Skip — notify later
-                  </button>
+                  <button onClick={()=>{setShowDispatch(false);router.push('/bookings')}} type="button"
+                    style={{width:'100%',padding:'9px',background:'transparent',border:'none',color:TEXT3,fontSize:12,cursor:'pointer',fontFamily:F}}>Skip — notify later</button>
                 </div>
               </>
             )}
