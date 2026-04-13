@@ -12,6 +12,7 @@ const NAV_EN = [
   { href: '/admin/vehicles', icon: '🚗', label: 'Vehicles' },
   { href: '/admin/bookings', icon: '📋', label: 'Bookings' },
   { href: '/admin/subscriptions', icon: '💳', label: 'Subscriptions' },
+  { href: '/admin/pending', icon: '🔔', label: 'Pending Verification' },
   { href: '/admin/support', icon: '🎧', label: 'Support' },
 ]
 const NAV_TH = [
@@ -22,6 +23,7 @@ const NAV_TH = [
   { href: '/admin/vehicles', icon: '🚗', label: 'ยานพาหนะ' },
   { href: '/admin/bookings', icon: '📋', label: 'การจอง' },
   { href: '/admin/subscriptions', icon: '💳', label: 'การสมัครสมาชิก' },
+  { href: '/admin/pending', icon: '🔔', label: 'รอการยืนยัน' },
   { href: '/admin/support', icon: '🎧', label: 'ซัพพอร์ต' },
 ]
 
