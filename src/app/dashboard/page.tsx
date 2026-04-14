@@ -46,6 +46,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [time, setTime] = useState(new Date())
   const [hovered, setHovered] = useState<string|null>(null)
+  const [lineLinked, setLineLinked] = useState<boolean|null>(null)
+  const [lineCode, setLineCode] = useState<string>('')
+  const [lineCodeLoading, setLineCodeLoading] = useState(false)
 
   useEffect(() => {
     setInterval(() => setTime(new Date()), 30000)
@@ -81,6 +84,16 @@ export default function DashboardPage() {
     setLangState(n); localStorage.setItem('riden_lang', n)
   }
   async function signOut() { await createClient().auth.signOut(); router.push('/login') }
+  async function generateLineCode() {
+    setLineCodeLoading(true)
+    const { data: { user: u } } = await createClient().auth.getUser()
+    if (!u) return
+    const res = await fetch((process.env.NEXT_PUBLIC_SUPABASE_URL||'')+'/functions/v1/dmc-link-line', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ dmc_id: u.id }) })
+    const data = await res.json()
+    if (data.already_linked) setLineLinked(true)
+    else if (data.code) setLineCode(data.code)
+    setLineCodeLoading(false)
+  }
 
   const C = themeColors(theme)
   const t = T[lang]
@@ -163,7 +176,31 @@ export default function DashboardPage() {
           <p style={{ fontSize:13.5, color:C.text2 }}>{time.toLocaleDateString(lang==='en'?'en-GB':'th-TH', {weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p>
         </div>
 
-        {/* Stats */}
+        {lineLinked === false && (
+        <div style={{ marginBottom:20, padding:'14px 18px', background:'rgba(0,112,255,0.07)', border:'1px solid rgba(96,165,250,0.25)', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, flexWrap:'wrap' as const }}>
+          <div>
+            <div style={{ fontWeight:700, fontSize:14, color:'#60A5FA', marginBottom:2 }}>📱 Link LINE for Emergency Alerts</div>
+            <div style={{ fontSize:13, color:C.text2 }}>Receive instant LINE messages if a driver cancels or a critical issue occurs.</div>
+          </div>
+          {!lineCode ? (
+            <button onClick={generateLineCode} disabled={lineCodeLoading} style={{ padding:'9px 18px', background:'#06C755', color:'#fff', border:'none', borderRadius:9, fontSize:13, fontWeight:700, cursor:'pointer', flexShrink:0, opacity:lineCodeLoading?0.6:1 }}>
+              {lineCodeLoading ? '...' : 'Get Link Code'}
+            </button>
+          ) : (
+            <div style={{ flexShrink:0 }}>
+              <div style={{ fontSize:11, color:C.text3, marginBottom:4 }}>Open RIDEN LINE bot and type this code:</div>
+              <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:20, fontWeight:800, color:'#06C755', letterSpacing:2, background:'rgba(6,199,85,0.1)', padding:'8px 16px', borderRadius:8 }}>{lineCode}</div>
+              <div style={{ fontSize:11, color:C.text3, marginTop:4 }}>Valid for 24 hours</div>
+            </div>
+          )}
+        </div>
+      )}
+      {lineLinked === true && (
+        <div style={{ marginBottom:14, padding:'10px 16px', background:'rgba(25,201,119,0.08)', border:'1px solid rgba(25,201,119,0.2)', borderRadius:10, fontSize:13, color:'#19C977' }}>
+          ✅ LINE linked — you will receive emergency alerts on LINE.
+        </div>
+      )}
+      {/* Stats */}
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:24 }}>
           {STATS.map((s, i) => (
             <div key={s.label} style={{ background:C.s2, border:`1px solid ${C.border}`, borderRadius:16, padding:'20px 18px', transition:'border-color 0.15s' }}>
