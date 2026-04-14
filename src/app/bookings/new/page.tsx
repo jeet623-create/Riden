@@ -43,11 +43,11 @@ function suggestVehicle(pax: number): string {
   return 'coach_40plus'
 }
 
-type Day = { trip_date:string; pickup_time:string; trip_type:string; pickup_location:string; dropoff_location:string; vehicle_type:string; pax_count:number; flight_number:string; terminal:string; notes:string }
+type Day = { trip_date:string; pickup_time:string; trip_type:string; pickup_location:string; dropoff_location:string; vehicle_type:string; pax_count:number; flight_number:string; terminal:string; notes:string; duration_hours:number }
 type Operator = { id:string; company_name:string; status:string; is_verified:boolean; base_location:string|null; line_user_id:string|null }
 
 function makeDay(pax=1, overrides: Partial<Day> = {}): Day {
-  return { trip_date:'', pickup_time:'09:00', trip_type:'airport_pickup', pickup_location:'', dropoff_location:'', vehicle_type:suggestVehicle(pax), pax_count:pax, flight_number:'', terminal:'', notes:'', ...overrides }
+  return { trip_date:'', pickup_time:'09:00', trip_type:'airport_pickup', pickup_location:'', dropoff_location:'', vehicle_type:suggestVehicle(pax), pax_count:pax, flight_number:'', terminal:'', notes:'', duration_hours:8, ...overrides }
 }
 
 export default function NewBookingPage() {
@@ -147,6 +147,7 @@ export default function NewBookingPage() {
         trip_date: d.trip_date, pickup_time: d.pickup_time,
         pickup_location: d.pickup_location, dropoff_location: d.dropoff_location,
         vehicle_type: d.vehicle_type, pax_count: d.pax_count, status: 'pending',
+        estimated_duration_hours: (d.trip_type!=='airport_pickup'&&d.trip_type!=='airport_drop') ? d.duration_hours : null,
         notes: [d.trip_type, d.flight_number, d.terminal, d.notes].filter(Boolean).join(' | ') || null,
       })
     }
@@ -320,6 +321,13 @@ export default function NewBookingPage() {
                       {VEHICLE_TYPES.map(vt=>(<option key={vt.v} value={vt.v}>{vt.l}</option>))}
                     </select>
                   </div>
+                  {/* Duration hours — only for non-airport trips */}
+                  {day.trip_type!=='airport_pickup'&&day.trip_type!=='airport_drop'&&(
+                    <div style={{gridColumn:'1/-1'}}>
+                      <label style={lbl}>Duration (hours) <span style={{color:TEXT3}}>— how many hours is this trip?</span></label>
+                      <input style={inp} type="number" min="1" max="24" step="0.5" value={day.duration_hours} onChange={e=>setDay(i,'duration_hours',parseFloat(e.target.value)||1)} placeholder="e.g. 8" />
+                    </div>
+                  )}
                   {(day.trip_type==='airport_pickup'||day.trip_type==='airport_drop')&&<>
                     <div><label style={lbl}>Flight Number</label><input style={inp} value={day.flight_number} onChange={e=>setDay(i,'flight_number',e.target.value)} placeholder="TG305" /></div>
                     <div><label style={lbl}>Terminal</label><input style={inp} value={day.terminal} onChange={e=>setDay(i,'terminal',e.target.value)} placeholder="T1, T2..." /></div>
