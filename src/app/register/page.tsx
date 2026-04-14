@@ -53,7 +53,7 @@ export default function RegisterPage() {
                 <rect x="9" y="11" width="14" height="10" rx="2"/>
               </svg>
             </div>
-            <span className="font-display text-2xl font-800 text-riden-white tracking-wider">RIDEN</span>
+            <span className="font-display text-2xl font-800 text-riden-white tracking-wider">RIDEN</span><span className="text-riden-muted text-xs ml-1 font-400 tracking-widest">ไรเด็น</span>
           </div>
           <h1 className="font-display text-3xl font-700 text-riden-white mb-2">Create account</h1>
           <p className="text-riden-text text-sm">60 days free trial â no credit card needed</p>
