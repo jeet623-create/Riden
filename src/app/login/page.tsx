@@ -11,63 +11,82 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [lang, setLang] = useState<'en'|'th'>('en')
-  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
     setLang((localStorage.getItem('riden_lang') as 'en'|'th') || 'en')
   }, [])
 
   const T = {
-    en: { h:'Move Thailand.', sub:'The B2B platform connecting DMCs, operators and drivers — seamlessly.', email:'Email address', pass:'Password', btn:'Sign in', noAcc:"Don't have an account?", reg:'Register', forgot:'Forgot password?', welcome:'Welcome back', portal:'Sign in to your DMC portal' },
-    th: { h:'ขับเคลื่อนไทย.', sub:'แพลตฟอร์ม B2B เชื่อมต่อ DMC ผู้ประกอบการ และคนขับ', email:'อีเมล', pass:'รหัสผ่าน', btn:'เข้าสู่ระบบ', noAcc:'ยังไม่มีบัญชี?', reg:'สมัคร', forgot:'ลืมรหัสผ่าน?', welcome:'ยินดีต้อนรับ', portal:'เข้าสู่ระบบพอร์ทัล DMC' }
+    en: {
+      headline: 'Move Thailand.',
+      sub: 'The B2B platform connecting DMCs, operators and drivers.',
+      welcome: 'Welcome back',
+      portal: 'Sign in to your DMC portal',
+      email: 'Email address',
+      pass: 'Password',
+      forgot: 'Forgot password?',
+      btn: 'Sign in',
+      noAcc: "Don't have an account?",
+      reg: 'Register',
+    },
+    th: {
+      headline: 'ขับเคลื่อนไทย.',
+      sub: 'แพลตฟอร์ม B2B เชื่อมต่อ DMC ผู้ประกอบการ และคนขับ',
+      welcome: 'ยินดีต้อนรับ',
+      portal: 'เข้าสู่ระบบพอร์ทัล DMC',
+      email: 'อีเมล',
+      pass: 'รหัสผ่าน',
+      forgot: 'ลืมรหัสผ่าน?',
+      btn: 'เข้าสู่ระบบ',
+      noAcc: 'ยังไม่มีบัญชี?',
+      reg: 'สมัคร',
+    }
   }
   const t = T[lang]
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault(); setLoading(true); setError('')
+    e.preventDefault()
+    setLoading(true)
+    setError('')
     const { error: err } = await createClient().auth.signInWithPassword({ email, password: pass })
-    if (err) { setError(err.message); setLoading(false) } else router.push('/dashboard')
+    if (err) { setError(err.message); setLoading(false) }
+    else router.push('/dashboard')
   }
 
   function switchLang(l: 'en'|'th') { setLang(l); localStorage.setItem('riden_lang', l) }
 
-  const TEAL = '#19C977'
-  const BG = '#07100D'
-  const S2 = '#111F15'
-  const S3 = '#16271A'
-  const BORDER = 'rgba(255,255,255,0.08)'
-  const TEXT = '#EDF5F0'
-  const TEXT2 = '#7A9A87'
-  const TEXT3 = '#3D5C47'
-
   return (
-    <div style={{ minHeight:'100vh', display:'flex', background:BG, fontFamily:"'Inter',-apple-system,sans-serif", WebkitFontSmoothing:'antialiased' }}>
-      {/* Ambient glow */}
-      <div style={{ position:'fixed', top:0, left:0, right:0, bottom:0, pointerEvents:'none', background:'radial-gradient(ellipse 60% 40% at 30% 50%, rgba(25,201,119,0.07) 0%, transparent 60%)' }} />
+    <div style={{ minHeight:'100vh', display:'flex', fontFamily:'var(--font-space)', background:'#fff' }}>
 
-      {/* ── Left brand panel ── */}
-      <div style={{ flex:'0 0 42%', display:'flex', flexDirection:'column', justifyContent:'space-between', padding:'44px 48px', borderRight:`1px solid ${BORDER}`, background:'linear-gradient(160deg, rgba(25,201,119,0.04) 0%, transparent 50%)', position:'relative' }}>
+      {/* ── Left: brand panel (yellow) — hidden on mobile ── */}
+      <div style={{
+        flex:'0 0 44%',
+        background:'var(--yellow)',
+        display:'flex',
+        flexDirection:'column',
+        justifyContent:'space-between',
+        padding:'44px 48px',
+        position:'relative',
+      }} className="hide-mobile">
+
         {/* Logo */}
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <div style={{ width:36, height:36, background:TEAL, borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 24px rgba(25,201,119,0.4), 0 0 0 1px rgba(25,201,119,0.3)' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          </div>
-          <span style={{ fontWeight:800, fontSize:20, letterSpacing:'-0.04em', color:TEXT }}>RIDEN</span>
+        <div className="riden-logo">
+          <span className="riden-logo-main" style={{ fontSize:22, color:'var(--dark)' }}>RIDEN</span>
+          <span className="riden-logo-thai" style={{ fontSize:11, color:'var(--dark)' }}>ไรเด็น</span>
         </div>
 
-        {/* Main content */}
+        {/* Main copy */}
         <div>
-          <div style={{ fontSize:11, fontFamily:"'JetBrains Mono',monospace", letterSpacing:'0.12em', textTransform:'uppercase', color:TEAL, marginBottom:20, opacity:0.8 }}>B2B Tourism Transport · Thailand</div>
-          <h1 style={{ fontSize:58, fontWeight:900, letterSpacing:'-0.05em', lineHeight:1.0, color:TEXT, marginBottom:20 }}>{t.h}</h1>
-          <p style={{ fontSize:16, color:TEXT2, lineHeight:1.65, maxWidth:340, marginBottom:48 }}>{t.sub}</p>
+          <p style={{ fontFamily:'var(--font-space)', fontSize:11, fontWeight:500, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--dark)', opacity:0.5, marginBottom:20 }}>B2B Tourism Transport · Thailand</p>
+          <h1 style={{ fontFamily:'var(--font-syne)', fontWeight:800, fontSize:'clamp(52px,5.5vw,76px)', letterSpacing:'-0.04em', lineHeight:0.95, color:'var(--dark)', marginBottom:24 }}>{t.headline}</h1>
+          <p style={{ fontSize:16, color:'var(--dark)', opacity:0.55, lineHeight:1.65, maxWidth:320, marginBottom:52 }}>{t.sub}</p>
 
-          {/* Stats row */}
-          <div style={{ display:'flex', gap:36 }}>
-            {[['12+','Edge Functions'],['15','DB Tables'],['3','Countries']].map(([n, l]) => (
+          {/* Stat blocks */}
+          <div style={{ display:'flex', gap:40 }}>
+            {[['12+','Edge Functions'],['20','DB Tables'],['3','Countries']].map(([n, l]) => (
               <div key={l}>
-                <div style={{ fontSize:30, fontWeight:800, letterSpacing:'-0.04em', color:TEAL, lineHeight:1 }}>{n}</div>
-                <div style={{ fontSize:10, fontFamily:"'JetBrains Mono',monospace", letterSpacing:'0.1em', textTransform:'uppercase', color:TEXT3, marginTop:4 }}>{l}</div>
+                <div style={{ fontFamily:'var(--font-syne)', fontWeight:800, fontSize:36, letterSpacing:'-0.04em', color:'var(--dark)', lineHeight:1 }}>{n}</div>
+                <div style={{ fontFamily:'var(--font-space)', fontSize:10, fontWeight:500, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--dark)', opacity:0.45, marginTop:5 }}>{l}</div>
               </div>
             ))}
           </div>
@@ -75,19 +94,44 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div style={{ display:'flex', alignItems:'center', gap:16 }}>
-          <Link href="/privacy" style={{ fontSize:12, color:TEXT3, textDecoration:'none' }}>Privacy Policy</Link>
-          <span style={{ color:BORDER }}>·</span>
-          <span style={{ fontSize:12, color:TEXT3 }}>© 2026 RIDEN Co., Ltd.</span>
+          <Link href="/privacy" style={{ fontFamily:'var(--font-space)', fontSize:11, color:'var(--dark)', opacity:0.45, textDecoration:'none' }}>Privacy Policy</Link>
+          <span style={{ color:'var(--dark)', opacity:0.2 }}>·</span>
+          <span style={{ fontFamily:'var(--font-space)', fontSize:11, color:'var(--dark)', opacity:0.45 }}>© 2026 RIDEN Co., Ltd.</span>
         </div>
       </div>
 
-      {/* ── Right form panel ── */}
-      <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:48, position:'relative' }}>
-        {/* Lang toggle — top right */}
-        <div style={{ position:'absolute', top:28, right:32 }}>
-          <div style={{ display:'inline-flex', background:S3, border:`1px solid ${BORDER}`, borderRadius:100, padding:3, gap:2 }}>
+      {/* ── Right: form panel (white) ── */}
+      <div style={{
+        flex:1,
+        display:'flex',
+        flexDirection:'column',
+        alignItems:'center',
+        justifyContent:'center',
+        padding:'clamp(24px, 5vw, 64px)',
+        background:'#fff',
+        position:'relative',
+        minHeight:'100vh',
+      }}>
+
+        {/* Mobile logo */}
+        <div style={{ position:'absolute', top:24, left:24 }} className="hide-desktop">
+          <div className="riden-logo">
+            <span className="riden-logo-main" style={{ fontSize:20, color:'var(--dark)' }}>RIDEN</span>
+            <span className="riden-logo-thai" style={{ fontSize:10, color:'var(--dark)' }}>ไรเด็น</span>
+          </div>
+        </div>
+
+        {/* Lang toggle */}
+        <div style={{ position:'absolute', top:24, right:24 }}>
+          <div style={{ display:'inline-flex', background:'var(--gray5)', border:'0.5px solid var(--gray4)', borderRadius:20, padding:2 }}>
             {(['en','th'] as const).map(l => (
-              <button key={l} onClick={() => switchLang(l)} style={{ padding:'5px 14px', borderRadius:100, fontSize:12, fontWeight:600, cursor:'pointer', border:'none', transition:'all 0.15s', background: lang===l ? TEAL : 'transparent', color: lang===l ? '#fff' : TEXT2, boxShadow: lang===l ? '0 1px 4px rgba(25,201,119,0.4)' : 'none', fontFamily:'inherit' }}>
+              <button key={l} onClick={() => switchLang(l)} style={{
+                padding:'5px 14px', borderRadius:20, fontSize:11, fontWeight:600,
+                cursor:'pointer', border:'none', transition:'all 150ms',
+                background: lang===l ? 'var(--dark)' : 'transparent',
+                color: lang===l ? 'var(--yellow)' : 'var(--gray2)',
+                fontFamily:'var(--font-syne)',
+              }}>
                 {l === 'en' ? 'EN' : 'ไทย'}
               </button>
             ))}
@@ -95,38 +139,82 @@ export default function LoginPage() {
         </div>
 
         {/* Form card */}
-        <div style={{ width:'100%', maxWidth:400, background:S2, border:`1px solid ${BORDER}`, borderRadius:20, padding:'40px 36px', boxShadow:'0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)' }}>
-          <h2 style={{ fontSize:26, fontWeight:800, letterSpacing:'-0.03em', color:TEXT, marginBottom:6 }}>{t.welcome}</h2>
-          <p style={{ fontSize:14, color:TEXT2, marginBottom:32 }}>{t.portal}</p>
+        <div style={{ width:'100%', maxWidth:420 }} className="anim-fade-up">
 
-          <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:18 }}>
+          <div style={{ marginBottom:36 }}>
+            <h2 style={{ fontFamily:'var(--font-syne)', fontWeight:700, fontSize:28, letterSpacing:'-0.03em', color:'var(--dark)', marginBottom:6, lineHeight:1.15 }}>{t.welcome}</h2>
+            <p style={{ fontSize:14, color:'var(--gray2)', lineHeight:1.5 }}>{t.portal}</p>
+          </div>
+
+          <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:20 }}>
+
+            {/* Email */}
             <div>
-              <label style={{ display:'block', fontSize:11, fontFamily:"'JetBrains Mono',monospace", letterSpacing:'0.1em', textTransform:'uppercase', color:TEXT3, marginBottom:8 }}>{t.email}</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="company@example.com" style={{ width:'100%', background:S3, border:`1px solid ${BORDER}`, borderRadius:10, color:TEXT, fontSize:14, padding:'11px 14px', outline:'none', fontFamily:'inherit', boxSizing:'border-box', transition:'border-color 0.15s' }}
-                onFocus={e => (e.target.style.borderColor=TEAL, e.target.style.boxShadow='0 0 0 3px rgba(25,201,119,0.12)')}
-                onBlur={e => (e.target.style.borderColor=BORDER, e.target.style.boxShadow='none')} />
+              <label style={{ display:'block', fontFamily:'var(--font-space)', fontSize:11, fontWeight:500, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--gray2)', marginBottom:7 }}>{t.email}</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                placeholder="company@example.com"
+                className="input"
+                style={{ fontSize:14 }}
+              />
             </div>
+
+            {/* Password */}
             <div>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
-                <label style={{ fontSize:11, fontFamily:"'JetBrains Mono',monospace", letterSpacing:'0.1em', textTransform:'uppercase', color:TEXT3 }}>{t.pass}</label>
-                <span style={{ fontSize:12, color:TEAL, cursor:'pointer' }}>{t.forgot}</span>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:7 }}>
+                <label style={{ fontFamily:'var(--font-space)', fontSize:11, fontWeight:500, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--gray2)' }}>{t.pass}</label>
+                <span style={{ fontSize:12, color:'var(--dark)', opacity:0.4, cursor:'pointer', fontFamily:'var(--font-space)' }}>{t.forgot}</span>
               </div>
-              <input type="password" value={pass} onChange={e => setPass(e.target.value)} required placeholder="••••••••" style={{ width:'100%', background:S3, border:`1px solid ${BORDER}`, borderRadius:10, color:TEXT, fontSize:14, padding:'11px 14px', outline:'none', fontFamily:'inherit', boxSizing:'border-box', transition:'border-color 0.15s' }}
-                onFocus={e => (e.target.style.borderColor=TEAL, e.target.style.boxShadow='0 0 0 3px rgba(25,201,119,0.12)')}
-                onBlur={e => (e.target.style.borderColor=BORDER, e.target.style.boxShadow='none')} />
+              <input
+                type="password"
+                value={pass}
+                onChange={e => setPass(e.target.value)}
+                required
+                autoComplete="current-password"
+                placeholder="••••••••"
+                className="input"
+                style={{ fontSize:14 }}
+              />
             </div>
-            {error && <div style={{ padding:'10px 14px', borderRadius:10, background:'rgba(248,113,113,0.08)', border:'1px solid rgba(248,113,113,0.2)', color:'#F87171', fontSize:13 }}>{error}</div>}
-            <button type="submit" disabled={loading} style={{ width:'100%', padding:'13px', background:loading?'#148f55':TEAL, color:'#fff', border:'none', borderRadius:12, fontSize:15, fontWeight:700, cursor:loading?'not-allowed':'pointer', marginTop:4, transition:'all 0.15s', fontFamily:'inherit', boxShadow:'0 4px 16px rgba(25,201,119,0.3)', letterSpacing:'-0.01em' }}
-              onMouseEnter={e => { if(!loading)(e.currentTarget.style.background='#20D980', e.currentTarget.style.transform='translateY(-1px)', e.currentTarget.style.boxShadow='0 8px 24px rgba(25,201,119,0.4)') }}
-              onMouseLeave={e => { if(!loading)(e.currentTarget.style.background=TEAL, e.currentTarget.style.transform='', e.currentTarget.style.boxShadow='0 4px 16px rgba(25,201,119,0.3)') }}>
+
+            {/* Error */}
+            {error && (
+              <div style={{ padding:'10px 14px', borderRadius:8, background:'rgba(255,68,68,0.06)', border:'0.5px solid rgba(255,68,68,0.3)', color:'#CC0000', fontSize:13, fontFamily:'var(--font-space)' }}>
+                {error}
+              </div>
+            )}
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn btn-primary btn-full"
+              style={{ padding:'14px', fontSize:14, marginTop:4, opacity: loading ? 0.6 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
+            >
               {loading ? '...' : t.btn}
             </button>
+
           </form>
 
-          <p style={{ textAlign:'center', marginTop:24, fontSize:13, color:TEXT2 }}>
+          <p style={{ textAlign:'center', marginTop:28, fontSize:13, color:'var(--gray2)', fontFamily:'var(--font-space)' }}>
             {t.noAcc}{' '}
-            <Link href="/register" style={{ color:TEAL, textDecoration:'none', fontWeight:700 }}>{t.reg}</Link>
+            <Link href="/register" style={{ color:'var(--dark)', fontWeight:700, textDecoration:'none', borderBottom:'1px solid var(--yellow)' }}>{t.reg}</Link>
           </p>
+
+          {/* Mobile: show stat strip */}
+          <div className="hide-desktop" style={{ marginTop:48, display:'flex', justifyContent:'center', gap:32 }}>
+            {[['12+','Functions'],['20','Tables'],['3','Countries']].map(([n,l]) => (
+              <div key={l} style={{ textAlign:'center' }}>
+                <div style={{ fontFamily:'var(--font-syne)', fontWeight:800, fontSize:24, letterSpacing:'-0.04em', color:'var(--dark)', lineHeight:1 }}>{n}</div>
+                <div style={{ fontFamily:'var(--font-space)', fontSize:9, fontWeight:500, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--gray2)', marginTop:3 }}>{l}</div>
+              </div>
+            ))}
+          </div>
+
         </div>
       </div>
     </div>
