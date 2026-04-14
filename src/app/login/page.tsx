@@ -53,7 +53,7 @@ export default function LoginPage() {
           <div style={{ width:36, height:36, background:TEAL, borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 24px rgba(25,201,119,0.4), 0 0 0 1px rgba(25,201,119,0.3)' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
-          <span style={{ fontWeight:800, fontSize:20, letterSpacing:'-0.04em', color:TEXT }}>RIDEN</span><span style={{ fontWeight:500, fontSize:10, letterSpacing:'0.04em', color:TEXT, opacity:0.55, marginLeft:5 }}>ไรเด็น</span>
+          <span style={{ fontWeight:800, fontSize:20, letterSpacing:'-0.04em', color:TEXT }}>RIDEN</span><span style={{ fontWeight:500, fontSize:10, letterSpacing:'0.04em', color:TEXT, opacity:0.55, marginLeft:5 }}>ไรเด็น</span><span style={{ fontWeight:500, fontSize:10, letterSpacing:'0.04em', color:TEXT, opacity:0.55, marginLeft:5 }}>ไรเด็น</span>
         </div>
 
         {/* Main content */}
