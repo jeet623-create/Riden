@@ -130,7 +130,7 @@ export default function DashboardPage() {
               <div style={{ width:30, height:30, background:TEAL, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center' }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               </div>
-              <span style={{ fontWeight:800, fontSize:16, letterSpacing:'-0.04em', color:C.text }}>RIDEN</span><span style={{ fontWeight:500, fontSize:10, letterSpacing:'0.04em', color:C.text, opacity:0.55, marginLeft:5 }}>ไรเด็น</span><span style={{ fontWeight:500, fontSize:10, letterSpacing:'0.04em', color:C.text, opacity:0.55, marginLeft:5 }}>ไรเด็น</span>
+              <span style={{ fontWeight:800, fontSize:16, letterSpacing:'-0.04em', color:C.text }}>RIDEN</span><span style={{ fontWeight:500, fontSize:10, letterSpacing:'0.04em', color:C.text, opacity:0.55, marginLeft:5 }}>ไรเด็น</span>
             </div>
             <div style={{ display:'flex', gap:2 }}>
               {t.nav.map((label: string, i: number) => (
