@@ -1,54 +1,107 @@
-'use client'
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import toast from 'react-hot-toast'
+'use client';
+import { useEffect, useState, useCallback } from 'react';
 
-const D='#1A1A1A',Y='#D4E827'
-const SUPA=(process.env.NEXT_PUBLIC_SUPABASE_URL||'')+'/functions/v1'
+const API = (process.env.NEXT_PUBLIC_SUPABASE_URL || '') + '/functions/v1/admin-pending';
 
-export default function AdminPendingPage() {
-  const [data,setData]=useState<{operators:any[],drivers:any[]}>({operators:[],drivers:[]})
-  const [loading,setLoading]=useState(true)
-  const [acting,setActing]=useState<string|null>(null)
-  useEffect(()=>{load()},[])  
-  async function load(){setLoading(true);const r=await fetch(SUPA+'/admin-pending?action=list');setData(await r.json());setLoading(false)}
-  async function act(type:string,id:string,action:string,liu:string,name:string){
-    setActing(id+action)
-    const r=await fetch(SUPA+'/admin-pending',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type,id,action,line_user_id:liu,name})})
-    const d=await r.json()
-    if(d.ok){toast.success(d.msg);load()}else toast.error(d.error||'Error')
-    setActing(null)
+type Op = { id:string; company_name:string; phone:string; base_location:string; line_user_id:string; created_at:string };
+type Dr = { id:string; full_name:string; vehicle_type:string; vehicle_plate:string; base_location:string; line_user_id:string; created_at:string };
+
+export default function PendingPage() {
+  const [ops, setOps] = useState<Op[]>([]);
+  const [drs, setDrs] = useState<Dr[]>([]);
+  const [tab, setTab] = useState<'op'|'dr'>('op');
+  const [loading, setLoading] = useState(true);
+  const [msg, setMsg] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(API + '?action=list');
+      const data = await res.json();
+      setOps(data.operators || []);
+      setDrs(data.drivers || []);
+    } catch(e) { console.error(e); }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function act(type: string, id: string, action: string, line_user_id: string, name: string) {
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, id, action, line_user_id, name })
+    });
+    const data = await res.json();
+    setMsg(data.msg || data.error || 'Done');
+    load();
   }
-  function Section({title,items,type}:{title:string,items:any[],type:string}){
-    return <div style={{marginBottom:36}}>
-      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:16}}><h2 style={{fontFamily:'var(--font-syne)',fontWeight:700,fontSize:18,color:D,letterSpacing:'-0.02em'}}>{title}</h2><span style={{background:Y,color:D,fontSize:11,fontWeight:700,fontFamily:'var(--font-syne)',padding:'2px 8px',borderRadius:20}}>{items.length}</span></div>
-      {items.length===0?<div style={{padding:24,background:'#fff',borderRadius:14,border:'0.5px solid #E8E8E8',fontSize:13,color:'#888',textAlign:'center' as const}}>All clear ✔</div>:
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:12}}>
-          {items.map((item:any)=>
-            <div key={item.id} style={{background:'#fff',borderRadius:14,border:'0.5px solid #E8E8E8',padding:20}}>
-              <div style={{fontFamily:'var(--font-syne)',fontWeight:700,fontSize:15,color:D,marginBottom:5}}>{item.company_name||item.full_name}</div>
-              {item.phone&&<div style={{fontSize:12,color:'#888',marginBottom:2}}>📞 {item.phone}</div>}
-              {item.base_location&&<div style={{fontSize:12,color:'#888',marginBottom:2}}>📍 {item.base_location}</div>}
-              {item.vehicle_type&&<div style={{fontSize:12,color:'#888',marginBottom:2}}>🚗 {item.vehicle_type?.replace('_',' ')} · {item.vehicle_plate}</div>}
-              <div style={{fontSize:11,color:'#bbb',marginBottom:14}}>{new Date(item.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
-              <div style={{display:'flex',gap:8}}>
-                <button onClick={()=>act(type,item.id,'verify',item.line_user_id,item.company_name||item.full_name)} disabled={acting===item.id+'verify'} style={{flex:1,padding:'9px',background:D,color:Y,border:'none',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-syne)',opacity:acting===item.id+'verify'?0.6:1}}>{acting===item.id+'verify'?'...':'✓ Verify'}</button>
-                <button onClick={()=>act(type,item.id,'reject',item.line_user_id,item.company_name||item.full_name)} disabled={acting===item.id+'reject'} style={{flex:1,padding:'9px',background:'#fff',color:'#CC0000',border:'0.5px solid rgba(204,0,0,0.4)',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-syne)',opacity:acting===item.id+'reject'?0.6:1}}>{acting===item.id+'reject'?'...':'× Reject'}</button>
+
+  const pg: React.CSSProperties = { minHeight:'100vh', background:'#07100D', color:'#e8f5f0', fontFamily:'Inter,sans-serif', padding:'24px 20px' };
+  const card: React.CSSProperties = { background:'#0d1e19', border:'1px solid #1a3028', borderRadius:12, padding:16, marginBottom:12 };
+  const badge: React.CSSProperties = { background:'#1a3028', color:'#f5a623', fontSize:11, fontWeight:700, padding:'3px 8px', borderRadius:20, display:'inline-block', marginBottom:6 };
+  const detail: React.CSSProperties = { fontSize:13, color:'#7aab94', lineHeight:1.7 };
+  const btnV: React.CSSProperties = { background:'#19C977', color:'#07100D', border:'none', borderRadius:8, padding:'8px 16px', fontWeight:700, fontSize:13, cursor:'pointer' };
+  const btnR: React.CSSProperties = { background:'transparent', color:'#ff6b6b', border:'1px solid #ff6b6b', borderRadius:8, padding:'8px 16px', fontWeight:600, fontSize:13, cursor:'pointer' };
+  const tabBtn = (a:boolean): React.CSSProperties => ({ padding:'8px 20px', borderRadius:8, border:'none', cursor:'pointer', fontWeight:600, fontSize:14, background:a?'#19C977':'#0f1f1a', color:a?'#07100D':'#7aab94' });
+
+  return (
+    <div style={pg}>
+      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:24}}>
+        <a href="/admin/dashboard" style={{color:'#19C977',textDecoration:'none',fontSize:14}}>Admin</a>
+        <h1 style={{fontSize:22,fontWeight:800,margin:0}}>Pending Verification</h1>
+      </div>
+      {msg && <div style={{background:'#0f2a1f',border:'1px solid #19C977',borderRadius:8,padding:'10px 14px',marginBottom:16,fontSize:13,color:'#19C977'}}>{msg}</div>}
+      <div style={{display:'flex',gap:8,marginBottom:20}}>
+        <button style={tabBtn(tab==='op')} onClick={()=>setTab('op')}>Operators ({ops.length})</button>
+        <button style={tabBtn(tab==='dr')} onClick={()=>setTab('dr')}>Drivers ({drs.length})</button>
+      </div>
+      {loading && <div style={{textAlign:'center',color:'#7aab94',padding:'40px 0'}}>Loading...</div>}
+      {!loading && tab==='op' && (ops.length===0
+        ? <div style={{textAlign:'center',color:'#7aab94',padding:'40px 0'}}>No pending operators</div>
+        : ops.map(op=>(
+          <div key={op.id} style={card}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
+              <div style={{flex:1}}>
+                <div style={badge}>OPERATOR</div>
+                <div style={{fontSize:16,fontWeight:700,marginBottom:4}}>{op.company_name}</div>
+                <div style={detail}>
+                  {op.phone && <div>{op.phone}</div>}
+                  {op.base_location && <div>{op.base_location}</div>}
+                  <div>{new Date(op.created_at).toLocaleDateString('en-GB')}</div>
+                </div>
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                <button style={btnV} onClick={()=>act('operator',op.id,'verify',op.line_user_id,op.company_name)}>Verify</button>
+                <button style={btnR} onClick={()=>act('operator',op.id,'reject',op.line_user_id,op.company_name)}>Reject</button>
               </div>
             </div>
-          )}
-        </div>}
+          </div>
+        ))
+      )}
+      {!loading && tab==='dr' && (drs.length===0
+        ? <div style={{textAlign:'center',color:'#7aab94',padding:'40px 0'}}>No pending drivers</div>
+        : drs.map(dr=>(
+          <div key={dr.id} style={card}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
+              <div style={{flex:1}}>
+                <div style={badge}>DRIVER</div>
+                <div style={{fontSize:16,fontWeight:700,marginBottom:4}}>{dr.full_name}</div>
+                <div style={detail}>
+                  {dr.vehicle_type && <div>{dr.vehicle_type.replace(/_/g,' ').toUpperCase()}</div>}
+                  {dr.vehicle_plate && <div>{dr.vehicle_plate}</div>}
+                  {dr.base_location && <div>{dr.base_location}</div>}
+                  <div>{new Date(dr.created_at).toLocaleDateString('en-GB')}</div>
+                </div>
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                <button style={btnV} onClick={()=>act('driver',dr.id,'verify',dr.line_user_id,dr.full_name)}>Verify</button>
+                <button style={btnR} onClick={()=>act('driver',dr.id,'reject',dr.line_user_id,dr.full_name)}>Reject</button>
+              </div>
+            </div>
+          </div>
+        ))
+      )}
     </div>
-  }
-  return <div style={{minHeight:'100vh',background:'#F5F5F5',fontFamily:'var(--font-space)'}}>
-    <nav style={{background:D,height:56,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 20px',position:'sticky',top:0,zIndex:50}}>
-      <div style={{display:'inline-flex',alignItems:'baseline',gap:5}}><span style={{fontFamily:'var(--font-syne)',fontWeight:800,fontSize:20,letterSpacing:'-0.05em',color:Y}}>RIDEN</span><span style={{fontFamily:'var(--font-space)',fontWeight:500,fontSize:10,letterSpacing:'0.05em',opacity:0.55,color:Y}}>ไรเด็น</span></div>
-      <div style={{display:'flex',gap:4}}><Link href="/admin/pending" style={{fontFamily:'var(--font-space)',fontSize:13,fontWeight:500,color:Y,opacity:1,textDecoration:'none',padding:'4px 10px'}}>Pending</Link><Link href="/admin/subscriptions" style={{fontFamily:'var(--font-space)',fontSize:13,fontWeight:500,color:Y,opacity:0.5,textDecoration:'none',padding:'4px 10px'}}>Subscriptions</Link></div>
-    </nav>
-    <main style={{maxWidth:1100,margin:'0 auto',padding:'clamp(20px,4vw,40px) 20px'}}>
-      <h1 style={{fontFamily:'var(--font-syne)',fontWeight:700,fontSize:'clamp(22px,3vw,30px)',letterSpacing:'-0.03em',color:D,marginBottom:4}}>Pending Verification</h1>
-      <p style={{fontSize:13,color:'#888',marginBottom:28}}>Verify operators and drivers to activate their accounts.</p>
-      {loading?<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:12}}>{[1,2,3,4].map(i=><div key={i} className="skeleton" style={{height:140,borderRadius:14}}/>)}</div>:<><Section title="Operators" items={data.operators} type="operator"/><Section title="Drivers" items={data.drivers} type="driver"/></>}
-    </main>
-  </div>
+  );
 }
