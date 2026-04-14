@@ -1,2 +1,2 @@
 # RIDEN
-Deploy: 2026-04-14T19:01:46.878Z
+Restored original design. Logo added. Deploy: 2026-04-14T19:07:14.059Z
