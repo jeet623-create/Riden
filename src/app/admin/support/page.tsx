@@ -1,143 +1,113 @@
 'use client'
 import { useEffect, useState } from 'react'
-import AdminShell from '@/components/admin/AdminShell'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
-import toast from 'react-hot-toast'
-
-const STATUS_COLORS: Record<string,string> = { open:'badge-pending', in_progress:'badge-progress', resolved:'badge-completed', closed:'badge-cancelled' }
-const PRIORITY_COLORS: Record<string,string> = { low:'text-riden-muted', normal:'text-blue-400', high:'text-yellow-400', urgent:'text-red-400' }
-const SOURCE_ICONS: Record<string,string> = { dmc_portal:'🏢', line_operator:'📱', line_driver:'🚗', admin:'🛡️' }
-
-export default function AdminSupport() {
-  const [lang, setLang] = useState<'en'|'th'>('en')
+import { AdminShell } from '@/components/AdminShell'
+import { Panel, Badge, Loading, PageHeader, Btn, Empty } from '@/components/ui'
+const SUPA = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const KEY  = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const H = () => ({ apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' })
+export default function SupportPage() {
+  const router = useRouter()
   const [tickets, setTickets] = useState<any[]>([])
-  const [replies, setReplies] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [selected, setSelected] = useState<any>(null)
-  const [replyText, setReplyText] = useState('')
-  const [isInternal, setIsInternal] = useState(false)
-  const t = lang==='en' ? { title:'Support Tickets', open:'Open', inProgress:'In Progress', resolved:'Resolved', all:'All', noData:'No tickets found', send:'Send Reply', resolve:'Resolve', close:'Close', internal:'Internal note (not shown to user)', yourReply:'Your reply...' } : { title:'ต๋วซัพพอร์ต', open:'เปิดอยู่', inProgress:'กำลังดำเนินการ', resolved:'แก้ไขแล้ว', all:'ทั้งหมด', noData:'ไม่พบต๋ว', send:'ส่งคำตอบ', resolve:'แก้ไขแล้ว', close:'ปิด', internal:'บันทึกภายใน', yourReply:'คำตอบของคุณ...' }
-
+  const [selected, setSelected] = useState<any|null>(null)
+  const [reply, setReply] = useState('')
+  const [sending, setSending] = useState(false)
+  const [filter, setFilter] = useState('all')
   useEffect(() => {
-    const s = localStorage.getItem('riden_admin'); if(s) setLang(JSON.parse(s).lang||'en')
-    loadTickets()
+    const sb = createClient()
+    sb.auth.getUser().then(({ data: { user } }) => {
+      if (!user) { router.push('/admin/login'); return }
+      sb.from('admin_users').select('id').eq('id', user.id).single().then(({ data }) => {
+        if (!data) router.push('/admin/login'); else load()
+      })
+    })
   }, [])
-
-  async function loadTickets() {
-    const { data } = await createClient().from('support_tickets').select('*, dmc_users(company_name), operators(company_name), drivers(full_name)').order('created_at',{ascending:false})
-    setTickets(data??[]); setLoading(false)
+  async function load() {
+    setLoading(true)
+    const r = await fetch(SUPA + '/rest/v1/support_tickets?select=*,dmc_users(company_name,email)&order=created_at.desc', { headers: H() })
+    const d = await r.json()
+    setTickets(Array.isArray(d) ? d : [])
+    setLoading(false)
   }
-
-  async function loadReplies(ticketId: string) {
-    const { data } = await createClient().from('support_replies').select('*').eq('ticket_id', ticketId).order('created_at')
-    setReplies(data??[])
-  }
-
-  async function openTicket(ticket: any) {
-    setSelected(ticket); setReplyText(''); setIsInternal(false)
-    await loadReplies(ticket.id)
-    if (ticket.status === 'open') {
-      await createClient().from('support_tickets').update({status:'in_progress'}).eq('id',ticket.id)
-      loadTickets()
-    }
-  }
-
   async function sendReply() {
-    if (!replyText.trim()) return
-    const { error } = await createClient().from('support_replies').insert({ ticket_id:selected.id, sender_type:'admin', message:replyText, is_internal:isInternal })
-    if (error) { toast.error(error.message); return }
-    toast.success('Reply sent!'); setReplyText(''); loadReplies(selected.id)
+    if (!reply.trim() || !selected) return
+    setSending(true)
+    await fetch(SUPA + '/rest/v1/support_replies', { method:'POST', headers:H(), body:JSON.stringify({ ticket_id:selected.id, message:reply, sender:'admin' }) })
+    await fetch(SUPA + '/rest/v1/support_tickets?id=eq.' + selected.id, { method:'PATCH', headers:H(), body:JSON.stringify({ status:'replied', updated_at:new Date().toISOString() }) })
+    setReply(''); setSending(false); await load()
+    setSelected((prev: any) => prev ? { ...prev, status: 'replied' } : null)
   }
-
-  async function updateStatus(id:string, status:string) {
-    await createClient().from('support_tickets').update({status}).eq('id',id)
-    toast.success('Updated!'); loadTickets()
-    if (selected?.id===id) setSelected({...selected,status})
+  async function closeTicket(id: string) {
+    await fetch(SUPA + '/rest/v1/support_tickets?id=eq.' + id, { method:'PATCH', headers:H(), body:JSON.stringify({ status:'closed' }) })
+    await load(); setSelected(null)
   }
-
-  const filtered = tickets.filter(tk => statusFilter==='all' || tk.status===statusFilter)
-  const openCount = tickets.filter(tk=>tk.status==='open').length
-  const ipCount = tickets.filter(tk=>tk.status==='in_progress').length
-
+  const filtered = tickets.filter(t => filter === 'all' || t.status === filter)
+  const open = tickets.filter(t => t.status === 'open').length
+  if (loading) return <AdminShell><Loading /></AdminShell>
   return (
     <AdminShell>
-      <div className="mb-6">
-        <h1 className="font-display text-2xl font-700 text-riden-white">{t.title}</h1>
-        <p className="text-riden-text text-sm">{openCount} open · {ipCount} in progress</p>
-      </div>
-      <div className="flex gap-2 mb-6">
-        {[['all',t.all],['open',t.open],['in_progress',t.inProgress],['resolved',t.resolved]].map(([v,l])=>(
-          <button key={v} onClick={()=>setStatusFilter(v)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${statusFilter===v?'bg-riden-teal text-white':'glass text-riden-text hover:text-riden-white'}`}>{l}</button>
-        ))}
-      </div>
-      <div className="grid lg:grid-cols-5 gap-4">
-        <div className="lg:col-span-2 glass rounded-xl overflow-hidden">
-          {loading ? <div className="p-8 text-center text-riden-text text-sm">Loading...</div> :
-           filtered.length===0 ? <div className="p-8 text-center text-riden-text text-sm">{t.noData}</div> : (
-            <div className="divide-y divide-riden-border">
-              {filtered.map((tk:any)=>(
-                <div key={tk.id} onClick={()=>openTicket(tk)} className={`px-4 py-3 cursor-pointer hover:bg-riden-card/50 transition-colors ${selected?.id===tk.id?'bg-riden-teal/10 border-l-2 border-riden-teal':''}`}>
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-1.5">
-                      <span>{SOURCE_ICONS[tk.source]||'📩'}</span>
-                      <span className="font-mono text-xs text-riden-teal">{tk.ticket_ref}</span>
+      <div style={{ display:'flex', gap:20, height:'calc(100vh - 120px)' }}>
+        <div style={{ width:340, flexShrink:0, display:'flex', flexDirection:'column', gap:12 }}>
+          <PageHeader title="Support Inbox" sub={open > 0 ? open + ' open tickets' : 'All clear'} />
+          <div style={{ display:'flex', gap:6 }}>
+            {['all','open','replied','closed'].map(f => (
+              <button key={f} onClick={() => setFilter(f)} style={{ padding:'5px 12px', borderRadius:20, fontSize:11, border:'1px solid ' + (filter===f?'var(--teal-20)':'var(--border)'), background:filter===f?'var(--teal-10)':'transparent', color:filter===f?'var(--teal)':'var(--text-3)', cursor:'pointer', fontFamily:'var(--font-body)', textTransform:'capitalize' as const }}>{f}</button>
+            ))}
+          </div>
+          <Panel style={{ flex:1, overflowY:'auto' }}>
+            {filtered.length === 0 ? <Empty icon="💬" message="No tickets" /> : (
+              <div>
+                {filtered.map(t => (
+                  <div key={t.id} onClick={() => setSelected(t)} style={{ padding:'14px 16px', borderBottom:'1px solid var(--border)', cursor:'pointer', background: selected?.id === t.id ? 'var(--bg-hover)' : 'transparent' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = selected?.id === t.id ? 'var(--bg-hover)' : 'transparent')}>
+                    <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+                      <span style={{ fontSize:13, fontWeight:500 }}>{(t.dmc_users as any)?.company_name ?? 'Unknown'}</span>
+                      <Badge status={t.status ?? 'open'} />
                     </div>
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${STATUS_COLORS[tk.status]||'badge-pending'}`}>{tk.status}</span>
-                  </div>
-                  <div className="text-riden-white text-sm truncate">{tk.subject}</div>
-                  <div className="flex items-center justify-between mt-1">
-                    <span className={`text-xs ${PRIORITY_COLORS[tk.priority]||'text-riden-muted'}`}>● {tk.priority}</span>
-                    <span className="text-riden-muted text-xs">{new Date(tk.created_at).toLocaleDateString('en',{month:'short',day:'numeric'})}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="lg:col-span-3">
-          {!selected ? (
-            <div className="glass rounded-xl p-12 text-center"><div className="text-4xl mb-3">🎧</div><p className="text-riden-text">Select a ticket to view and reply</p></div>
-          ) : (
-            <div className="glass rounded-xl overflow-hidden flex flex-col h-[600px]">
-              <div className="px-5 py-4 border-b border-riden-border">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-mono text-xs text-riden-teal">{selected.ticket_ref}</span>
-                  <div className="flex gap-2">
-                    {selected.status!=='resolved' && <button onClick={()=>updateStatus(selected.id,'resolved')} className="text-xs text-green-400 hover:underline">{t.resolve}</button>}
-                    {selected.status!=='closed' && <button onClick={()=>updateStatus(selected.id,'closed')} className="text-xs text-riden-muted hover:underline">{t.close}</button>}
-                  </div>
-                </div>
-                <div className="font-display font-600 text-riden-white">{selected.subject}</div>
-                <div className="flex gap-4 mt-1 text-xs text-riden-muted">
-                  <span>{SOURCE_ICONS[selected.source]} {selected.source}</span>
-                  <span className={PRIORITY_COLORS[selected.priority]}>● {selected.priority}</span>
-                </div>
-              </div>
-              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-                <div className="glass rounded-xl p-3"><div className="text-xs text-riden-muted mb-1">Original Message</div><div className="text-riden-white text-sm">{selected.message}</div></div>
-                {replies.map((r:any)=>(
-                  <div key={r.id} className={`rounded-xl p-3 ${r.sender_type==='admin'?'bg-riden-teal/10 ml-4':'glass mr-4'} ${r.is_internal?'border border-yellow-400/30':''}`}>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs text-riden-muted">{r.sender_type==='admin'?'👤 Admin':r.sender_type}</span>
-                      {r.is_internal && <span className="text-xs text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded">Internal</span>}
-                      <span className="text-xs text-riden-muted ml-auto">{new Date(r.created_at).toLocaleString('en',{hour:'2-digit',minute:'2-digit'})}</span>
-                    </div>
-                    <div className="text-riden-white text-sm">{r.message}</div>
+                    <div style={{ fontSize:12, fontWeight:500, marginBottom:3 }}>{t.subject ?? '(No subject)'}</div>
+                    <div style={{ fontSize:11, color:'var(--text-3)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' as const }}>{t.message}</div>
+                    <div style={{ fontSize:10, color:'var(--text-3)', marginTop:4, fontFamily:'var(--font-mono)' }}>{new Date(t.created_at).toLocaleDateString('en-GB')}</div>
                   </div>
                 ))}
               </div>
-              <div className="px-5 py-4 border-t border-riden-border">
-                <textarea className="riden-input resize-none w-full mb-3 text-sm" rows={3} placeholder={t.yourReply} value={replyText} onChange={e=>setReplyText(e.target.value)} />
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 text-xs text-riden-text cursor-pointer">
-                    <input type="checkbox" checked={isInternal} onChange={e=>setIsInternal(e.target.checked)} className="accent-yellow-400" />
-                    {t.internal}
-                  </label>
-                  <button onClick={sendReply} disabled={!replyText.trim()} className="btn-primary px-5 py-2 text-sm">{t.send}</button>
+            )}
+          </Panel>
+        </div>
+        <div style={{ flex:1, display:'flex', flexDirection:'column', gap:12 }}>
+          <div style={{ height:56 }} />
+          {!selected ? (
+            <Panel style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}><Empty icon="💬" message="Select a ticket to view" /></Panel>
+          ) : (
+            <Panel style={{ flex:1, display:'flex', flexDirection:'column' }}>
+              <div style={{ padding:'18px 24px', borderBottom:'1px solid var(--border)', display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                <div>
+                  <div style={{ fontSize:15, fontWeight:600, marginBottom:3 }}>{selected.subject ?? '(No subject)'}</div>
+                  <div style={{ fontSize:12, color:'var(--text-3)' }}>{(selected.dmc_users as any)?.company_name ?? '—'} · {(selected.dmc_users as any)?.email ?? selected.user_email}</div>
+                </div>
+                <div style={{ display:'flex', gap:8 }}>
+                  <Badge status={selected.status ?? 'open'} />
+                  {selected.status !== 'closed' && <Btn variant="ghost" size="sm" onClick={() => closeTicket(selected.id)}>Close</Btn>}
                 </div>
               </div>
-            </div>
+              <div style={{ flex:1, padding:'20px 24px', overflowY:'auto' }}>
+                <div style={{ background:'var(--bg-elevated)', borderRadius:'var(--r-lg)', padding:'14px 18px', fontSize:14, lineHeight:1.6, marginBottom:16 }}>{selected.message}</div>
+                <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--text-3)' }}>RECEIVED — {new Date(selected.created_at).toLocaleString('en-GB')}</div>
+              </div>
+              {selected.status !== 'closed' && (
+                <div style={{ padding:'16px 24px', borderTop:'1px solid var(--border)', display:'flex', gap:10 }}>
+                  <textarea value={reply} onChange={e => setReply(e.target.value)} placeholder="Type your reply..." style={{ flex:1, background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'10px 14px', fontSize:13, color:'var(--text-1)', fontFamily:'var(--font-body)', resize:'none', outline:'none', height:80 }}
+                    onFocus={e => (e.target.style.borderColor = 'var(--teal)')}
+                    onBlur={e => (e.target.style.borderColor = 'var(--border)')} />
+                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                    <Btn variant="teal" onClick={sendReply} disabled={!reply.trim()||sending}>{sending?'Sending...':'Send'}</Btn>
+                    <Btn variant="ghost" size="sm" onClick={() => setReply('')}>Clear</Btn>
+                  </div>
+                </div>
+              )}
+            </Panel>
           )}
         </div>
       </div>
