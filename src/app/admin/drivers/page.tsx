@@ -1,53 +1,146 @@
-'use client';
-import { useEffect, useState, useCallback } from 'react';
-const API = (process.env.NEXT_PUBLIC_SUPABASE_URL||'')+'/functions/v1';
-const ADMIN_LINKS = [{h:'/admin',l:'Dashboard'},{h:'/admin/dmcs',l:'DMCs'},{h:'/admin/operators',l:'Operators'},{h:'/admin/drivers',l:'Drivers'},{h:'/admin/pending',l:'Pending'},{h:'/admin/subscriptions',l:'Subscriptions'}];
-function AdminShell({active,children}:{active:string;children:React.ReactNode}) {
-  return (<div style={{display:'flex',minHeight:'100vh',background:'var(--bg-page)',fontFamily:'var(--font-sans)'}}>
-    <div style={{width:220,background:'#fff',borderRight:'0.5px solid var(--border)',flexShrink:0,display:'flex',flexDirection:'column' as const,position:'sticky' as const,top:0,height:'100vh'}}>
-      <div style={{padding:'20px 16px 14px',borderBottom:'0.5px solid var(--border)'}}><div style={{display:'flex',alignItems:'baseline',gap:5}}><span style={{fontWeight:700,fontSize:15,letterSpacing:'-0.4px'}}>RIDEN</span><span style={{fontSize:9,letterSpacing:'1px',opacity:0.35}}>ไรเด็น</span></div><div style={{fontSize:10,color:'var(--text-tertiary)',marginTop:1}}>Admin Panel</div></div>
-      <nav style={{padding:8,flex:1}}>{ADMIN_LINKS.map(l=>(<a key={l.h} href={l.h} style={{display:'block',padding:'8px 10px',borderRadius:7,fontSize:13,fontWeight:l.h===active?500:400,color:l.h===active?'var(--text-primary)':'var(--text-secondary)',background:l.h===active?'var(--bg-page)':'transparent',textDecoration:'none',marginBottom:1}}>{l.l}</a>))}</nav>
-    </div>
-    <div style={{flex:1,minWidth:0,padding:'28px 24px'}}>{children}</div>
-  </div>);
-}
-export default function AdminDriversPage() {
-  const [drs,setDrs]=useState<any[]>([]);
-  const [loading,setLoading]=useState(true);
-  const [search,setSearch]=useState('');
-  const [acting,setActing]=useState<string|null>(null);
-  const [msg,setMsg]=useState('');
-  const load=useCallback(async()=>{setLoading(true);try{const r=await fetch(API+'/admin-pending?action=list_drivers');const d=await r.json();setDrs(d.all_drivers||[]);}catch(e){console.error(e);}setLoading(false);},[]);
-  useEffect(()=>{load();},[load]);
-  async function act(id:string,action:string,liu:string,name:string){setActing(id+action);const r=await fetch(API+'/admin-pending',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'driver',id,action,line_user_id:liu,name})});const d=await r.json();setMsg(d.msg||d.error||'Done');load();setActing(null);}
-  const filtered=drs.filter((d:any)=>!search||d.full_name?.toLowerCase().includes(search.toLowerCase())||d.phone?.includes(search)||d.vehicle_plate?.includes(search));
-  return (<AdminShell active="/admin/drivers">
-    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20,flexWrap:'wrap' as const,gap:12}}>
-      <div><h1 style={{fontSize:20,fontWeight:600,letterSpacing:'-0.3px',marginBottom:1}}>Drivers</h1><p style={{fontSize:12,color:'var(--text-tertiary)'}}>{drs.length} total</p></div>
-      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name, phone, plate..." className="riden-input" style={{maxWidth:260,padding:'7px 12px'}}/>
-    </div>
-    {msg&&<div style={{padding:'8px 12px',background:'rgba(25,201,119,0.06)',border:'0.5px solid rgba(25,201,119,0.2)',borderRadius:7,fontSize:12,color:'var(--accent)',marginBottom:12}}>{msg}</div>}
-    <div style={{background:'#fff',border:'0.5px solid var(--border)',borderRadius:10,overflow:'hidden'}}>
-      {loading?<div style={{padding:20,color:'var(--text-tertiary)',fontSize:13}}>Loading...</div>:
-      filtered.length===0?<div style={{padding:20,color:'var(--text-tertiary)',fontSize:13}}>No drivers found.</div>:
-      <div style={{overflowX:'auto' as const}}><table className="riden-table">
-        <thead><tr><th>Name</th><th>Phone</th><th>Vehicle</th><th>Plate</th><th>City</th><th>Verified</th><th>Available</th><th>Actions</th></tr></thead>
-        <tbody>{filtered.map((d:any)=>(
-          <tr key={d.id}>
-            <td style={{fontWeight:500}}>{d.full_name}</td>
-            <td style={{color:'var(--text-secondary)'}}>{d.phone||'—'}</td>
-            <td style={{color:'var(--text-secondary)'}}>{d.vehicle_type||'—'}</td>
-            <td style={{fontFamily:'var(--font-mono)',fontSize:11,color:'var(--text-secondary)'}}>{d.vehicle_plate||'—'}</td>
-            <td style={{color:'var(--text-secondary)'}}>{d.base_location||'—'}</td>
-            <td style={{color:d.is_verified?'var(--success)':'var(--warning)',fontSize:12,fontWeight:500}}>{d.is_verified?'✓ Yes':'− No'}</td>
-            <td><span style={{display:'inline-block',width:8,height:8,borderRadius:'50%',background:d.is_available?'var(--success)':'var(--border)'}}/></td>
-            <td><div style={{display:'flex',gap:6}}>
-              {!d.is_verified&&<button onClick={()=>act(d.id,'verify',d.line_user_id,d.full_name)} disabled={acting===d.id+'verify'} style={{fontSize:11,padding:'3px 8px',borderRadius:5,background:'rgba(25,201,119,0.08)',color:'var(--accent)',border:'none',cursor:'pointer',fontWeight:500,opacity:acting===d.id+'verify'?0.5:1}}>✓ Verify</button>}
-              <button onClick={()=>act(d.id,'reject',d.line_user_id,d.full_name)} disabled={acting===d.id+'reject'} style={{fontSize:11,padding:'3px 8px',borderRadius:5,background:'rgba(239,68,68,0.07)',color:'var(--danger)',border:'none',cursor:'pointer',fontWeight:500,opacity:acting===d.id+'reject'?0.5:1}}>Suspend</button>
-            </div></td>
-          </tr>
-        ))}</tbody>
-      </table></div>}
-    </div>
-  </AdminShell>);
+'use client'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase'
+import { AdminShell } from '@/components/AdminShell'
+import { Badge, Loading, PageHeader, Btn, Empty } from '@/components/ui'
+
+const SUPA = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const KEY  = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const H = () => ({ apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' })
+const VL: Record<string,string> = { sedan:'Sedan',suv:'SUV',van_9:'Van 9',van_12:'Van 12',minibus_15:'Minibus 15',minibus_20:'Minibus 20',coach_30:'Coach 30+',pickup:'Pickup' }
+
+export default function DriversPage() {
+  const router = useRouter()
+  const [drivers, setDrivers] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState<'all'|'pending'|'active'|'inactive'>('all')
+  const [selected, setSelected] = useState<any|null>(null)
+  const [rejReason, setRejReason] = useState('')
+  const [acting, setActing] = useState(false)
+  const [lightbox, setLightbox] = useState<string|null>(null)
+
+  useEffect(() => {
+    const sb = createClient()
+    sb.auth.getUser().then(({ data: { user } }) => {
+      if (!user) { router.push('/admin/login'); return }
+      sb.from('admin_users').select('id').eq('id', user.id).single().then(({ data }) => {
+        if (!data) router.push('/admin/login'); else load()
+      })
+    })
+  }, [])
+
+  async function load() {
+    setLoading(true)
+    const r = await fetch(`${SUPA}/rest/v1/drivers?select=*&order=created_at.desc`, { headers: H() })
+    const d = await r.json()
+    setDrivers(Array.isArray(d) ? d : [])
+    setLoading(false)
+  }
+
+  async function approve(id: string) {
+    setActing(true)
+    await fetch(`${SUPA}/functions/v1/admin-drivers`, { method:'POST', headers:H(), body:JSON.stringify({ driver_id:id, action:'approve' }) })
+    await load(); setSelected(null); setActing(false)
+  }
+
+  async function reject(id: string) {
+    setActing(true)
+    await fetch(`${SUPA}/functions/v1/admin-drivers`, { method:'POST', headers:H(), body:JSON.stringify({ driver_id:id, action:'reject', rejection_reason:rejReason }) })
+    await load(); setSelected(null); setRejReason(''); setActing(false)
+  }
+
+  const filtered = drivers.filter(d => {
+    if (filter==='pending') return !d.is_verified && !d.is_active
+    if (filter==='active') return d.is_verified && d.is_active
+    if (filter==='inactive') return !d.is_active && d.is_verified
+    return true
+  })
+  const pending = drivers.filter(d => !d.is_verified && !d.is_active).length
+
+  if (loading) return <AdminShell><Loading /></AdminShell>
+
+  return (
+    <AdminShell>
+      {lightbox && (
+        <div onClick={()=>setLightbox(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.92)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',cursor:'zoom-out'}}>
+          <img src={lightbox} style={{maxWidth:'90vw',maxHeight:'90vh',borderRadius:12,objectFit:'contain'}} />
+          <div onClick={()=>setLightbox(null)} style={{position:'absolute',top:24,right:32,color:'var(--text-1)',fontSize:28,cursor:'pointer'}}>×</div>
+        </div>
+      )}
+
+      {selected && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'flex-end',backdropFilter:'blur(4px)'}} onClick={()=>setSelected(null)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:440,height:'100vh',background:'var(--bg-surface)',borderLeft:'1px solid var(--border)',padding:28,overflowY:'auto',display:'flex',flexDirection:'column',gap:20}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div style={{fontSize:16,fontWeight:600}}>{selected.full_name}</div>
+              <button onClick={()=>setSelected(null)} style={{background:'none',border:'none',color:'var(--text-3)',cursor:'pointer',fontSize:18}}>×</button>
+            </div>
+            <div>
+              <div style={{fontSize:10,fontFamily:'var(--font-mono)',color:'var(--text-3)',letterSpacing:1,marginBottom:8}}>VEHICLE PHOTO</div>
+              {selected.vehicle_photo_url
+                ? <img src={selected.vehicle_photo_url} onClick={()=>setLightbox(selected.vehicle_photo_url)} style={{width:'100%',borderRadius:12,objectFit:'cover',maxHeight:220,cursor:'zoom-in',border:'1px solid var(--border)'}} />
+                : <div style={{height:160,background:'var(--bg-elevated)',borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:8,border:'1px solid var(--border)'}}><span style={{fontSize:28,opacity:0.3}}>🚗</span><span style={{fontSize:12,color:'var(--text-3)'}}>No photo</span></div>
+              }
+            </div>
+            <div style={{background:'var(--bg-elevated)',borderRadius:'var(--r)',padding:16,display:'flex',flexDirection:'column',gap:10}}>
+              {[['Phone',selected.phone??'—'],['Vehicle',`${VL[selected.vehicle_type]||selected.vehicle_type} — ${selected.vehicle_plate}`],['License',selected.license_number??'—'],['Expiry',selected.license_expiry??'—'],['Base',selected.base_location??'—'],['Registered',new Date(selected.created_at).toLocaleDateString('en-GB')]].map(([k,v])=>(
+                <div key={k} style={{display:'flex',justifyContent:'space-between',fontSize:13}}>
+                  <span style={{color:'var(--text-3)'}}>{k}</span>
+                  <span style={{fontFamily:'var(--font-mono)',fontSize:12}}>{v}</span>
+                </div>
+              ))}
+            </div>
+            {!selected.is_verified && !selected.is_active && (
+              <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                <Btn variant="teal" onClick={()=>approve(selected.id)} disabled={acting}>{acting?'Processing...':'✓ Approve Driver'}</Btn>
+                <input value={rejReason} onChange={e=>setRejReason(e.target.value)} placeholder="Rejection reason (sent via LINE)..." style={{background:'var(--bg-elevated)',border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'8px 12px',fontSize:12,color:'var(--text-1)',fontFamily:'var(--font-body)',width:'100%',outline:'none'}} />
+                <Btn variant="danger" onClick={()=>reject(selected.id)} disabled={acting}>{acting?'Processing...':'✕ Reject & Notify'}</Btn>
+              </div>
+            )}
+            {selected.is_active && <Btn variant="secondary" onClick={async()=>{ await fetch(`${SUPA}/rest/v1/drivers?id=eq.${selected.id}`,{method:'PATCH',headers:H(),body:JSON.stringify({is_active:false,is_available:false})}); await load(); setSelected(null) }}>Suspend Driver</Btn>}
+          </div>
+        </div>
+      )}
+
+      <PageHeader title="Driver Verification" sub="Review vehicle photos and approve drivers"
+        actions={pending>0?<div style={{background:'var(--amber-bg)',border:'1px solid rgba(245,158,11,0.25)',borderRadius:'var(--r)',padding:'6px 14px'}}><span style={{color:'var(--amber)',fontSize:12,fontWeight:600}}>⏳ {pending} pending</span></div>:undefined}
+      />
+
+      <div style={{display:'flex',gap:6,marginBottom:20}}>
+        {(['all','pending','active','inactive'] as const).map(f=>(
+          <button key={f} onClick={()=>setFilter(f)} style={{padding:'6px 14px',borderRadius:20,border:`1px solid ${filter===f?'var(--teal-20)':'var(--border)'}`,background:filter===f?'var(--teal-10)':'transparent',color:filter===f?'var(--teal)':'var(--text-3)',fontSize:12,cursor:'pointer',fontFamily:'var(--font-body)',textTransform:'capitalize' as const}}>{f}{f==='pending'&&pending>0?` (${pending})":''}</button>
+        ))}
+      </div>
+
+      {filtered.length === 0 ? <div style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:12,padding:60,textAlign:'center',color:'var(--text-3)'}}>No drivers in this category</div> : (
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:16}}>
+          {filtered.map(d=>{
+            const isPending = !d.is_verified && !d.is_active
+            const isActive = d.is_verified && d.is_active
+            return (
+              <div key={d.id} onClick={()=>setSelected(d)} style={{background:'var(--bg-surface)',border:`1px solid ${isPending?'rgba(245,158,11,0.25)':'var(--border)'}`,borderRadius:12,overflow:'hidden',cursor:'pointer',transition:'border-color 0.15s, transform 0.15s'}} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--border-strong)';e.currentTarget.style.transform='translateY(-1px)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor=isPending?'rgba(245,158,11,0.25)':'var(--border)';e.currentTarget.style.transform='none'}}>
+                <div style={{height:150,background:'var(--bg-elevated)',position:'relative',overflow:'hidden'}}>
+                  {d.vehicle_photo_url ? <img src={d.vehicle_photo_url} onClick={e=>{e.stopPropagation();setLightbox(d.vehicle_photo_url)}} style={{width:'100%',height:'100%',objectFit:'cover',cursor:'zoom-in'}} /> : <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',flexDirection:'column',gap:6}}><span style={{fontSize:28,opacity:0.3}}>🚗</span><span style={{fontSize:11,color:'var(--text-3)'}}>No photo</span></div>}
+                  <div style={{position:'absolute',top:8,right:8}}><Badge status={isActive?'active':isPending?'pending':'inactive'} /></div>
+                  {isPending && <div style={{position:'absolute',top:8,left:8,background:'var(--amber-bg)',border:'1px solid rgba(245,158,11,0.3)',borderRadius:20,padding:'2px 8px',fontSize:10,fontFamily:'var(--font-mono)',color:'var(--amber)'}}>REVIEW</div>}
+                </div>
+                <div style={{padding:'12px 14px'}}>
+                  <div style={{fontWeight:600,fontSize:14,marginBottom:3}}>{d.full_name}</div>
+                  <div style={{fontSize:11,color:'var(--text-3)',marginBottom:8}}>{VL[d.vehicle_type]||d.vehicle_type} · {d.vehicle_plate}</div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:3,fontSize:11,color:'var(--text-3)'}}>
+                    <span>📞 {d.phone||'—'}</span><span>📍 {d.base_location||'—'}</span>
+                  </div>
+                </div>
+                {isPending && <div style={{padding:'0 12px 12px',display:'flex',gap:8}}>
+                  <Btn variant="teal" size="sm" style={{flex:1}} onClick={e=>{e.stopPropagation();approve(d.id)}}>✓ Approve</Btn>
+                  <Btn variant="danger" size="sm" style={{flex:1}} onClick={e=>{e.stopPropagation();setSelected(d)}}>✕ Reject</Btn>
+                </div>}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </AdminShell>
+  )
 }
