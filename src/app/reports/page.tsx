@@ -111,8 +111,7 @@ export default function ReportsPage() {
       ['Booking Ref','Client','Type','Days','Status','Created'],
       ...bookings.map((b:any) => [b.booking_ref, b.client_name, b.booking_type?.replace(/_/g,' '), b.total_days, b.status, new Date(b.created_at).toLocaleDateString('en-GB')])
     ]
-    const csv = rows.map(r => r.map(v => '"'+(v||'')+'"').join(',')).join('
-')
+    const csv = rows.map(r => r.map(v => '"'+(v||'')+'"').join(',')).join('\n')
     const a = document.createElement('a')
     a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv)
     a.download = 'riden-report-'+MONTHS[month]+'-'+year+'.csv'
