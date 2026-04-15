@@ -1,104 +1,106 @@
-'use client';
-import { useEffect, useState } from 'react';
+'use client'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase'
+import { AdminShell } from '@/components/AdminShell'
+import { StatCard, Panel, PanelHeader, Table, TR, TD, Badge, Loading, PageHeader, Btn } from '@/components/ui'
 
-const API = (process.env.NEXT_PUBLIC_SUPABASE_URL||'')+'/functions/v1';
-const ADMIN_LINKS = [{h:'/admin',l:'Dashboard'},{h:'/admin/dmcs',l:'DMCs'},{h:'/admin/operators',l:'Operators'},{h:'/admin/drivers',l:'Drivers'},{h:'/admin/pending',l:'Pending'},{h:'/admin/subscriptions',l:'Subscriptions'}];
-
-function AdminShell({active,children}:{active:string;children:React.ReactNode}) {
-  return (
-    <div style={{display:'flex',minHeight:'100vh',background:'var(--bg-page)',fontFamily:'var(--font-sans)'}}>
-      <div style={{width:220,background:'#fff',borderRight:'0.5px solid var(--border)',flexShrink:0,display:'flex',flexDirection:'column' as const,position:'sticky' as const,top:0,height:'100vh'}}>
-        <div style={{padding:'20px 16px 14px',borderBottom:'0.5px solid var(--border)'}}>
-          <div style={{display:'flex',alignItems:'baseline',gap:5}}>
-            <span style={{fontWeight:700,fontSize:15,letterSpacing:'-0.4px',color:'var(--text-primary)'}}>RIDEN</span>
-            <span style={{fontSize:9,letterSpacing:'1px',color:'var(--text-primary)',opacity:0.35}}>ไรเด็น</span>
-          </div>
-          <div style={{fontSize:10,color:'var(--text-tertiary)',marginTop:1}}>Admin Panel</div>
-        </div>
-        <nav style={{padding:8,flex:1}}>
-          {ADMIN_LINKS.map(l=>(
-            <a key={l.h} href={l.h} style={{display:'block',padding:'8px 10px',borderRadius:7,fontSize:13,fontWeight:l.h===active?500:400,color:l.h===active?'var(--text-primary)':'var(--text-secondary)',background:l.h===active?'var(--bg-page)':'transparent',textDecoration:'none',marginBottom:1}}>{l.l}</a>
-          ))}
-        </nav>
-      </div>
-      <div style={{flex:1,minWidth:0,padding:'28px 24px'}}>{children}</div>
-    </div>
-  )
-}
+const SUPA = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const KEY  = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export default function AdminDashboard() {
-  const [stats,setStats]=useState({dmcs:0,pending:0,ops:0,drs:0,revenue:0});
-  const [dmcs,setDmcs]=useState<any[]>([]);
-  const [loading,setLoading]=useState(true);
-  useEffect(()=>{load();},[]);
-  async function load(){
-    try{
-      const [s,p]=await Promise.all([fetch(API+'/admin-subscriptions').then(r=>r.json()),fetch(API+'/admin-pending?action=list').then(r=>r.json())]);
-      const d=s.dmcs||[];
-      setStats({dmcs:d.length,pending:(p.operators?.length||0)+(p.drivers?.length||0),ops:p.operators?.length||0,drs:p.drivers?.length||0,revenue:d.filter((x:any)=>x.subscription_status==='active').length*2000});
-      setDmcs(d.slice(0,8));
-    }catch(e){console.error(e);}
-    setLoading(false);
+  const router = useRouter()
+  const [stats, setStats] = useState({ dmcs:0, operators:0, drivers:0, vehicles:0, trips_active:0, pending_drivers:0, bookings:0, mrr:0 })
+  const [recentBookings, setRecentBookings] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => { checkAuth() }, [])
+
+  async function checkAuth() {
+    const sb = createClient()
+    const { data: { user } } = await sb.auth.getUser()
+    if (!user) { router.push('/admin/login'); return }
+    const { data } = await sb.from('admin_users').select('id').eq('id', user.id).single()
+    if (!data) { router.push('/admin/login'); return }
+    await loadData()
+    setLoading(false)
   }
-  const STATS=[
-    {l:'Total DMCs',v:stats.dmcs,c:'var(--text-primary)'},
-    {l:'Pending Verify',v:stats.pending,c:'var(--warning)'},
-    {l:'Operators',v:stats.ops,c:'var(--accent)'},
-    {l:'Drivers',v:stats.drs,c:'var(--accent)'},
-    {l:'Est. MRR (฿)',v:(stats.revenue).toLocaleString(),c:'var(--success)'},
-  ];
+
+  async function loadData() {
+    const h = { apikey: KEY, Authorization: `Bearer ${KEY}` }
+    try {
+      const [dmcR, opR, drR, vR, tripR, pendR, bookR] = await Promise.all([
+        fetch(`${SUPA}/rest/v1/dmc_users?select=id,subscription_plan,subscription_status`, { headers: h }),
+        fetch(`${SUPA}/rest/v1/operators?select=id`, { headers: h }),
+        fetch(`${SUPA}/rest/v1/drivers?select=id&is_verified=eq.true`, { headers: h }),
+        fetch(`${SUPA}/rest/v1/vehicles?select=id&status=eq.active`, { headers: h }),
+        fetch(`${SUPA}/rest/v1/trips?select=id&status=eq.in_progress`, { headers: h }),
+        fetch(`${SUPA}/rest/v1/drivers?select=id&is_verified=eq.false&is_active=eq.false`, { headers: h }),
+        fetch(`${SUPA}/rest/v1/bookings?select=id,booking_ref,client_name,status,total_days,created_at,dmc_users(company_name)&order=created_at.desc&limit=8`, { headers: h }),
+      ])
+      const [dmcs,ops,drs,vs,trips,pend,books] = await Promise.all([dmcR,opR,drR,vR,tripR,pendR,bookR].map(r=>r.json()))
+      const PRICES: Record<string,number> = { starter:2000, growth:4000, pro:6000 }
+      const mrr = (dmcs||[]).filter((d:any)=>d.subscription_status==='active').reduce((s:number,d:any)=>s+(PRICES[d.subscription_plan]||0),0)
+      setStats({ dmcs: dmcs?.length??0, operators: ops?.length??0, drivers: drs?.length??0, vehicles: vs?.length??0, trips_active: trips?.length??0, pending_drivers: pend?.length??0, bookings: books?.length??0, mrr })
+      setRecentBookings(Array.isArray(books) ? books : [])
+    } catch(e) { console.error(e) }
+  }
+
+  if (loading) return <AdminShell><div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'60vh'}}><Loading /></div></AdminShell>
+
   return (
-    <AdminShell active="/admin">
-      <div style={{marginBottom:24}}>
-        <h1 style={{fontSize:20,fontWeight:600,letterSpacing:'-0.3px',color:'var(--text-primary)',marginBottom:2}}>Dashboard</h1>
-        <p style={{fontSize:12,color:'var(--text-tertiary)'}}>RIDEN system overview</p>
+    <AdminShell>
+      <PageHeader
+        title="Command Center"
+        sub={`${new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})} · Bangkok`}
+        actions={<Btn variant="secondary" size="sm" icon="⟳" onClick={loadData}>Refresh</Btn>}
+      />
+
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16,marginBottom:16}}>
+        <StatCard label="Active DMCs"      value={stats.dmcs}         icon="🏢" color="var(--teal)"   sub="companies" />
+        <StatCard label="Operators"        value={stats.operators}    icon="🚐" color="var(--blue)"   sub="fleet owners" />
+        <StatCard label="Verified Drivers" value={stats.drivers}      icon="🧑‍✈️" color="var(--green)"  sub="in pool" />
+        <StatCard label="Est. MRR"         value={`฿${stats.mrr.toLocaleString()}`} icon="📊" color="var(--amber)" sub="monthly" />
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:10,marginBottom:24}}>
-        {STATS.map(s=>(
-          <div key={s.l} style={{background:'#fff',border:'0.5px solid var(--border)',borderRadius:10,padding:'14px 16px'}}>
-            <div style={{fontSize:22,fontWeight:600,letterSpacing:'-0.5px',color:s.c,lineHeight:1,marginBottom:4}}>{loading?'—':s.v}</div>
-            <div style={{fontSize:10,fontWeight:500,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.06em'}}>{s.l}</div>
-          </div>
-        ))}
+
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16,marginBottom:28}}>
+        <StatCard label="Active Trips"    value={stats.trips_active}    icon="🗺️" color="var(--green)"  sub="running now" />
+        <StatCard label="Vehicles"        value={stats.vehicles}        icon="🚗" color="var(--text-2)" sub="active fleet" />
+        <StatCard label="Pending Review"  value={stats.pending_drivers} icon="⏳" color="var(--amber)"  sub="need approval" />
+        <StatCard label="Recent Bookings" value={stats.bookings}        icon="📋" color="var(--blue)"   sub="latest" />
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(170px,1fr))',gap:8,marginBottom:24}}>
-        {[
-          {h:'/admin/pending',l:'Verify Pending',urgent:stats.pending>0},
-          {h:'/admin/subscriptions',l:'Subscriptions'},
-          {h:'/admin/dmcs',l:'DMC Management'},
-          {h:'/admin/operators',l:'Operators'},
-          {h:'/admin/drivers',l:'Drivers'},
-        ].map(item=>(
-          <a key={item.h} href={item.h} style={{textDecoration:'none'}}>
-            <div style={{background:'#fff',border:item.urgent?'0.5px solid var(--accent)':'0.5px solid var(--border)',borderRadius:10,padding:'12px 14px',cursor:'pointer'}}>
-              <div style={{fontSize:13,fontWeight:500,color:item.urgent?'var(--accent)':'var(--text-primary)',marginBottom:2}}>{item.l}</div>
-              {item.urgent&&<div style={{fontSize:11,color:'var(--warning)'}}>{stats.pending} waiting</div>}
+
+      {stats.pending_drivers > 0 && (
+        <div style={{background:'var(--amber-bg)',border:'1px solid rgba(245,158,11,0.25)',borderRadius:'var(--r-lg)',padding:'14px 20px',marginBottom:24,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div style={{display:'flex',alignItems:'center',gap:12}}>
+            <span style={{fontSize:16}}>⏳</span>
+            <div>
+              <div style={{fontSize:13,fontWeight:600,color:'var(--amber)'}}>{stats.pending_drivers} driver{stats.pending_drivers>1?'s':''} waiting for approval</div>
+              <div style={{fontSize:12,color:'var(--text-3)',marginTop:2}}>Review vehicle photos and license documents</div>
             </div>
-          </a>
-        ))}
-      </div>
-      <div style={{background:'#fff',border:'0.5px solid var(--border)',borderRadius:10,overflow:'hidden'}}>
-        <div style={{padding:'12px 16px',borderBottom:'0.5px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <span style={{fontSize:13,fontWeight:500}}>Recent DMCs</span>
-          <a href="/admin/dmcs" style={{fontSize:12,color:'var(--text-tertiary)',textDecoration:'none'}}>View all →</a>
+          </div>
+          <Btn variant="secondary" size="sm" onClick={()=>router.push('/admin/drivers')}>Review →</Btn>
         </div>
-        {loading?<div style={{padding:16,color:'var(--text-tertiary)',fontSize:13}}>Loading...</div>:
-        dmcs.length===0?<div style={{padding:16,color:'var(--text-tertiary)',fontSize:13}}>No DMCs yet.</div>:
-        <div style={{overflowX:'auto' as const}}>
-          <table className="riden-table">
-            <thead><tr><th>Company</th><th>Email</th><th>Country</th><th>Plan</th><th>Status</th></tr></thead>
-            <tbody>{dmcs.map((d:any)=>(
-              <tr key={d.id}>
-                <td style={{fontWeight:500}}>{d.company_name}</td>
-                <td style={{color:'var(--text-secondary)',fontSize:12}}>{d.email}</td>
-                <td style={{color:'var(--text-secondary)'}}>{d.country||'—'}</td>
-                <td style={{color:'var(--text-secondary)',textTransform:'capitalize' as const}}>{d.subscription_plan||'trial'}</td>
-                <td><span className={'badge '+(d.subscription_status==='active'?'badge-progress':d.subscription_status==='suspended'?'badge-cancelled':'badge-warning')}>{d.subscription_status||'trial'}</span></td>
-              </tr>
-            ))}</tbody>
-          </table>
-        </div>}
-      </div>
+      )}
+
+      <Panel>
+        <PanelHeader title="Recent Bookings" sub="Latest activity across all DMCs" actions={<Btn variant="ghost" size="sm" onClick={()=>router.push('/admin/bookings')}>View all →</Btn>} />
+        {recentBookings.length === 0
+          ? <div style={{padding:'40px',textAlign:'center',color:'var(--text-3)',fontSize:13}}>No bookings yet</div>
+          : <Table columns={['REF','CLIENT','DMC','DAYS','STATUS','CREATED']}>
+              {recentBookings.map(b => (
+                <TR key={b.id}>
+                  <TD mono style={{color:'var(--teal)'}}>{b.booking_ref || b.id?.slice(0,8)}</TD>
+                  <TD><span style={{fontWeight:500}}>{b.client_name}</span></TD>
+                  <TD muted>{(b.dmc_users as any)?.company_name ?? '—'}</TD>
+                  <TD mono muted>{b.total_days}d</TD>
+                  <TD><Badge status={b.status??'pending'} /></TD>
+                  <TD muted>{new Date(b.created_at).toLocaleDateString('en-GB')}</TD>
+                </TR>
+              ))}
+            </Table>
+        }
+      </Panel>
     </AdminShell>
-  );
+  )
 }
