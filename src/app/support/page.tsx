@@ -1,13 +1,12 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 
 const CATEGORIES = ['general','booking','payment','driver','technical','billing','other']
 const PRIORITIES = ['low','normal','high','urgent']
-const STATUS_COLORS: Record<string,string> = { open:'badge-pending', in_progress:'badge-progress', resolved:'badge-completed', closed:'badge-cancelled' }
+const STATUS_BADGE: Record<string,string> = { open:'badge-warning', in_progress:'badge-progress', resolved:'badge-completed', closed:'badge-pending' }
 
 export default function SupportPage() {
   const router = useRouter()
@@ -23,7 +22,7 @@ export default function SupportPage() {
   useEffect(() => {
     async function load() {
       const sb = createClient()
-      const { data: { user } } = await sb.auth.getUser()
+      const { data:{ user } } = await sb.auth.getUser()
       if (!user) { router.push('/login'); return }
       const { data } = await sb.from('support_tickets').select('*').eq('dmc_id', user.id).order('created_at',{ascending:false})
       setTickets(data??[]); setLoading(false)
@@ -31,20 +30,19 @@ export default function SupportPage() {
     load()
   }, [router])
 
-  async function submitTicket(e: React.FormEvent) {
+  async function submitTicket(e:React.FormEvent) {
     e.preventDefault(); setSubmitting(true)
     const sb = createClient()
-    const { data: { user } } = await sb.auth.getUser()
+    const { data:{ user } } = await sb.auth.getUser()
     if (!user) return
-    const { error } = await sb.from('support_tickets').insert({ dmc_id:user.id, source:'dmc_portal', subject:form.subject, message:form.message, category:form.category, priority:form.priority })
-    if (error) { toast.error(error.message); setSubmitting(false); return }
+    await sb.from('support_tickets').insert({ dmc_id:user.id, source:'dmc_portal', subject:form.subject, message:form.message, category:form.category, priority:form.priority })
     toast.success('Ticket submitted! We will respond within 24 hours.')
     setShowForm(false); setForm({ subject:'', message:'', category:'general', priority:'normal' })
-    const { data } = await sb.from('support_tickets').select('*').eq('dmc_id', user.id).order('created_at',{ascending:false})
+    const { data } = await createClient().from('support_tickets').select('*').eq('dmc_id', user.id).order('created_at',{ascending:false})
     setTickets(data??[]); setSubmitting(false)
   }
 
-  async function openTicket(ticket: any) {
+  async function openTicket(ticket:any) {
     setSelected(ticket)
     const { data } = await createClient().from('support_replies').select('*').eq('ticket_id',ticket.id).order('created_at').neq('is_internal',true)
     setReplies(data??[])
@@ -53,111 +51,117 @@ export default function SupportPage() {
   async function sendReply() {
     if (!replyText.trim()) return
     const sb = createClient()
-    const { data: { user } } = await sb.auth.getUser()
+    const { data:{ user } } = await sb.auth.getUser()
     await sb.from('support_replies').insert({ ticket_id:selected.id, sender_type:'dmc', sender_id:user?.id, message:replyText })
     setReplyText('')
     const { data } = await createClient().from('support_replies').select('*').eq('ticket_id',selected.id).order('created_at').neq('is_internal',true)
-    setReplies(data??[])
-    toast.success('Reply sent!')
+    setReplies(data??[]); toast.success('Reply sent!')
   }
 
   return (
-    <div className="min-h-screen bg-riden-black">
-      <div className="absolute inset-0 bg-grid-pattern opacity-50 pointer-events-none" />
-      <nav className="relative z-50 border-b border-riden-border px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="text-riden-muted hover:text-riden-text"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></Link>
-          <div className="w-px h-5 bg-riden-border" />
-          <span className="font-display text-riden-white font-600">🎧 Support</span>
-        </div>
-        <button onClick={()=>setShowForm(true)} className="btn-primary px-4 py-2 text-sm">+ New Ticket</button>
-      </nav>
-      <main className="relative z-10 max-w-5xl mx-auto px-6 py-8">
-        {loading ? <div className="text-center text-riden-text py-12">Loading...</div> : (
-          <div className="grid lg:grid-cols-5 gap-6">
-            <div className="lg:col-span-2 glass rounded-xl overflow-hidden">
-              <div className="px-4 py-3 border-b border-riden-border"><h2 className="font-display font-600 text-riden-white text-sm">Your Tickets ({tickets.length})</h2></div>
-              {tickets.length===0 ? (
-                <div className="p-8 text-center"><div className="text-4xl mb-3">🎧</div><p className="text-riden-text text-sm mb-4">No tickets yet</p><button onClick={()=>setShowForm(true)} className="btn-primary px-5 py-2.5 text-sm">Create First Ticket</button></div>
-              ) : (
-                <div className="divide-y divide-riden-border">
-                  {tickets.map((tk:any)=>(
-                    <div key={tk.id} onClick={()=>openTicket(tk)} className={`px-4 py-3 cursor-pointer hover:bg-riden-card/50 transition-colors ${selected?.id===tk.id?'bg-riden-teal/10 border-l-2 border-riden-teal':''}`}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-mono text-xs text-riden-teal">{tk.ticket_ref}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${STATUS_COLORS[tk.status]||'badge-pending'}`}>{tk.status}</span>
-                      </div>
-                      <div className="text-riden-white text-sm truncate">{tk.subject}</div>
-                      <div className="text-riden-muted text-xs mt-0.5">{new Date(tk.created_at).toLocaleDateString('en',{month:'short',day:'numeric'})}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="lg:col-span-3">
-              {!selected ? (
-                <div className="glass rounded-xl p-12 text-center"><div className="text-4xl mb-3">💬</div><p className="text-riden-text">Select a ticket to view details and replies</p></div>
-              ) : (
-                <div className="glass rounded-xl overflow-hidden flex flex-col h-[500px]">
-                  <div className="px-5 py-4 border-b border-riden-border">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-mono text-xs text-riden-teal">{selected.ticket_ref}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[selected.status]||'badge-pending'}`}>{selected.status}</span>
-                    </div>
-                    <div className="font-display font-600 text-riden-white">{selected.subject}</div>
-                  </div>
-                  <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-                    <div className="glass rounded-xl p-3"><div className="text-xs text-riden-muted mb-1">Your Message</div><div className="text-riden-white text-sm">{selected.message}</div></div>
-                    {replies.map((r:any)=>(
-                      <div key={r.id} className={`rounded-xl p-3 ${r.sender_type==='admin'?'bg-riden-teal/10 ml-4':'glass mr-4'}`}>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-riden-muted">{r.sender_type==='admin'?'🛡️ RIDEN Support':'👤 You'}</span>
-                          <span className="text-xs text-riden-muted">{new Date(r.created_at).toLocaleString('en',{hour:'2-digit',minute:'2-digit'})}</span>
-                        </div>
-                        <div className="text-riden-white text-sm">{r.message}</div>
-                      </div>
-                    ))}
-                    {selected.status==='resolved' && <div className="text-center text-green-400 text-sm py-2">✅ This ticket has been resolved</div>}
-                  </div>
-                  {selected.status!=='resolved'&&selected.status!=='closed' && (
-                    <div className="px-5 py-4 border-t border-riden-border flex gap-3">
-                      <input className="riden-input flex-1 text-sm" placeholder="Type your reply..." value={replyText} onChange={e=>setReplyText(e.target.value)} onKeyDown={e=>e.key==='Enter'&&sendReply()} />
-                      <button onClick={sendReply} disabled={!replyText.trim()} className="btn-primary px-4 py-2 text-sm">Send</button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+    <div style={{minHeight:'100vh',background:'var(--bg-page)',fontFamily:'var(--font-sans)'}}>
+      <nav style={{background:'var(--bg-page)',borderBottom:'0.5px solid var(--border)',height:52,display:'flex',alignItems:'center',position:'sticky' as const,top:0,zIndex:50}}>
+        <div style={{maxWidth:1280,margin:'0 auto',padding:'0 24px',width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div style={{display:'flex',alignItems:'center',gap:14}}>
+            <a href="/dashboard" style={{color:'var(--text-tertiary)',textDecoration:'none',display:'flex'}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></a>
+            <div style={{width:'0.5px',height:16,background:'var(--border)'}}/>
+            <a href="/dashboard" style={{display:'flex',alignItems:'baseline',gap:5,textDecoration:'none'}}>
+              <span style={{fontWeight:700,fontSize:15,letterSpacing:'-0.4px',color:'var(--text-primary)'}}>RIDEN</span>
+              <span style={{fontSize:9,letterSpacing:'1px',color:'var(--text-primary)',opacity:0.35}}>ไรเด็น</span>
+            </a>
+            <span style={{fontSize:13,fontWeight:500,color:'var(--text-primary)'}}>Support</span>
           </div>
-        )}
-      </main>
-      {showForm && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="glass rounded-2xl p-6 w-full max-w-md">
-            <h2 className="font-display font-700 text-riden-white text-lg mb-5">New Support Ticket</h2>
-            <form onSubmit={submitTicket} className="space-y-4">
-              <div><label className="block text-riden-text text-xs font-mono uppercase tracking-widest mb-2">Subject *</label><input className="riden-input" placeholder="Brief description of your issue" value={form.subject} onChange={e=>setForm({...form,subject:e.target.value})} required /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="block text-riden-text text-xs font-mono uppercase tracking-widest mb-2">Category</label>
-                  <select className="riden-input" value={form.category} onChange={e=>setForm({...form,category:e.target.value})} style={{colorScheme:'dark'}}>
-                    {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
-                  </select>
+          <button onClick={()=>setShowForm(true)} className="btn-primary" style={{padding:'6px 14px',fontSize:12}}>+ New Ticket</button>
+        </div>
+      </nav>
+
+      {showForm&&(
+        <div style={{position:'fixed' as const,inset:0,background:'rgba(0,0,0,0.4)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+          <div className="riden-card" style={{width:'100%',maxWidth:480,padding:28}}>
+            <h2 style={{fontSize:18,fontWeight:600,marginBottom:20}}>New Support Ticket</h2>
+            <form onSubmit={submitTicket} style={{display:'flex',flexDirection:'column' as const,gap:12}}>
+              <div>
+                <label style={{display:'block',fontSize:11,fontWeight:500,textTransform:'uppercase' as const,letterSpacing:'0.06em',color:'var(--text-tertiary)',marginBottom:5}}>Subject</label>
+                <input value={form.subject} onChange={e=>setForm({...form,subject:e.target.value})} className="riden-input" placeholder="Brief description" required/>
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                <div>
+                  <label style={{display:'block',fontSize:11,fontWeight:500,textTransform:'uppercase' as const,letterSpacing:'0.06em',color:'var(--text-tertiary)',marginBottom:5}}>Category</label>
+                  <select value={form.category} onChange={e=>setForm({...form,category:e.target.value})} className="riden-input">{CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}</select>
                 </div>
-                <div><label className="block text-riden-text text-xs font-mono uppercase tracking-widest mb-2">Priority</label>
-                  <select className="riden-input" value={form.priority} onChange={e=>setForm({...form,priority:e.target.value})} style={{colorScheme:'dark'}}>
-                    {PRIORITIES.map(p=><option key={p} value={p}>{p}</option>)}
-                  </select>
+                <div>
+                  <label style={{display:'block',fontSize:11,fontWeight:500,textTransform:'uppercase' as const,letterSpacing:'0.06em',color:'var(--text-tertiary)',marginBottom:5}}>Priority</label>
+                  <select value={form.priority} onChange={e=>setForm({...form,priority:e.target.value})} className="riden-input">{PRIORITIES.map(p=><option key={p} value={p}>{p}</option>)}</select>
                 </div>
               </div>
-              <div><label className="block text-riden-text text-xs font-mono uppercase tracking-widest mb-2">Message *</label><textarea className="riden-input resize-none" rows={4} placeholder="Describe your issue in detail..." value={form.message} onChange={e=>setForm({...form,message:e.target.value})} required /></div>
-              <div className="flex gap-3">
-                <button type="button" onClick={()=>setShowForm(false)} className="btn-ghost flex-1 py-3">Cancel</button>
-                <button type="submit" disabled={submitting} className="btn-primary flex-1 py-3">{submitting?'Submitting...':'Submit Ticket'}</button>
+              <div>
+                <label style={{display:'block',fontSize:11,fontWeight:500,textTransform:'uppercase' as const,letterSpacing:'0.06em',color:'var(--text-tertiary)',marginBottom:5}}>Message</label>
+                <textarea value={form.message} onChange={e=>setForm({...form,message:e.target.value})} className="riden-input" rows={4} style={{resize:'vertical' as const}} placeholder="Describe your issue..." required/>
+              </div>
+              <div style={{display:'flex',gap:8,marginTop:4}}>
+                <button type="button" onClick={()=>setShowForm(false)} className="btn-ghost" style={{flex:1,padding:'9px'}}>Cancel</button>
+                <button type="submit" disabled={submitting} className="btn-primary" style={{flex:1,padding:'9px',justifyContent:'center',opacity:submitting?0.6:1}}>{submitting?'...':'Submit Ticket'}</button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      <div style={{maxWidth:1000,margin:'0 auto',padding:'24px',display:'grid',gridTemplateColumns:selected?'1fr 1fr':'1fr',gap:16}}>
+        <div>
+          {loading?(<div style={{padding:40,textAlign:'center' as const,color:'var(--text-tertiary)',fontSize:13}}>Loading...</div>):
+          tickets.length===0?(
+            <div className="riden-card" style={{padding:'48px 24px',textAlign:'center' as const}}>
+              <p style={{fontWeight:500,fontSize:15,marginBottom:4}}>No tickets yet</p>
+              <p style={{fontSize:12,color:'var(--text-tertiary)',marginBottom:16}}>Need help? Create a support ticket.</p>
+              <button onClick={()=>setShowForm(true)} className="btn-primary">Create First Ticket</button>
+            </div>
+          ):(
+            <div style={{display:'flex',flexDirection:'column' as const,gap:8}}>
+              {tickets.map((tk:any)=>(
+                <div key={tk.id} onClick={()=>openTicket(tk)} className="riden-card" style={{padding:'12px 16px',cursor:'pointer',borderColor:selected?.id===tk.id?'var(--accent)':'var(--border)'}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
+                    <span style={{fontFamily:'var(--font-mono)',fontSize:11,color:'var(--text-secondary)'}}>{tk.ticket_ref||tk.id.slice(0,8)}</span>
+                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                      <span className={'badge '+(STATUS_BADGE[tk.status]||'badge-pending')} style={{fontSize:10}}>{tk.status}</span>
+                      <span style={{fontSize:10,color:'var(--text-tertiary)'}}>{new Date(tk.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>
+                    </div>
+                  </div>
+                  <div style={{fontWeight:500,fontSize:13,marginBottom:2}}>{tk.subject}</div>
+                  <div style={{fontSize:11,color:'var(--text-secondary)',textTransform:'capitalize' as const}}>{tk.category}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {selected&&(
+          <div className="riden-card" style={{overflow:'hidden',display:'flex',flexDirection:'column' as const,maxHeight:600}}>
+            <div style={{padding:'12px 16px',borderBottom:'0.5px solid var(--border)'}}>
+              <div style={{fontWeight:500,fontSize:14,marginBottom:2}}>{selected.subject}</div>
+              <div style={{fontSize:11,color:'var(--text-tertiary)',textTransform:'capitalize' as const}}>{selected.category} · {selected.priority}</div>
+            </div>
+            <div style={{flex:1,overflowY:'auto' as const,padding:16,display:'flex',flexDirection:'column' as const,gap:10}}>
+              <div style={{background:'var(--bg-page)',borderRadius:8,padding:'10px 12px'}}>
+                <div style={{fontSize:10,color:'var(--text-tertiary)',marginBottom:4}}>Your message</div>
+                <div style={{fontSize:13,color:'var(--text-primary)'}}>{selected.message}</div>
+              </div>
+              {replies.map((r:any)=>(
+                <div key={r.id} style={{background:r.sender_type==='admin'?'var(--accent-bg)':'var(--bg-page)',borderRadius:8,padding:'10px 12px',marginLeft:r.sender_type==='admin'?16:0,marginRight:r.sender_type==='dmc'?16:0}}>
+                  <div style={{fontSize:10,color:'var(--text-tertiary)',marginBottom:4}}>{r.sender_type==='admin'?'RIDEN Support':'You'} · {new Date(r.created_at).toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'})}</div>
+                  <div style={{fontSize:13}}>{r.message}</div>
+                </div>
+              ))}
+            </div>
+            {selected.status!=='resolved'&&selected.status!=='closed'&&(
+              <div style={{padding:'12px 16px',borderTop:'0.5px solid var(--border)',display:'flex',gap:8}}>
+                <input value={replyText} onChange={e=>setReplyText(e.target.value)} onKeyDown={e=>e.key==='Enter'&&sendReply()} className="riden-input" style={{flex:1,padding:'7px 10px'}} placeholder="Type reply..."/>
+                <button onClick={sendReply} disabled={!replyText.trim()} className="btn-primary" style={{padding:'7px 12px',fontSize:12}}>Send</button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
