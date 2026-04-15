@@ -71,8 +71,7 @@ export default function AdminFinancePage() {
         s.end_date || '',
       ])
     ];
-    const csv = rows.map(r => r.map(v => '"'+(v||'')+'"').join(',')).join('
-');
+    const csv = rows.map(r => r.map(v => '"'+(v||'')+'"').join(',')).join('\n');
     const a = document.createElement('a');
     a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
     a.download = 'riden-finance-'+new Date().toISOString().slice(0,7)+'.csv';
