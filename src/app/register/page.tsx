@@ -7,105 +7,73 @@ import toast from 'react-hot-toast'
 
 export default function RegisterPage() {
   const router = useRouter()
-  const [companyName, setCompanyName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [country, setCountry] = useState('')
+  const [form, setForm] = useState({ company:'', contact:'', email:'', phone:'', country:'Thailand', password:'' })
   const [loading, setLoading] = useState(false)
 
-  async function handleRegister(e: React.FormEvent) {
-    e.preventDefault()
-    if (password.length < 8) { toast.error('Password must be at least 8 characters'); return }
-    setLoading(true)
-    const supabase = createClient()
-
-    const { data: authData, error: authError } = await supabase.auth.signUp({ email, password })
-    if (authError) { toast.error(authError.message); setLoading(false); return }
-
-    if (authData.user) {
-      const { error: dbError } = await supabase.from('dmc_users').insert({
-        id: authData.user.id,
-        company_name: companyName,
-        email,
-        country,
-        subscription_plan: 'trial',
-        subscription_status: 'active',
-      })
-      if (dbError) { toast.error('Account created but profile setup failed. Contact support.'); }
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault(); setLoading(true)
+    const sb = createClient()
+    const { data, error } = await sb.auth.signUp({ email:form.email, password:form.password })
+    if (error) { toast.error(error.message); setLoading(false); return }
+    if (data.user) {
+      await sb.from('dmc_users').insert({ id:data.user.id, company_name:form.company, contact_person:form.contact, email:form.email, phone:form.phone, country:form.country, subscription_plan:'free', subscription_status:'trial', trial_ends_at:new Date(Date.now()+60*24*60*60*1000).toISOString() })
     }
-
-    toast.success('Account created! You have 60 days free trial.')
+    toast.success('Account created! Please check your email to verify.')
     router.push('/dashboard')
   }
 
+  const FIELDS = [
+    {k:'company',l:'Company name',t:'text',p:'Amazing Thailand Tours'},
+    {k:'contact',l:'Contact person',t:'text',p:'Your full name'},
+    {k:'email',l:'Email address',t:'email',p:'you@company.com'},
+    {k:'phone',l:'Phone number',t:'tel',p:'+66 89 123 4567'},
+    {k:'country',l:'Country',t:'text',p:'Thailand'},
+    {k:'password',l:'Password',t:'password',p:'••••••••'},
+  ] as const
+
   return (
-    <div className="min-h-screen bg-riden-black flex items-center justify-center relative overflow-hidden py-10">
-      <div className="absolute inset-0 bg-grid-pattern opacity-100" />
-      <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-riden-teal/5 rounded-full blur-[120px]" />
-
-      <div className="w-full max-w-md px-6 relative z-10">
-        <div className="text-center mb-8 stagger">
-          <div className="inline-flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-riden-teal rounded-xl flex items-center justify-center shadow-teal">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-                <path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/>
-                <path d="M15 19l2 2 4-4"/>
-                <rect x="9" y="11" width="14" height="10" rx="2"/>
-              </svg>
-            </div>
-            <span className="font-display text-2xl font-800 text-riden-white tracking-wider">RIDEN</span><span className="text-riden-muted text-xs ml-1 font-400 tracking-widest">ไรเด็น</span>
-          </div>
-          <h1 className="font-display text-3xl font-700 text-riden-white mb-2">Create account</h1>
-          <p className="text-riden-text text-sm">60 days free trial â no credit card needed</p>
+    <div style={{minHeight:'100vh',display:'flex',background:'var(--bg-page)',fontFamily:'var(--font-sans)'}}>
+      <div style={{flex:'0 0 44%',background:'#111',display:'flex',flexDirection:'column',justifyContent:'space-between',padding:'40px 48px'}}>
+        <div style={{display:'flex',alignItems:'baseline',gap:5}}>
+          <span style={{fontWeight:700,fontSize:16,letterSpacing:'-0.4px',color:'#fff'}}>RIDEN</span>
+          <span style={{fontWeight:400,fontSize:9,letterSpacing:'1px',color:'rgba(255,255,255,0.4)'}}>ไรเด็น</span>
         </div>
-
-        <div className="glass rounded-2xl p-8 shadow-card stagger">
-          <form onSubmit={handleRegister} className="space-y-4">
-            <div>
-              <label className="block text-riden-text text-xs font-mono uppercase tracking-widest mb-2">Company Name *</label>
-              <input className="riden-input" placeholder="e.g. Bangkok Travel Co." value={companyName} onChange={e => setCompanyName(e.target.value)} required />
-            </div>
-            <div>
-              <label className="block text-riden-text text-xs font-mono uppercase tracking-widest mb-2">Email Address *</label>
-              <input type="email" className="riden-input" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} required />
-            </div>
-            <div>
-              <label className="block text-riden-text text-xs font-mono uppercase tracking-widest mb-2">Country</label>
-              <input className="riden-input" placeholder="e.g. Thailand" value={country} onChange={e => setCountry(e.target.value)} />
-            </div>
-            <div>
-              <label className="block text-riden-text text-xs font-mono uppercase tracking-widest mb-2">Password *</label>
-              <input type="password" className="riden-input" placeholder="Min 8 characters" value={password} onChange={e => setPassword(e.target.value)} required />
-            </div>
-
-            <div className="glass rounded-xl p-4 mt-2">
-              <p className="text-riden-text text-xs">ð Free Trial includes:</p>
-              <ul className="mt-2 space-y-1">
-                {['60 days free', '30 bookings included', 'Full LINE bot automation', 'Live driver tracking'].map(item => (
-                  <li key={item} className="text-riden-teal text-xs flex items-center gap-2">
-                    <span>â</span>{item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <button type="submit" disabled={loading} className="btn-primary w-full py-3.5 mt-2 flex items-center justify-center gap-2">
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : 'Create Free Account â'}
+        <div>
+          <h1 style={{fontSize:48,fontWeight:700,letterSpacing:'-1px',lineHeight:1.05,color:'#fff',marginBottom:16}}>Join RIDEN.</h1>
+          <p style={{fontSize:14,color:'rgba(255,255,255,0.45)',lineHeight:1.7,maxWidth:300}}>Start your 60-day free trial. No credit card required.</p>
+          <div style={{marginTop:32,display:'flex',flexDirection:'column' as const,gap:10}}>
+            {['60 days free trial','No credit card needed','Cancel anytime'].map(f=>(
+              <div key={f} style={{display:'flex',alignItems:'center',gap:8,fontSize:13,color:'rgba(255,255,255,0.5)'}}>
+                <div style={{width:4,height:4,background:'var(--accent)',borderRadius:'50%'}}/>{f}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{fontSize:11,color:'rgba(255,255,255,0.2)'}}>&copy; 2026 RIDEN Co., Ltd.</div>
+      </div>
+      <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:40}}>
+        <div style={{width:'100%',maxWidth:400}}>
+          <h2 style={{fontSize:22,fontWeight:600,letterSpacing:'-0.3px',color:'var(--text-primary)',marginBottom:4}}>Create account</h2>
+          <p style={{fontSize:13,color:'var(--text-tertiary)',marginBottom:24}}>Fill in your details to get started</p>
+          <form onSubmit={handleSubmit} style={{display:'flex',flexDirection:'column' as const,gap:12}}>
+            {FIELDS.map(f=>(
+              <div key={f.k}>
+                <label style={{display:'block',fontSize:11,fontWeight:500,letterSpacing:'0.06em',textTransform:'uppercase' as const,color:'var(--text-tertiary)',marginBottom:5}}>{f.l}</label>
+                <input type={f.t} value={form[f.k]} onChange={e=>setForm({...form,[f.k]:e.target.value})} required placeholder={f.p} className="riden-input" />
+              </div>
+            ))}
+            <button type="submit" disabled={loading} className="btn-primary" style={{width:'100%',justifyContent:'center',padding:'11px',fontSize:14,marginTop:4,opacity:loading?0.6:1}}>
+              {loading?'Creating account...':'Create account'}
             </button>
           </form>
-
-          <div className="mt-5 pt-5 border-t border-riden-border text-center">
-            <p className="text-riden-text text-sm">
-              Already have an account?{' '}
-              <Link href="/login" className="text-riden-teal hover:text-riden-teal-light font-medium transition-colors">Sign in</Link>
-            </p>
+          <p style={{textAlign:'center' as const,marginTop:16,fontSize:12,color:'var(--text-tertiary)'}}>
+            Already have an account?{' '}<Link href="/login" style={{color:'var(--text-primary)',fontWeight:500,textDecoration:'none'}}>Sign in</Link>
+          </p>
+          <div style={{marginTop:20,paddingTop:16,borderTop:'0.5px solid var(--border)',textAlign:'center' as const}}>
+            <Link href="/privacy" style={{fontSize:11,color:'var(--text-tertiary)',textDecoration:'none'}}>Privacy Policy</Link>
           </div>
         </div>
-        <p className="text-center text-riden-muted text-xs mt-8 font-mono">à¹à¸£à¹à¸à¹à¸ â Where Gears Meet Green</p>
       </div>
-      <p className="text-center mt-3"><Link href="/privacy" className="text-riden-muted text-xs hover:text-riden-teal transition-colors">Privacy Policy</Link><span className="text-riden-border mx-2">·</span><span className="text-riden-muted text-xs">Thailand PDPA</span></p>
     </div>
   )
 }
