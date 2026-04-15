@@ -3,9 +3,10 @@ import '../styles/globals.css'
 import { Toaster } from 'react-hot-toast'
 
 export const metadata: Metadata = {
-  title: 'RIDEN — ไรเด็น | DMC Portal',
+  title: 'RIDEN ไรเด็น | DMC Portal',
   description: 'B2B Tourism Transport Coordination Platform for Thailand',
   icons: { icon: '/favicon.ico' },
+  viewport: 'width=device-width, initial-scale=1',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -17,14 +18,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           position="top-right"
           toastOptions={{
             style: {
-              background: '#111A14',
-              color: '#E8F5EB',
-              border: '1px solid rgba(29,158,117,0.3)',
-              fontFamily: 'DM Sans, sans-serif',
-              fontSize: '14px',
+              background: '#1A1A1A',
+              color: '#D4E827',
+              border: '0.5px solid rgba(212,232,39,0.3)',
+              fontFamily: 'Space Grotesk, sans-serif',
+              fontSize: '13px',
+              borderRadius: '8px',
             },
-            success: { iconTheme: { primary: '#1D9E75', secondary: '#080E0B' } },
-            error: { iconTheme: { primary: '#EF4444', secondary: '#080E0B' } },
+            success: { iconTheme: { primary: '#D4E827', secondary: '#1A1A1A' } },
+            error: { iconTheme: { primary: '#EF4444', secondary: '#1A1A1A' } },
           }}
         />
       </body>
