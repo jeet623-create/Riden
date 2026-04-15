@@ -54,7 +54,7 @@ export function Badge({ status, label }: { status:string; label?:string }) {
 }
 
 export function Btn({ children, onClick, variant='primary', size='md', disabled, style:extStyle, icon }: {
-  children:React.ReactNode; onClick?:()=>void
+  children:React.ReactNode; onClick?:(e?:React.MouseEvent<HTMLButtonElement>)=>void
   variant?:'primary'|'secondary'|'ghost'|'danger'|'teal'
   size?:'sm'|'md'|'lg'; disabled?:boolean; style?:React.CSSProperties; icon?:string
 }) {
@@ -68,7 +68,7 @@ export function Btn({ children, onClick, variant='primary', size='md', disabled,
   const S = { sm:{padding:'5px 12px',fontSize:12}, md:{padding:'8px 16px',fontSize:13}, lg:{padding:'11px 22px',fontSize:14} }
   const v = V[variant], s = S[size]
   return (
-    <button onClick={onClick} disabled={disabled} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:s.padding, fontSize:s.fontSize, fontWeight:500, background:v.bg, color:v.color, border:'1px solid '+v.border, borderRadius:'var(--r)', cursor:disabled?'not-allowed':'pointer', opacity:disabled?0.5:1, transition:'all 0.12s ease', fontFamily:'var(--font-body)', whiteSpace:'nowrap' as const, letterSpacing:0.2, ...extStyle }}
+    <button onClick={onClick as any} disabled={disabled} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:s.padding, fontSize:s.fontSize, fontWeight:500, background:v.bg, color:v.color, border:'1px solid '+v.border, borderRadius:'var(--r)', cursor:disabled?'not-allowed':'pointer', opacity:disabled?0.5:1, transition:'all 0.12s ease', fontFamily:'var(--font-body)', whiteSpace:'nowrap' as const, letterSpacing:0.2, ...extStyle }}
       onMouseEnter={e=>{ if(!disabled) e.currentTarget.style.background=v.hbg }}
       onMouseLeave={e=>{ if(!disabled) e.currentTarget.style.background=v.bg }}
     >
