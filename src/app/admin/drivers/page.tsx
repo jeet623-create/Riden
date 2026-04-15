@@ -169,7 +169,7 @@ export default function DriversPage() {
               >
                 <div style={{ height: 150, background: 'var(--bg-elevated)', position: 'relative', overflow: 'hidden' }}>
                   {d.vehicle_photo_url
-                    ? <img src={d.vehicle_photo_url} onClick={e => { e.stopPropagation(); setLightbox(d.vehicle_photo_url) }} style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'zoom-in' }} />
+                    ? <img src={d.vehicle_photo_url} onClick={(e:any) => { e?.stopPropagation(); setLightbox(d.vehicle_photo_url) }} style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'zoom-in' }} />
                     : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}><span style={{ fontSize: 11, color: 'var(--text-3)' }}>No photo</span></div>
                   }
                   <div style={{ position: 'absolute', top: 8, right: 8 }}>
@@ -183,8 +183,8 @@ export default function DriversPage() {
                 </div>
                 {isPending && (
                   <div style={{ padding: '0 12px 12px', display: 'flex', gap: 8 }}>
-                    <Btn variant="teal" size="sm" style={{ flex: 1 }} onClick={e => { e.stopPropagation(); approve(d.id) }}>Approve</Btn>
-                    <Btn variant="danger" size="sm" style={{ flex: 1 }} onClick={e => { e.stopPropagation(); setSelected(d) }}>Reject</Btn>
+                    <Btn variant="teal" size="sm" style={{ flex: 1 }} onClick={(e:any) => { e?.stopPropagation(); approve(d.id) }}>Approve</Btn>
+                    <Btn variant="danger" size="sm" style={{ flex: 1 }} onClick={(e:any) => { e?.stopPropagation(); setSelected(d) }}>Reject</Btn>
                   </div>
                 )}
               </div>
