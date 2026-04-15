@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { DmcShell } from '@/components/DmcShell'
-import { Panel, Table, TR, TD, Badge, Loading, PageHeader, Empty } from '@/components/ui'
+import { Panel, Table, TR, TD, Badge, Loading, PageHeader, Empty, Btn } from '@/components/ui'
 const SUPA = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const KEY  = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const H = () => ({ apikey: KEY, Authorization: 'Bearer ' + KEY })
@@ -43,7 +43,7 @@ export default function PaymentsPage() {
             <div style={{fontSize:22,fontWeight:700,textTransform:'capitalize'}}>{dmc?.subscription_plan||'trial'}</div>
             <div style={{fontSize:13,color:'var(--text-3)',marginTop:4}}>
               Status: <span style={{color:expired?'var(--red)':trial?'var(--amber)':'var(--green)',fontWeight:500}}>{dmc?.subscription_status||'trial'}</span>
-              {dmc?.subscription_status==='trial' && dmc?.trial_ends_at && <span> · Trial ends {new Date(dmc.trial_ends_at).toLocaleDateString('en-GB')}</span>}
+              {dmc?.subscription_status==='trial' && dmc?.trial_ends_at && <span> Â· Trial ends {new Date(dmc.trial_ends_at).toLocaleDateString('en-GB')}</span>}
             </div>
           </div>
           {(expired||trial) && <Btn variant="teal" onClick={()=>router.push('/support')}>Upgrade Plan</Btn>}
@@ -51,16 +51,16 @@ export default function PaymentsPage() {
       </div>
       <Panel>
         <div style={{padding:'14px 24px',borderBottom:'1px solid var(--border)',fontSize:13,fontWeight:600}}>Payment History</div>
-        {subs.length===0?<Empty icon="💳" message="No payment history yet" />:(
+        {subs.length===0?<Empty icon="ð³" message="No payment history yet" />:(
           <Table columns={['PLAN','AMOUNT','START','END','STATUS']}>
             {subs.map(s=>{
               const exp = new Date(s.end_date) < new Date()
               return (
                 <TR key={s.id}>
                   <TD mono muted style={{textTransform:'capitalize' as const}}>{s.plan}</TD>
-                  <TD mono style={{color:'var(--green)'}}>฿{(s.price_thb||0).toLocaleString()}</TD>
-                  <TD muted>{s.start_date?new Date(s.start_date).toLocaleDateString('en-GB'):'—'}</TD>
-                  <TD muted>{s.end_date?new Date(s.end_date).toLocaleDateString('en-GB'):'—'}</TD>
+                  <TD mono style={{color:'var(--green)'}}>à¸¿{(s.price_thb||0).toLocaleString()}</TD>
+                  <TD muted>{s.start_date?new Date(s.start_date).toLocaleDateString('en-GB'):'â'}</TD>
+                  <TD muted>{s.end_date?new Date(s.end_date).toLocaleDateString('en-GB'):'â'}</TD>
                   <TD><Badge status={exp?'expired':'active'} /></TD>
                 </TR>
               )
