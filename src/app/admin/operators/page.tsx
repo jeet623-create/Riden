@@ -1,61 +1,51 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
-import Link from 'next/link';
 const API = (process.env.NEXT_PUBLIC_SUPABASE_URL||'')+'/functions/v1';
-const PG: React.CSSProperties = { minHeight:'100vh', background:'#07100D', color:'#e8f5f0', fontFamily:'Inter,sans-serif', padding:'24px 20px' };
-const CARD: React.CSSProperties = { background:'#0d1e19', border:'1px solid #1a3028', borderRadius:12, padding:16, marginBottom:12 };
-const TEAL = '#19C977';
-const NAVS = [{h:'/admin',l:'Dashboard'},{h:'/admin/dmcs',l:'DMCs'},{h:'/admin/operators',l:'Operators',a:true},{h:'/admin/drivers',l:'Drivers'},{h:'/admin/pending',l:'Pending'},{h:'/admin/subscriptions',l:'Subscriptions'}];
+const ADMIN_LINKS = [{h:'/admin',l:'Dashboard'},{h:'/admin/dmcs',l:'DMCs'},{h:'/admin/operators',l:'Operators'},{h:'/admin/drivers',l:'Drivers'},{h:'/admin/pending',l:'Pending'},{h:'/admin/subscriptions',l:'Subscriptions'}];
+function AdminShell({active,children}:{active:string;children:React.ReactNode}) {
+  return (<div style={{display:'flex',minHeight:'100vh',background:'var(--bg-page)',fontFamily:'var(--font-sans)'}}>
+    <div style={{width:220,background:'#fff',borderRight:'0.5px solid var(--border)',flexShrink:0,display:'flex',flexDirection:'column' as const,position:'sticky' as const,top:0,height:'100vh'}}>
+      <div style={{padding:'20px 16px 14px',borderBottom:'0.5px solid var(--border)'}}><div style={{display:'flex',alignItems:'baseline',gap:5}}><span style={{fontWeight:700,fontSize:15,letterSpacing:'-0.4px'}}>RIDEN</span><span style={{fontSize:9,letterSpacing:'1px',opacity:0.35}}>ไรเด็น</span></div><div style={{fontSize:10,color:'var(--text-tertiary)',marginTop:1}}>Admin Panel</div></div>
+      <nav style={{padding:8,flex:1}}>{ADMIN_LINKS.map(l=>(<a key={l.h} href={l.h} style={{display:'block',padding:'8px 10px',borderRadius:7,fontSize:13,fontWeight:l.h===active?500:400,color:l.h===active?'var(--text-primary)':'var(--text-secondary)',background:l.h===active?'var(--bg-page)':'transparent',textDecoration:'none',marginBottom:1}}>{l.l}</a>))}</nav>
+    </div>
+    <div style={{flex:1,minWidth:0,padding:'28px 24px'}}>{children}</div>
+  </div>);
+}
 export default function AdminOperatorsPage() {
   const [ops,setOps]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);
   const [search,setSearch]=useState('');
   const [acting,setActing]=useState<string|null>(null);
   const [msg,setMsg]=useState('');
-  const load=useCallback(async()=>{
-    setLoading(true);
-    try { const r=await fetch(API+'/admin-pending?action=list_operators'); const d=await r.json(); setOps(d.all_operators||[]); } catch(e){console.error(e);}
-    setLoading(false);
-  },[]);
+  const load=useCallback(async()=>{setLoading(true);try{const r=await fetch(API+'/admin-pending?action=list_operators');const d=await r.json();setOps(d.all_operators||[]);}catch(e){console.error(e);}setLoading(false);},[]);
   useEffect(()=>{load();},[load]);
-  async function act(id:string,action:string,liu:string,name:string){
-    setActing(id+action);
-    const r=await fetch(API+'/admin-pending',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'operator',id,action,line_user_id:liu,name})});
-    const d=await r.json();
-    setMsg(d.msg||d.error||'Done');
-    load();
-    setActing(null);
-  }
+  async function act(id:string,action:string,liu:string,name:string){setActing(id+action);const r=await fetch(API+'/admin-pending',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'operator',id,action,line_user_id:liu,name})});const d=await r.json();setMsg(d.msg||d.error||'Done');load();setActing(null);}
   const filtered=ops.filter((o:any)=>!search||o.company_name?.toLowerCase().includes(search.toLowerCase())||o.phone?.includes(search));
-  const btnV:React.CSSProperties={background:TEAL,color:'#07100D',border:'none',borderRadius:8,padding:'6px 14px',fontWeight:700,fontSize:12,cursor:'pointer'};
-  const btnS:React.CSSProperties={background:'transparent',color:'#ff6b6b',border:'1px solid #ff6b6b',borderRadius:8,padding:'6px 14px',fontWeight:600,fontSize:12,cursor:'pointer'};
-  return (
-    <div style={PG}>
-      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:24}}>
-        <h1 style={{fontSize:22,fontWeight:800,margin:0}}>Operator Management</h1>
-        <span style={{fontSize:11,color:'#7aab94'}}>{ops.length} total</span>
-      </div>
-      <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap' as const}}>{NAVS.map(n=><Link key={n.h} href={n.h} style={{padding:'7px 16px',borderRadius:8,fontSize:13,fontWeight:600,background:(n as any).a?TEAL:'#0f1f1a',color:(n as any).a?'#07100D':'#7aab94',textDecoration:'none'}}>{n.l}</Link>)}</div>
-      <div style={{marginBottom:16}}><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by name or phone..." style={{background:'#0d1e19',border:'1px solid #1a3028',borderRadius:8,color:'#e8f5f0',padding:'9px 14px',fontSize:13,outline:'none',width:'100%',maxWidth:360,boxSizing:'border-box' as const}}/></div>
-      {msg&&<div style={{background:'#0f2a1f',border:'1px solid '+TEAL,borderRadius:8,padding:'10px 14px',marginBottom:16,fontSize:13,color:TEAL}}>{msg}</div>}
-      {loading?<div style={{textAlign:'center',color:'#7aab94',padding:'40px 0'}}>Loading...</div>:
-      filtered.length===0?<div style={{textAlign:'center',color:'#7aab94',padding:'40px 0'}}>No operators found.</div>:
-      filtered.map((o:any)=>(
-        <div key={o.id} style={CARD}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap' as const}}>
-            <div style={{flex:1}}>
-              <div style={{fontSize:15,fontWeight:700,marginBottom:3}}>{o.company_name}</div>
-              <div style={{fontSize:12,color:'#7aab94'}}>{o.phone||'—'} · {o.base_location||'—'}</div>
-              <div style={{fontSize:11,color:o.is_verified?TEAL:'#F59E0B',marginTop:2}}>{o.is_verified?'✓ Verified':'Pending verification'}</div>
-            </div>
-            <div style={{display:'flex',gap:8,flexShrink:0}}>
-              <span style={{fontSize:10,padding:'2px 8px',borderRadius:20,fontWeight:600,background:o.status==='active'?'rgba(25,201,119,0.15)':'rgba(245,158,11,0.1)',color:o.status==='active'?TEAL:'#F59E0B'}}>{o.status||'pending'}</span>
-              {!o.is_verified&&<button onClick={()=>act(o.id,'verify',o.line_user_id,o.company_name)} disabled={acting===o.id+'verify'} style={{...btnV,opacity:acting===o.id+'verify'?0.5:1}}>✓ Verify</button>}
-              {o.status!=='suspended'&&o.is_verified&&<button onClick={()=>act(o.id,'suspend',o.line_user_id,o.company_name)} disabled={acting===o.id+'suspend'} style={btnS}>Suspend</button>}
-            </div>
-          </div>
-        </div>
-      ))}
+  return (<AdminShell active="/admin/operators">
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20,flexWrap:'wrap' as const,gap:12}}>
+      <div><h1 style={{fontSize:20,fontWeight:600,letterSpacing:'-0.3px',marginBottom:1}}>Operators</h1><p style={{fontSize:12,color:'var(--text-tertiary)'}}>{ops.length} total</p></div>
+      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..." className="riden-input" style={{maxWidth:240,padding:'7px 12px'}}/>
     </div>
-  );
+    {msg&&<div style={{padding:'8px 12px',background:'rgba(25,201,119,0.06)',border:'0.5px solid rgba(25,201,119,0.2)',borderRadius:7,fontSize:12,color:'var(--accent)',marginBottom:12}}>{msg}</div>}
+    <div style={{background:'#fff',border:'0.5px solid var(--border)',borderRadius:10,overflow:'hidden'}}>
+      {loading?<div style={{padding:20,color:'var(--text-tertiary)',fontSize:13}}>Loading...</div>:
+      filtered.length===0?<div style={{padding:20,color:'var(--text-tertiary)',fontSize:13}}>No operators found.</div>:
+      <div style={{overflowX:'auto' as const}}><table className="riden-table">
+        <thead><tr><th>Company</th><th>Phone</th><th>City</th><th>Status</th><th>Verified</th><th>Actions</th></tr></thead>
+        <tbody>{filtered.map((o:any)=>(
+          <tr key={o.id}>
+            <td style={{fontWeight:500}}>{o.company_name}</td>
+            <td style={{color:'var(--text-secondary)'}}>{o.phone||'—'}</td>
+            <td style={{color:'var(--text-secondary)'}}>{o.base_location||'—'}</td>
+            <td><span className={'badge '+(o.status==='active'?'badge-progress':'badge-warning')}>{o.status||'pending'}</span></td>
+            <td style={{color:o.is_verified?'var(--success)':'var(--warning)',fontSize:12,fontWeight:500}}>{o.is_verified?'✓ Yes':'− No'}</td>
+            <td><div style={{display:'flex',gap:6}}>
+              {!o.is_verified&&<button onClick={()=>act(o.id,'verify',o.line_user_id,o.company_name)} disabled={acting===o.id+'verify'} style={{fontSize:11,padding:'3px 8px',borderRadius:5,background:'rgba(25,201,119,0.08)',color:'var(--accent)',border:'none',cursor:'pointer',fontWeight:500,opacity:acting===o.id+'verify'?0.5:1}}>✓ Verify</button>}
+              {o.status!=='suspended'&&o.is_verified&&<button onClick={()=>act(o.id,'suspend',o.line_user_id,o.company_name)} disabled={acting===o.id+'suspend'} style={{fontSize:11,padding:'3px 8px',borderRadius:5,background:'rgba(239,68,68,0.07)',color:'var(--danger)',border:'none',cursor:'pointer',fontWeight:500}}>Suspend</button>}
+            </div></td>
+          </tr>
+        ))}</tbody>
+      </table></div>}
+    </div>
+  </AdminShell>);
 }
