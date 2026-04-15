@@ -1,142 +1,61 @@
-'use client'
-import { useEffect, useState } from 'react'
-import AdminShell from '@/components/admin/AdminShell'
-import { createClient } from '@/lib/supabase'
-import toast from 'react-hot-toast'
-
-const VEHICLE_TYPES = ['sedan','van_9','van_12','minibus_15','minibus_20','coach_30','coach_40plus','suv','pickup']
-const emptyForm = { full_name:'', line_user_id:'', phone:'', operator_id:'', vehicle_type:'van_9', vehicle_plate:'', vehicle_brand_model:'', vehicle_seats:9, vehicle_color:'', base_location:'', is_verified:false, is_active:true, is_available:true }
-
-export default function AdminDrivers() {
-  const [lang, setLang] = useState<'en'|'th'>('en')
-  const [items, setItems] = useState<any[]>([])
-  const [operators, setOperators] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [opFilter, setOpFilter] = useState('all')
-  const [showForm, setShowForm] = useState(false)
-  const [editItem, setEditItem] = useState<any>(null)
-  const [form, setForm] = useState({...emptyForm})
-  const t = lang==='en' ? { title:'Drivers', addBtn:'+ Add Driver', search:'Search drivers...', noData:'No drivers found', cancel:'Cancel', save:'Save', addTitle:'Add Driver', editTitle:'Edit Driver', activate:'Activate', suspend:'Suspend' } : { title:'คนขับ', addBtn:'+ เพิ่มคนขับ', search:'ค้นหาคนขับ...', noData:'ไม่พบคนขับ', cancel:'ยกเลิก', save:'บันทึก', addTitle:'เพิ่มคนขับ', editTitle:'แก้ไขคนขับ', activate:'เปิดใช้งาน', suspend:'ระงับ' }
-
-  useEffect(() => {
-    const s = localStorage.getItem('riden_admin'); if(s) setLang(JSON.parse(s).lang||'en')
-    loadData()
-  }, [])
-
-  async function loadData() {
-    const sb = createClient()
-    const [dRes, opRes] = await Promise.all([
-      sb.from('drivers').select('*, operators(company_name)').order('created_at',{ascending:false}),
-      sb.from('operators').select('id,company_name').eq('status','active')
-    ])
-    setItems(dRes.data??[]); setOperators(opRes.data??[]); setLoading(false)
+'use client';
+import { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
+const API = (process.env.NEXT_PUBLIC_SUPABASE_URL||'')+'/functions/v1';
+const PG: React.CSSProperties = { minHeight:'100vh', background:'#07100D', color:'#e8f5f0', fontFamily:'Inter,sans-serif', padding:'24px 20px' };
+const CARD: React.CSSProperties = { background:'#0d1e19', border:'1px solid #1a3028', borderRadius:12, padding:16, marginBottom:12 };
+const TEAL = '#19C977';
+const NAVS = [{h:'/admin',l:'Dashboard'},{h:'/admin/dmcs',l:'DMCs'},{h:'/admin/operators',l:'Operators'},{h:'/admin/drivers',l:'Drivers',a:true},{h:'/admin/pending',l:'Pending'},{h:'/admin/subscriptions',l:'Subscriptions'}];
+export default function AdminDriversPage() {
+  const [drs,setDrs]=useState<any[]>([]);
+  const [loading,setLoading]=useState(true);
+  const [search,setSearch]=useState('');
+  const [acting,setActing]=useState<string|null>(null);
+  const [msg,setMsg]=useState('');
+  const load=useCallback(async()=>{
+    setLoading(true);
+    try { const r=await fetch(API+'/admin-pending?action=list_drivers'); const d=await r.json(); setDrs(d.all_drivers||[]); } catch(e){console.error(e);}
+    setLoading(false);
+  },[]);
+  useEffect(()=>{load();},[load]);
+  async function act(id:string,action:string,liu:string,name:string){
+    setActing(id+action);
+    const r=await fetch(API+'/admin-pending',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'driver',id,action,line_user_id:liu,name})});
+    const d=await r.json();
+    setMsg(d.msg||d.error||'Done');
+    load();
+    setActing(null);
   }
-
-  async function handleSave() {
-    const sb = createClient()
-    const payload = { full_name:form.full_name, line_user_id:form.line_user_id||null, phone:form.phone||null, operator_id:form.operator_id||null, vehicle_type:form.vehicle_type, vehicle_plate:form.vehicle_plate||null, vehicle_brand_model:form.vehicle_brand_model||null, vehicle_seats:Number(form.vehicle_seats)||9, vehicle_color:form.vehicle_color||null, base_location:form.base_location||null, is_verified:form.is_verified, is_active:form.is_active, is_available:form.is_available }
-    const { error } = editItem ? await sb.from('drivers').update(payload).eq('id',editItem.id) : await sb.from('drivers').insert(payload)
-    if (error) { toast.error(error.message); return }
-    toast.success(editItem?'Updated!':'Driver added!'); setShowForm(false); setEditItem(null); loadData()
-  }
-
-  async function toggleActive(id:string, current:boolean) {
-    await createClient().from('drivers').update({is_active:!current}).eq('id',id)
-    toast.success('Updated!'); loadData()
-  }
-
-  const filtered = items.filter(d => {
-    const ms = !search || d.full_name?.toLowerCase().includes(search.toLowerCase()) || d.vehicle_plate?.toLowerCase().includes(search.toLowerCase())
-    const mop = opFilter==='all' || d.operator_id===opFilter
-    return ms && mop
-  })
-
+  const filtered=drs.filter((d:any)=>!search||d.full_name?.toLowerCase().includes(search.toLowerCase())||d.phone?.includes(search)||d.vehicle_plate?.includes(search));
+  const btnV:React.CSSProperties={background:TEAL,color:'#07100D',border:'none',borderRadius:8,padding:'6px 14px',fontWeight:700,fontSize:12,cursor:'pointer'};
+  const btnS:React.CSSProperties={background:'transparent',color:'#ff6b6b',border:'1px solid #ff6b6b',borderRadius:8,padding:'6px 14px',fontWeight:600,fontSize:12,cursor:'pointer'};
   return (
-    <AdminShell>
-      <div className="flex items-center justify-between mb-6">
-        <div><h1 className="font-display text-2xl font-700 text-riden-white">{t.title}</h1><p className="text-riden-text text-sm">{filtered.length} drivers</p></div>
-        <button onClick={()=>{setEditItem(null);setForm({...emptyForm});setShowForm(true)}} className="btn-primary px-4 py-2 text-sm">{t.addBtn}</button>
+    <div style={PG}>
+      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:24}}>
+        <h1 style={{fontSize:22,fontWeight:800,margin:0}}>Driver Management</h1>
+        <span style={{fontSize:11,color:'#7aab94'}}>{drs.length} total</span>
       </div>
-      <div className="flex flex-wrap gap-3 mb-6">
-        <div className="relative flex-1 min-w-[200px]">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-riden-muted" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input className="riden-input pl-9 text-sm" placeholder={t.search} value={search} onChange={e=>setSearch(e.target.value)} />
-        </div>
-        <select className="riden-input text-sm w-auto" value={opFilter} onChange={e=>setOpFilter(e.target.value)} style={{colorScheme:'dark'}}>
-          <option value="all">All Operators</option>
-          {operators.map(o=><option key={o.id} value={o.id}>{o.company_name}</option>)}
-        </select>
-      </div>
-      <div className="glass rounded-xl overflow-hidden">
-        {loading ? <div className="p-8 text-center text-riden-text text-sm">Loading...</div> :
-         filtered.length===0 ? <div className="p-8 text-center text-riden-text text-sm">{t.noData}</div> : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="border-b border-riden-border">
-                <tr className="text-riden-muted text-xs font-mono uppercase">
-                  {['Name','Operator','LINE ID','Phone','Vehicle','Plate','Trips','Verified','Available','Status','Actions'].map(h=><th key={h} className="text-left px-4 py-3">{h}</th>)}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-riden-border">
-                {filtered.map((d:any)=>(
-                  <tr key={d.id} className="hover:bg-riden-card/30">
-                    <td className="px-4 py-3 text-riden-white font-medium">{d.full_name}</td>
-                    <td className="px-4 py-3 text-riden-text text-xs">{(d.operators as any)?.company_name||'-'}</td>
-                    <td className="px-4 py-3"><span className="font-mono text-xs text-riden-teal">{d.line_user_id?d.line_user_id.slice(0,10)+'...':'-'}</span></td>
-                    <td className="px-4 py-3 text-riden-text">{d.phone||'-'}</td>
-                    <td className="px-4 py-3 text-riden-text text-xs">{d.vehicle_type}</td>
-                    <td className="px-4 py-3 text-riden-text font-mono text-xs">{d.vehicle_plate||'-'}</td>
-                    <td className="px-4 py-3 text-riden-text">{d.total_trips||0}</td>
-                    <td className="px-4 py-3"><span className={`text-xs px-1.5 py-0.5 rounded ${d.is_verified?'badge-completed':'badge-pending'}`}>{d.is_verified?'✓':'-'}</span></td>
-                    <td className="px-4 py-3"><span className={`text-xs px-1.5 py-0.5 rounded ${d.is_available?'badge-completed':'badge-pending'}`}>{d.is_available?'✓':'-'}</span></td>
-                    <td className="px-4 py-3"><span className={`text-xs px-1.5 py-0.5 rounded ${d.is_active?'badge-completed':'badge-cancelled'}`}>{d.is_active?'Active':'Inactive'}</span></td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <button onClick={()=>{setEditItem(d);setForm({full_name:d.full_name,line_user_id:d.line_user_id||'',phone:d.phone||'',operator_id:d.operator_id||'',vehicle_type:d.vehicle_type||'van_9',vehicle_plate:d.vehicle_plate||'',vehicle_brand_model:d.vehicle_brand_model||'',vehicle_seats:d.vehicle_seats||9,vehicle_color:d.vehicle_color||'',base_location:d.base_location||'',is_verified:d.is_verified,is_active:d.is_active,is_available:d.is_available});setShowForm(true)}} className="text-xs text-riden-teal hover:underline">Edit</button>
-                        <button onClick={()=>toggleActive(d.id,d.is_active)} className={`text-xs hover:underline ${d.is_active?'text-red-400':'text-green-400'}`}>{d.is_active?t.suspend:t.activate}</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-      {showForm && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="glass rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="font-display font-700 text-riden-white text-lg mb-5">{editItem?t.editTitle:t.addTitle}</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2"><label className="block text-riden-text text-xs font-mono uppercase tracking-widest mb-1.5">Full Name *</label><input className="riden-input" value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})} /></div>
-              <div><label className="block text-riden-text text-xs font-mono uppercase tracking-widest mb-1.5">Phone</label><input className="riden-input" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} /></div>
-              <div><label className="block text-riden-text text-xs font-mono uppercase tracking-widest mb-1.5">LINE User ID</label><input className="riden-input" value={form.line_user_id} onChange={e=>setForm({...form,line_user_id:e.target.value})} /></div>
-              <div className="col-span-2"><label className="block text-riden-text text-xs font-mono uppercase tracking-widest mb-1.5">Operator</label>
-                <select className="riden-input" value={form.operator_id} onChange={e=>setForm({...form,operator_id:e.target.value})} style={{colorScheme:'dark'}}>
-                  <option value="">No operator (freelance)</option>
-                  {operators.map(o=><option key={o.id} value={o.id}>{o.company_name}</option>)}
-                </select>
-              </div>
-              <div><label className="block text-riden-text text-xs font-mono uppercase tracking-widest mb-1.5">Vehicle Type</label>
-                <select className="riden-input" value={form.vehicle_type} onChange={e=>setForm({...form,vehicle_type:e.target.value})} style={{colorScheme:'dark'}}>
-                  {VEHICLE_TYPES.map(v=><option key={v} value={v}>{v}</option>)}
-                </select>
-              </div>
-              <div><label className="block text-riden-text text-xs font-mono uppercase tracking-widest mb-1.5">Seats</label><input type="number" className="riden-input" value={form.vehicle_seats} onChange={e=>setForm({...form,vehicle_seats:Number(e.target.value)})} /></div>
-              <div><label className="block text-riden-text text-xs font-mono uppercase tracking-widest mb-1.5">Plate Number</label><input className="riden-input" value={form.vehicle_plate} onChange={e=>setForm({...form,vehicle_plate:e.target.value})} /></div>
-              <div><label className="block text-riden-text text-xs font-mono uppercase tracking-widest mb-1.5">Brand / Model</label><input className="riden-input" value={form.vehicle_brand_model} onChange={e=>setForm({...form,vehicle_brand_model:e.target.value})} /></div>
-              <div className="col-span-2"><label className="block text-riden-text text-xs font-mono uppercase tracking-widest mb-1.5">Base Location</label><input className="riden-input" value={form.base_location} onChange={e=>setForm({...form,base_location:e.target.value})} /></div>
-              <div className="flex items-center gap-3"><input type="checkbox" id="dv" checked={form.is_verified} onChange={e=>setForm({...form,is_verified:e.target.checked})} className="w-4 h-4 accent-riden-teal"/><label htmlFor="dv" className="text-riden-text text-sm">Verified</label></div>
-              <div className="flex items-center gap-3"><input type="checkbox" id="da" checked={form.is_active} onChange={e=>setForm({...form,is_active:e.target.checked})} className="w-4 h-4 accent-riden-teal"/><label htmlFor="da" className="text-riden-text text-sm">Active</label></div>
+      <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap' as const}}>{NAVS.map(n=><Link key={n.h} href={n.h} style={{padding:'7px 16px',borderRadius:8,fontSize:13,fontWeight:600,background:(n as any).a?TEAL:'#0f1f1a',color:(n as any).a?'#07100D':'#7aab94',textDecoration:'none'}}>{n.l}</Link>)}</div>
+      <div style={{marginBottom:16}}><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name, phone, plate..." style={{background:'#0d1e19',border:'1px solid #1a3028',borderRadius:8,color:'#e8f5f0',padding:'9px 14px',fontSize:13,outline:'none',width:'100%',maxWidth:360,boxSizing:'border-box' as const}}/></div>
+      {msg&&<div style={{background:'#0f2a1f',border:'1px solid '+TEAL,borderRadius:8,padding:'10px 14px',marginBottom:16,fontSize:13,color:TEAL}}>{msg}</div>}
+      {loading?<div style={{textAlign:'center',color:'#7aab94',padding:'40px 0'}}>Loading...</div>:
+      filtered.length===0?<div style={{textAlign:'center',color:'#7aab94',padding:'40px 0'}}>No drivers found.</div>:
+      filtered.map((d:any)=>(
+        <div key={d.id} style={CARD}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap' as const}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:15,fontWeight:700,marginBottom:3}}>{d.full_name}</div>
+              <div style={{fontSize:12,color:'#7aab94'}}>{d.phone||'—'} · {d.vehicle_type||'—'} · {d.vehicle_plate||'—'}</div>
+              <div style={{fontSize:11,color:'#7aab94',marginTop:2}}>{d.base_location||'—'}</div>
+              <div style={{fontSize:11,color:d.is_verified?TEAL:'#F59E0B',marginTop:2}}>{d.is_verified?'✓ Verified':'Pending verification'} · {d.is_available?'🟢 Available':'🔴 Unavailable'}</div>
             </div>
-            <div className="flex gap-3 mt-6">
-              <button onClick={()=>{setShowForm(false);setEditItem(null)}} className="btn-ghost flex-1 py-3">{t.cancel}</button>
-              <button onClick={handleSave} className="btn-primary flex-1 py-3">{t.save}</button>
+            <div style={{display:'flex',gap:8,flexShrink:0}}>
+              {!d.is_verified&&<button onClick={()=>act(d.id,'verify',d.line_user_id,d.full_name)} disabled={acting===d.id+'verify'} style={{...btnV,opacity:acting===d.id+'verify'?0.5:1}}>✓ Verify</button>}
+              <button onClick={()=>act(d.id,'reject',d.line_user_id,d.full_name)} disabled={acting===d.id+'reject'} style={{...btnS,opacity:acting===d.id+'reject'?0.5:1}}>Suspend</button>
             </div>
           </div>
         </div>
-      )}
-    </AdminShell>
-  )
+      ))}
+    </div>
+  );
 }
