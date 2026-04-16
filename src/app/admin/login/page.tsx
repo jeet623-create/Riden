@@ -82,20 +82,16 @@ export default function AdminLogin() {
     setError('')
     
     // Mock login - accept any email/password for demo
-    await new Promise(resolve => setTimeout(resolve, 800))
+    await new Promise(resolve => setTimeout(resolve, 600))
     
-    if (email && password) {
-      localStorage.setItem('riden_admin', JSON.stringify({ 
-        email, 
-        name: 'Admin', 
-        role: 'superadmin',
-        lang 
-      }))
-      router.push('/admin/dashboard')
-    } else {
-      setError(t.err)
-      setLoading(false)
-    }
+    // Always accept login for demo purposes
+    localStorage.setItem('riden_admin', JSON.stringify({ 
+      email: email || 'admin@riden.me', 
+      name: 'Admin', 
+      role: 'superadmin',
+      lang 
+    }))
+    router.push('/admin/dashboard')
   }
 
   return (
@@ -264,7 +260,6 @@ export default function AdminLogin() {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                required
                 autoFocus
                 placeholder="admin@riden.me"
                 className="w-full h-14 px-5 rounded-full text-base outline-none transition-all duration-200 placeholder:text-gray-400"
@@ -303,7 +298,6 @@ export default function AdminLogin() {
                   type={showPass ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  required
                   placeholder="Enter your password"
                   className="w-full h-14 px-5 pr-14 rounded-full text-base outline-none transition-all duration-200 placeholder:text-gray-400"
                   style={{ 
