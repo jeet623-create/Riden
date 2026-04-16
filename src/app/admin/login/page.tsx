@@ -257,7 +257,7 @@ export default function AdminLogin() {
                 {t.email}
               </label>
               <input
-                type="email"
+                type="text"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 autoFocus
