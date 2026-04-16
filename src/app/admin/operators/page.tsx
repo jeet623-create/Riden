@@ -1,133 +1,47 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
-import { AdminShell } from '@/components/AdminShell'
-import { Panel, Table, TR, TD, Badge, Loading, PageHeader, Input, Btn, StatCard } from '@/components/ui'
-
-const SUPA = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const H = () => ({ apikey: KEY, Authorization: 'Bearer ' + KEY })
-
-export default function OperatorsPage() {
-  const router = useRouter()
-  const [ops, setOps] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState('all')
-  const [selected, setSelected] = useState<any>(null)
-  const [fleet, setFleet] = useState<any[]>([])
-
-  useEffect(() => {
-    const sb = createClient()
-    sb.auth.getUser().then(({ data: { user } }) => {
-      if (!user) { router.push('/admin/login'); return }
-      sb.from('admin_users').select('id').eq('id', user.id).single().then(({ data }) => {
-        if (!data) router.push('/admin/login'); else load()
-      })
-    })
-  }, [])
-
-  async function load() {
-    setLoading(true)
-    const r = await fetch(SUPA+'/rest/v1/operators?select=*&order=created_at.desc', { headers: H() })
-    const d = await r.json()
-    setOps(Array.isArray(d)?d:[])
-    setLoading(false)
-  }
-
-  async function loadFleet(opId: string) {
-    const r = await fetch(SUPA+'/rest/v1/vehicles?operator_id=eq.'+opId+'&select=*', { headers: H() })
-    const d = await r.json()
-    setFleet(Array.isArray(d)?d:[])
-  }
-
-  const filtered = ops.filter(o => {
-    const ms = !search || o.company_name?.toLowerCase().includes(search.toLowerCase()) || o.phone?.includes(search)
-    const mf = filter==='all' || o.status===filter
-    return ms && mf
-  })
-
-  const counts = { all:ops.length, verified:ops.filter(o=>o.verified_at).length, alsoDriver:ops.filter(o=>o.is_also_driver).length }
-
-  if (loading) return <AdminShell><Loading /></AdminShell>
-
+import { AdminShell } from '@/components/admin/admin-shell'
+import { StatusBadge } from '@/components/admin/status-badge'
+import { Input } from '@/components/admin/input'
+import { Check, X } from 'lucide-react'
+const operators = [
+  {id:1,company:'Siam Transport Co',phone:'+66 2 123 4567',base:'Bangkok',alsoDriver:true,verified:true,status:'active',joined:'2025-11-15',fleet:[{type:'Sedan',plate:'BKK-1234',model:'Toyota Camry'},{type:'Van',plate:'BKK-5678',model:'Toyota Hiace'}]},
+  {id:2,company:'Northern Routes Ltd',phone:'+66 53 234 5678',base:'Chiang Mai',alsoDriver:false,verified:true,status:'active',joined:'2026-01-20',fleet:[{type:'SUV',plate:'CMI-9012',model:'Toyota Fortuner'}]},
+  {id:3,company:'Island Express',phone:'+66 76 345 6789',base:'Phuket',alsoDriver:true,verified:false,status:'in_pool',joined:'2026-04-10',fleet:[{type:'Van',plate:'PKT-3456',model:'Mercedes-Benz V-Class'},{type:'Sedan',plate:'PKT-7890',model:'BMW 5 Series'}]},
+]
+export default function Page() {
+  const [sel, setSel] = useState<typeof operators[0]|null>(null)
+  const [q, setQ] = useState('')
+  const filtered = operators.filter(o=>!q||o.company.toLowerCase().includes(q.toLowerCase())||o.base.toLowerCase().includes(q.toLowerCase()))
   return (
     <AdminShell>
-      <PageHeader title='Operators' sub={ops.length+' fleet owners registered'} />
-      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:20}}>
-        <StatCard label='Total' value={counts.all} color='var(--text-2)' />
-        <StatCard label='Verified' value={counts.verified} color='var(--teal)' />
-        <StatCard label='Also Drivers' value={counts.alsoDriver} color='var(--blue)' />
+      <div className="flex items-center justify-between mb-6">
+        <div><h1 className="text-2xl font-medium">Operators</h1><p className="text-sm text-[#737373] font-mono mt-0.5">{operators.length} operators</p></div>
+        <Input icon="search" placeholder="Search operators..." className="w-64" value={q} onChange={e=>setQ(e.target.value)}/>
       </div>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16,gap:8}}>
-        <div style={{display:'flex',gap:6}}>
-          {['all','active','inactive','suspended'].map(f=>(
-            <button key={f} onClick={()=>setFilter(f)} style={{padding:'5px 14px',borderRadius:20,fontSize:12,fontWeight:500,cursor:'pointer',border:'1px solid',transition:'all 0.12s',background:filter===f?'var(--teal-10)':'transparent',borderColor:filter===f?'var(--teal-20)':'var(--border)',color:filter===f?'var(--teal)':'var(--text-3)',textTransform:'capitalize' as const,fontFamily:'var(--font-body)'}}>{f}</button>
-          ))}
-        </div>
-        <Input value={search} onChange={setSearch} placeholder='Search operator...' style={{width:220}} />
+      <div className="bg-[#141414] border border-white/[0.08] rounded-xl overflow-hidden">
+        <table className="w-full"><thead><tr className="border-b border-white/[0.08]">{['Company','Phone','Base','Also Driver','Verified','Status','Joined',''].map(h=><th key={h} className="text-left px-4 py-3 text-xs text-[#737373] font-medium uppercase">{h}</th>)}</tr></thead>
+        <tbody>{filtered.map((o,i)=><tr key={i} className="border-b border-white/[0.04] hover:bg-[#1a1a1a] transition-colors">
+          <td className="px-4 py-3 text-sm font-medium">{o.company}</td>
+          <td className="px-4 py-3 text-sm font-mono text-[#a3a3a3]">{o.phone}</td>
+          <td className="px-4 py-3 text-sm">{o.base}</td>
+          <td className="px-4 py-3">{o.alsoDriver?<Check className="w-4 h-4 text-[#22c55e]"/>:<span className="text-[#737373]">-</span>}</td>
+          <td className="px-4 py-3">{o.verified?<Check className="w-4 h-4 text-[#22c55e]"/>:<span className="text-[#737373]">-</span>}</td>
+          <td className="px-4 py-3"><StatusBadge status={o.status}/></td>
+          <td className="px-4 py-3 text-sm font-mono text-[#a3a3a3]">{o.joined}</td>
+          <td className="px-4 py-3"><button onClick={()=>setSel(o)} className="px-3 py-1 text-xs bg-transparent text-[#a3a3a3] hover:text-[#f5f5f5] hover:bg-[#1a1a1a] rounded-lg border border-white/[0.08]">Details</button></td>
+        </tr>)}</tbody></table>
       </div>
-      <Panel>
-        {filtered.length===0?(
-          <div style={{padding:'40px',textAlign:'center',color:'var(--text-3)',fontSize:13}}>No operators found</div>
-        ):(
-          <Table columns={['COMPANY','CONTACT','PHONE','BASE','VERIFIED','STATUS']}>
-            {filtered.map(o=>(
-              <TR key={o.id} onClick={()=>{ setSelected(o); loadFleet(o.id); }}>
-                <TD>
-                  <div style={{display:'flex',alignItems:'center',gap:10}}>
-                    <div style={{width:32,height:32,borderRadius:'var(--r)',background:'var(--teal-10)',border:'1px solid var(--teal-20)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:600,color:'var(--teal)',flexShrink:0}}>{o.company_name?.charAt(0)?.toUpperCase()||'?'}</div>
-                    <span style={{fontWeight:500}}>{o.company_name}</span>
-                  </div>
-                </TD>
-                <TD muted>{o.contact_name||'—'}</TD>
-                <TD mono muted>{o.phone||'—'}</TD>
-                <TD muted>{o.base_location||'—'}</TD>
-                <TD muted>{o.verified_at?<span style={{color:'var(--teal)'}}>✓ Verified</span>:'—'}</TD>
-                <TD><Badge status={o.status||'inactive'} /></TD>
-              </TR>
-            ))}
-          </Table>
-        )}
-      </Panel>
-      {selected&&(
-        <div style={{position:'fixed',top:0,right:0,bottom:0,width:440,background:'var(--bg-surface)',borderLeft:'1px solid var(--border)',zIndex:100,overflowY:'auto' as const,padding:24,boxShadow:'-4px 0 24px rgba(0,0,0,0.3)'}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:20}}>
-            <div style={{fontSize:16,fontWeight:600,color:'var(--text-1)'}}>{selected.company_name}</div>
-            <button onClick={()=>setSelected(null)} style={{background:'var(--bg-elevated)',border:'1px solid var(--border)',borderRadius:'var(--r)',width:28,height:28,cursor:'pointer',color:'var(--text-2)',fontSize:14}}>×</button>
-          </div>
-          <div style={{fontSize:11,color:'var(--text-3)',fontFamily:'var(--font-mono)',textTransform:'uppercase' as const,letterSpacing:1,marginBottom:10}}>Operator Information</div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:20}}>
-            {[['Contact',selected.contact_name||'—'],['Phone',selected.phone||'—'],['Base Location',selected.base_location||'—'],['Also Driver',selected.is_also_driver?'Yes':'No'],['Verified',selected.verified_at?'✓ Certified':'Pending'],['Status',selected.status||'—']].map(([k,v])=>(
-              <div key={k as string}>
-                <div style={{fontSize:10,color:'var(--text-3)',fontFamily:'var(--font-mono)',textTransform:'uppercase' as const,letterSpacing:1,marginBottom:3}}>{k}</div>
-                <div style={{fontSize:13,color:'var(--text-1)'}}>{v}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{marginBottom:16}}>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-              <span style={{fontSize:13,fontWeight:500,color:'var(--text-1)'}}>Fleet Inventory ({fleet.length})</span>
+      {sel&&(
+        <div className="fixed inset-0 bg-black/50 z-50 flex justify-end" onClick={()=>setSel(null)}>
+          <div className="w-[440px] bg-[#141414] border-l border-white/[0.08] h-full overflow-y-auto" onClick={e=>e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-start justify-between mb-6"><div><h2 className="text-lg font-medium mb-1">{sel.company}</h2><StatusBadge status={sel.status}/></div><button onClick={()=>setSel(null)} className="text-[#737373] hover:text-[#f5f5f5]"><X className="w-5 h-5"/></button></div>
+              <div className="space-y-4 mb-6">{[['PHONE',sel.phone],['BASE',sel.base],['ALSO DRIVER',sel.alsoDriver?'Yes':'No'],['VERIFIED',sel.verified?'Yes':'No'],['JOINED',sel.joined]].map(([l,v])=><div key={l}><div className="text-xs text-[#737373] mb-1">{l}</div><div className="text-sm font-mono">{v}</div></div>)}</div>
+              <div className="mb-6"><div className="text-xs text-[#737373] mb-3">FLEET ({sel.fleet.length})</div><div className="space-y-2">{sel.fleet.map((v,i)=><div key={i} className="bg-[#1a1a1a] border border-white/[0.08] rounded-lg p-3"><div className="flex justify-between mb-1"><span className="text-sm font-medium">{v.type}</span><span className="text-xs text-[#737373] font-mono">{v.plate}</span></div><div className="text-xs text-[#a3a3a3]">{v.model}</div></div>)}</div></div>
+              <div className="space-y-3">{!sel.verified&&<button className="w-full py-2 bg-[#1D9E75] text-white rounded-lg text-sm font-medium hover:bg-[#188f6a]">Verify Operator</button>}<button className="w-full py-2 bg-[rgba(239,68,68,0.1)] text-[#ef4444] border border-[rgba(239,68,68,0.2)] rounded-lg text-sm font-medium">Suspend</button></div>
             </div>
-            {fleet.length===0?<div style={{fontSize:12,color:'var(--text-3)',padding:'12px 0'}}>No vehicles</div>:(
-              <div style={{display:'flex',flexDirection:'column' as const,gap:8}}>
-                {fleet.map(v=>(
-                  <div key={v.id} style={{background:'var(--bg-elevated)',border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'10px 14px',display:'flex',alignItems:'center',gap:10}}>
-                    <span style={{fontSize:16}}>🚐</span>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:13,fontWeight:500}}>{v.brand_model||v.type}</div>
-                      <div style={{fontSize:11,color:'var(--text-3)'}}>{v.plate}</div>
-                    </div>
-                    <Badge status='active' label={v.type?.replace(/_/g,' ')} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div style={{display:'flex',gap:8}}>
-            <Btn variant='teal' style={{flex:1,justifyContent:'center'}}>✓ Verify Operator</Btn>
-            <Btn variant='danger' style={{flex:1,justifyContent:'center'}}>Suspend</Btn>
           </div>
         </div>
       )}
