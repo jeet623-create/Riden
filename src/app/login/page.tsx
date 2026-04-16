@@ -10,11 +10,6 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  function enterDemo() {
-    localStorage.setItem('riden_user', JSON.stringify({ email: 'demo@riden.me', name: 'Demo User' }))
-    router.push('/admin/dashboard')
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
@@ -66,28 +61,6 @@ export default function LoginPage() {
           <p className="text-white/50 text-[13px] mb-8">
             Sign in to your DMC portal
           </p>
-
-          {/* BIG DEMO BUTTON */}
-          <button
-            type="button"
-            onClick={enterDemo}
-            className="w-full h-14 rounded-full text-base font-bold mb-6 transition-transform hover:scale-[1.02] active:scale-[0.98]"
-            style={{
-              background: 'linear-gradient(135deg, #00d9a3 0%, #00b386 100%)',
-              color: '#000',
-              border: 'none',
-              boxShadow: '0 8px 32px rgba(0, 217, 163, 0.3)'
-            }}
-          >
-            ENTER DEMO MODE
-          </button>
-
-          {/* Divider */}
-          <div className="flex items-center gap-4 mb-6">
-            <div className="flex-1 h-px bg-white/10" />
-            <span className="text-white/30 text-xs font-mono">OR SIGN IN</span>
-            <div className="flex-1 h-px bg-white/10" />
-          </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
