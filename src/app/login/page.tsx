@@ -133,12 +133,13 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-12 rounded-full text-sm font-semibold transition-all mt-2"
+              className="w-full h-12 rounded-full text-sm font-bold transition-all mt-2 hover:opacity-90 active:scale-[0.98]"
               style={{
-                background: '#222',
-                border: '1.5px solid #333',
-                color: '#fff',
-                opacity: loading ? 0.6 : 1
+                background: 'linear-gradient(135deg, #00d9a3 0%, #00b386 100%)',
+                border: 'none',
+                color: '#000',
+                opacity: loading ? 0.6 : 1,
+                boxShadow: '0 4px 20px rgba(0,217,163,0.25)'
               }}
             >
               {loading ? '...' : 'Sign in'}
