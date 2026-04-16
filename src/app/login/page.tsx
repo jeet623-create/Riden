@@ -84,41 +84,40 @@ export default function LoginPage() {
               <input type="password" value={pass} onChange={e=>setPass(e.target.value)} required placeholder="••••••••" className="riden-input" />
             </div>
             {error&&<div style={{padding:'9px 12px',borderRadius:7,background:'rgba(239,68,68,0.06)',border:'0.5px solid rgba(239,68,68,0.2)',color:'var(--danger)',fontSize:12}}>{error}</div>}
-            <button type="submit" disabled={loading} className="btn-primary" style={{width:'100%',justifyContent:'center',padding:'11px',fontSize:14,marginTop:4,opacity:loading?0.6:1}}>
+            
+            {/* Skip Login Button - DEMO MODE */}
+            <button 
+              type="button"
+              onClick={skipLogin}
+              style={{
+                width:'100%',
+                padding:'14px',
+                marginTop:8,
+                borderRadius:10,
+                border:'none',
+                background:'#00d9a3',
+                color:'#000',
+                fontSize:15,
+                fontWeight:700,
+                cursor:'pointer'
+              }}
+            >
+              SKIP LOGIN - ENTER DEMO
+            </button>
+
+            <div style={{display:'flex',alignItems:'center',gap:12,margin:'16px 0'}}>
+              <div style={{flex:1,height:1,background:'var(--border)'}}></div>
+              <span style={{fontSize:11,color:'var(--text-tertiary)'}}>OR</span>
+              <div style={{flex:1,height:1,background:'var(--border)'}}></div>
+            </div>
+
+            <button type="submit" disabled={loading} className="btn-primary" style={{width:'100%',justifyContent:'center',padding:'11px',fontSize:14,opacity:loading?0.6:1}}>
               {loading?'...':t.btn}
             </button>
           </form>
           <p style={{textAlign:'center' as const,marginTop:20,fontSize:12,color:'var(--text-tertiary)'}}>
             {t.noAcc}{' '}<Link href="/register" style={{color:'var(--text-primary)',fontWeight:500,textDecoration:'none'}}>{t.reg}</Link>
           </p>
-          {/* Skip Login Button */}
-          <button 
-            type="button"
-            onClick={skipLogin}
-            style={{
-              width:'100%',
-              padding:'14px',
-              marginTop:16,
-              borderRadius:10,
-              border:'2px solid #00d9a3',
-              background:'transparent',
-              color:'#00d9a3',
-              fontSize:14,
-              fontWeight:600,
-              cursor:'pointer',
-              transition:'all 0.2s'
-            }}
-            onMouseOver={e => {
-              e.currentTarget.style.background = '#00d9a3'
-              e.currentTarget.style.color = '#fff'
-            }}
-            onMouseOut={e => {
-              e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.color = '#00d9a3'
-            }}
-          >
-            Skip Login (Demo Mode)
-          </button>
           <div style={{marginTop:28,paddingTop:20,borderTop:'0.5px solid var(--border)',textAlign:'center' as const}}>
             <Link href="/privacy" style={{fontSize:11,color:'var(--text-tertiary)',textDecoration:'none'}}>Privacy Policy</Link>
           </div>
