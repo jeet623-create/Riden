@@ -74,14 +74,14 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} style={{display:'flex',flexDirection:'column',gap:14}}>
             <div>
               <label style={{display:'block',fontSize:11,fontWeight:500,letterSpacing:'0.06em',textTransform:'uppercase' as const,color:'var(--text-tertiary)',marginBottom:6}}>{t.email}</label>
-              <input type="email" value={email} onChange={e=>setEmail(e.target.value)} required placeholder="you@company.com" className="riden-input" />
+              <input type="text" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@company.com" className="riden-input" />
             </div>
             <div>
               <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
                 <label style={{fontSize:11,fontWeight:500,letterSpacing:'0.06em',textTransform:'uppercase' as const,color:'var(--text-tertiary)'}}>{t.pass}</label>
                 <span style={{fontSize:12,color:'var(--accent)',cursor:'pointer'}}>{t.forgot}</span>
               </div>
-              <input type="password" value={pass} onChange={e=>setPass(e.target.value)} required placeholder="••••••••" className="riden-input" />
+              <input type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••••••" className="riden-input" />
             </div>
             {error&&<div style={{padding:'9px 12px',borderRadius:7,background:'rgba(239,68,68,0.06)',border:'0.5px solid rgba(239,68,68,0.2)',color:'var(--danger)',fontSize:12}}>{error}</div>}
             
