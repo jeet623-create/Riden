@@ -253,7 +253,7 @@ export default function AdminLogin() {
               <label 
                 className="block mb-2.5 text-xs font-semibold"
                 style={{ 
-                  color: 'rgba(255,255,255,0.6)',
+                  color: 'rgba(255,255,255,0.7)',
                   letterSpacing: 1,
                   textTransform: 'uppercase'
                 }}
@@ -268,21 +268,21 @@ export default function AdminLogin() {
                   required
                   autoFocus
                   placeholder="admin@riden.me"
-                  className="w-full h-12 px-4 rounded-xl text-sm outline-none transition-all duration-200"
+                  className="w-full h-14 px-5 rounded-2xl text-base outline-none transition-all duration-200"
                   style={{ 
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1.5px solid rgba(255,255,255,0.1)',
+                    background: '#1a2a3d',
+                    border: '2px solid #2a3f55',
                     color: '#fff',
-                    backdropFilter: 'blur(8px)'
+                    fontSize: 15
                   }}
                   onFocus={e => {
-                    e.target.style.background = 'rgba(255,255,255,0.12)'
-                    e.target.style.borderColor = 'rgba(0,217,163,0.4)'
-                    e.target.style.boxShadow = '0 0 0 3px rgba(0,217,163,0.1)'
+                    e.target.style.background = '#1e3045'
+                    e.target.style.borderColor = 'var(--teal)'
+                    e.target.style.boxShadow = '0 0 0 4px rgba(0,217,163,0.15)'
                   }}
                   onBlur={e => {
-                    e.target.style.background = 'rgba(255,255,255,0.08)'
-                    e.target.style.borderColor = 'rgba(255,255,255,0.1)'
+                    e.target.style.background = '#1a2a3d'
+                    e.target.style.borderColor = '#2a3f55'
                     e.target.style.boxShadow = 'none'
                   }}
                 />
@@ -294,7 +294,7 @@ export default function AdminLogin() {
               <label 
                 className="block mb-2.5 text-xs font-semibold"
                 style={{ 
-                  color: 'rgba(255,255,255,0.6)',
+                  color: 'rgba(255,255,255,0.7)',
                   letterSpacing: 1,
                   textTransform: 'uppercase'
                 }}
@@ -307,32 +307,32 @@ export default function AdminLogin() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
-                  placeholder="••••••••"
-                  className="w-full h-12 px-4 rounded-xl text-sm outline-none transition-all duration-200"
+                  placeholder="Enter your password"
+                  className="w-full h-14 px-5 pr-12 rounded-2xl text-base outline-none transition-all duration-200"
                   style={{ 
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1.5px solid rgba(255,255,255,0.1)',
+                    background: '#1a2a3d',
+                    border: '2px solid #2a3f55',
                     color: '#fff',
-                    backdropFilter: 'blur(8px)'
+                    fontSize: 15
                   }}
                   onFocus={e => {
-                    e.target.style.background = 'rgba(255,255,255,0.12)'
-                    e.target.style.borderColor = 'rgba(0,217,163,0.4)'
-                    e.target.style.boxShadow = '0 0 0 3px rgba(0,217,163,0.1)'
+                    e.target.style.background = '#1e3045'
+                    e.target.style.borderColor = 'var(--teal)'
+                    e.target.style.boxShadow = '0 0 0 4px rgba(0,217,163,0.15)'
                   }}
                   onBlur={e => {
-                    e.target.style.background = 'rgba(255,255,255,0.08)'
-                    e.target.style.borderColor = 'rgba(255,255,255,0.1)'
+                    e.target.style.background = '#1a2a3d'
+                    e.target.style.borderColor = '#2a3f55'
                     e.target.style.boxShadow = 'none'
                   }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded transition-colors"
-                  style={{ color: 'rgba(255,255,255,0.5)' }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-colors hover:bg-white/10"
+                  style={{ color: 'rgba(255,255,255,0.6)' }}
                 >
-                  {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
@@ -362,15 +362,16 @@ export default function AdminLogin() {
             <motion.button
               type="submit"
               disabled={loading}
-              className="w-full h-12 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 mt-6"
+              className="w-full h-14 rounded-2xl text-base font-semibold transition-all duration-200 flex items-center justify-center gap-2 mt-6"
               style={{ 
-                background: loading ? 'rgba(0,217,163,0.6)' : 'linear-gradient(135deg, var(--teal), #00a878)',
+                background: loading ? 'rgba(0,217,163,0.6)' : 'linear-gradient(135deg, #00d9a3, #00b386)',
                 color: '#fff',
                 cursor: loading ? 'not-allowed' : 'pointer',
-                boxShadow: loading ? 'none' : '0 8px 24px rgba(0,217,163,0.3)',
-                border: 'none'
+                boxShadow: loading ? 'none' : '0 8px 24px rgba(0,217,163,0.35)',
+                border: 'none',
+                fontSize: 16
               }}
-              whileHover={!loading ? { y: -2, boxShadow: '0 12px 32px rgba(0,217,163,0.4)' } : {}}
+              whileHover={!loading ? { y: -2, boxShadow: '0 12px 32px rgba(0,217,163,0.45)' } : {}}
               whileTap={!loading ? { scale: 0.98 } : {}}
             >
               {loading ? (
