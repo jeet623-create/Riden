@@ -30,9 +30,15 @@ export default function LoginPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault(); setLoading(true); setError('')
-    const { error:err } = await createClient().auth.signInWithPassword({ email, password:pass })
-    if (err) { setError(err.message); setLoading(false) }
-    else router.push('/dashboard')
+    // Mock login - skip Supabase for demo
+    await new Promise(resolve => setTimeout(resolve, 500))
+    localStorage.setItem('riden_user', JSON.stringify({ email: email || 'demo@riden.me', name: 'Demo User' }))
+    router.push('/dashboard')
+  }
+  
+  function skipLogin() {
+    localStorage.setItem('riden_user', JSON.stringify({ email: 'demo@riden.me', name: 'Demo User' }))
+    router.push('/dashboard')
   }
   function switchLang(l:'en'|'th') { setLang(l); localStorage.setItem('riden_lang',l) }
 
@@ -85,6 +91,34 @@ export default function LoginPage() {
           <p style={{textAlign:'center' as const,marginTop:20,fontSize:12,color:'var(--text-tertiary)'}}>
             {t.noAcc}{' '}<Link href="/register" style={{color:'var(--text-primary)',fontWeight:500,textDecoration:'none'}}>{t.reg}</Link>
           </p>
+          {/* Skip Login Button */}
+          <button 
+            type="button"
+            onClick={skipLogin}
+            style={{
+              width:'100%',
+              padding:'14px',
+              marginTop:16,
+              borderRadius:10,
+              border:'2px solid #00d9a3',
+              background:'transparent',
+              color:'#00d9a3',
+              fontSize:14,
+              fontWeight:600,
+              cursor:'pointer',
+              transition:'all 0.2s'
+            }}
+            onMouseOver={e => {
+              e.currentTarget.style.background = '#00d9a3'
+              e.currentTarget.style.color = '#fff'
+            }}
+            onMouseOut={e => {
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.color = '#00d9a3'
+            }}
+          >
+            Skip Login (Demo Mode)
+          </button>
           <div style={{marginTop:28,paddingTop:20,borderTop:'0.5px solid var(--border)',textAlign:'center' as const}}>
             <Link href="/privacy" style={{fontSize:11,color:'var(--text-tertiary)',textDecoration:'none'}}>Privacy Policy</Link>
           </div>
