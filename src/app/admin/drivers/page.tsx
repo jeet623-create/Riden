@@ -1,156 +1,59 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
-import { AdminShell } from '@/components/AdminShell'
-import { Panel, Table, TR, TD, Badge, Loading, PageHeader, Input, Btn, StatCard } from '@/components/ui'
-
-const SUPA = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const H = () => ({ apikey: KEY, Authorization: 'Bearer ' + KEY })
-
-const VL: Record<string,string> = { sedan:'Sedan', suv:'SUV', van_9:'Van 9', van_12:'Van 12', minibus_15:'Minibus 15', minibus_20:'Minibus 20', coach_30:'Coach 30', coach_40plus:'Coach 40+', pickup:'Pickup' }
-
-export default function DriversPage() {
-  const router = useRouter()
-  const [drivers, setDrivers] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState('all')
-  const [selected, setSelected] = useState<any>(null)
-  const [lightbox, setLightbox] = useState<string|null>(null)
-
-  useEffect(() => {
-    const sb = createClient()
-    sb.auth.getUser().then(({ data: { user } }) => {
-      if (!user) { router.push('/admin/login'); return }
-      sb.from('admin_users').select('id').eq('id', user.id).single().then(({ data }) => {
-        if (!data) router.push('/admin/login'); else load()
-      })
-    })
-  }, [])
-
-  async function load() {
-    setLoading(true)
-    const r = await fetch(SUPA+'/rest/v1/drivers?select=*&order=joined_at.desc', { headers: H() })
-    const d = await r.json()
-    setDrivers(Array.isArray(d)?d:[])
-    setLoading(false)
-  }
-
-  async function approve(id: string) {
-    await fetch(SUPA+'/rest/v1/drivers?id=eq.'+id, { method:'PATCH', headers:{...H(),'Content-Type':'application/json'}, body: JSON.stringify({ is_verified:true, is_active:true }) })
-    setDrivers(prev=>prev.map(d=>d.id===id?{...d,is_verified:true,is_active:true}:d))
-    if (selected?.id===id) setSelected((prev: any)=>({...prev,is_verified:true,is_active:true}))
-  }
-
-  async function reject(id: string) {
-    await fetch(SUPA+'/rest/v1/drivers?id=eq.'+id, { method:'PATCH', headers:{...H(),'Content-Type':'application/json'}, body: JSON.stringify({ is_active:false }) })
-    setDrivers(prev=>prev.map(d=>d.id===id?{...d,is_active:false}:d))
-  }
-
-  const filtered = drivers.filter(d => {
-    const ms = !search || d.full_name?.toLowerCase().includes(search.toLowerCase()) || d.vehicle_plate?.toLowerCase().includes(search.toLowerCase()) || d.license_number?.toLowerCase().includes(search.toLowerCase())
-    if (filter==='all') return ms
-    if (filter==='pending') return ms && !d.is_verified && !d.is_active
-    if (filter==='active') return ms && d.is_verified && d.is_active
-    if (filter==='inactive') return ms && !d.is_active
-    return ms
-  })
-
-  const pending = drivers.filter(d=>!d.is_verified&&!d.is_active).length
-  const active = drivers.filter(d=>d.is_verified&&d.is_active).length
-
-  if (loading) return <AdminShell><Loading /></AdminShell>
-
+import { useState } from 'react'
+import { AdminShell } from '@/components/admin/admin-shell'
+import { StatusBadge } from '@/components/admin/status-badge'
+import { X, ZoomIn } from 'lucide-react'
+const drivers = [
+  {id:1,name:'Somchai Pattana',vehicle:'Toyota Camry',plate:'BKK-1234',phone:'+66 82 123 4567',location:'Bangkok',status:'pending'},
+  {id:2,name:'Niran Chaiwong',vehicle:'Honda Accord',plate:'CMI-5678',phone:'+66 85 234 5678',location:'Chiang Mai',status:'active'},
+  {id:3,name:'Prasert Suksawat',vehicle:'Toyota Fortuner',plate:'PKT-9012',phone:'+66 87 345 6789',location:'Phuket',status:'pending'},
+  {id:4,name:'Wichai Yongyut',vehicle:'Mercedes-Benz E-Class',plate:'BKK-3456',phone:'+66 89 456 7890',location:'Bangkok',status:'active'},
+  {id:5,name:'Anan Rattana',vehicle:'BMW 5 Series',plate:'KBI-7890',phone:'+66 81 567 8901',location:'Krabi',status:'inactive'},
+  {id:6,name:'Sutin Nakornsri',vehicle:'Toyota Alphard',plate:'BKK-2345',phone:'+66 84 678 9012',location:'Bangkok',status:'pending'},
+]
+export default function Page() {
+  const [tab, setTab] = useState('Pending')
+  const [sel, setSel] = useState<typeof drivers[0]|null>(null)
+  const [lightbox, setLightbox] = useState(false)
+  const [rejection, setRejection] = useState('')
+  const pendingCount = drivers.filter(d=>d.status==='pending').length
+  const filtered = tab==='All'?drivers:drivers.filter(d=>d.status===tab.toLowerCase())
   return (
     <AdminShell>
-      <PageHeader title='Driver Verification' sub='Review and approve drivers' actions={pending>0?<span style={{background:'var(--amber-bg)',border:'1px solid rgba(245,158,11,0.3)',borderRadius:20,padding:'4px 12px',fontSize:12,color:'var(--amber)',fontFamily:'var(--font-mono)'}}>{pending} pending</span>:undefined} />
-
-      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:20}}>
-        <StatCard label='Total' value={drivers.length} color='var(--text-2)' />
-        <StatCard label='Verified' value={active} color='var(--teal)' />
-        <StatCard label='Pending' value={pending} color='var(--amber)' />
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3"><h1 className="text-2xl font-medium">Driver Verification</h1><span className="bg-[rgba(245,158,11,0.1)] text-[#f59e0b] px-3 py-1 rounded-full text-xs font-medium font-mono">{pendingCount} PENDING</span></div>
       </div>
-
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16,gap:8}}>
-        <div style={{display:'flex',gap:6}}>
-          {[{k:'all',l:'All'},{k:'pending',l:pending>0?'Pending ('+pending+')':'Pending'},{k:'active',l:'Active'},{k:'inactive',l:'Inactive'}].map(f=>(
-            <button key={f.k} onClick={()=>setFilter(f.k)} style={{padding:'5px 14px',borderRadius:20,fontSize:12,fontWeight:500,cursor:'pointer',border:'1px solid',transition:'all 0.12s',background:filter===f.k?'var(--teal-10)':'transparent',borderColor:filter===f.k?'var(--teal-20)':'var(--border)',color:filter===f.k?'var(--teal)':'var(--text-3)',fontFamily:'var(--font-body)'}}>{f.l}</button>
-          ))}
-        </div>
-        <Input value={search} onChange={setSearch} placeholder='Search driver, plate, license...' style={{width:240}} />
-      </div>
-
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:16}}>
-        {filtered.length===0?(
-          <div style={{gridColumn:'1/-1',padding:'60px',textAlign:'center',color:'var(--text-3)',fontSize:13,background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)'}}>No drivers in this category</div>
-        ):filtered.map(d => {
-          const isPending = !d.is_verified && !d.is_active
-          return (
-            <div key={d.id} style={{background:'var(--bg-surface)',border:'1px solid '+(isPending?'rgba(245,158,11,0.3)':'var(--border)'),borderRadius:'var(--r-xl)',overflow:'hidden',cursor:'pointer',transition:'border-color 0.15s'}} onClick={()=>setSelected(d)}>
-              {d.vehicle_photo_url
-                ?<img src={d.vehicle_photo_url} style={{width:'100%',height:140,objectFit:'cover'}} alt='vehicle' />
-                :<div style={{height:140,background:'var(--bg-elevated)',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:8}}><span style={{fontSize:24,opacity:0.3}}>🚗</span><span style={{fontSize:11,color:'var(--text-3)'}}>No vehicle photo</span></div>
-              }
-              {isPending&&<div style={{background:'var(--amber)',color:'#000',fontSize:10,fontWeight:700,padding:'3px 10px',fontFamily:'var(--font-mono)'}}>PENDING</div>}
-              <div style={{padding:'12px 14px'}}>
-                <div style={{fontWeight:600,fontSize:14,marginBottom:2}}>{d.full_name}</div>
-                <div style={{fontSize:11,color:'var(--text-3)',marginBottom:8}}>{VL[d.vehicle_type]||d.vehicle_type} · {d.vehicle_plate}</div>
-                <div style={{fontSize:11,color:'var(--text-3)',marginBottom:isPending?10:0}}>📞 {d.phone||'—'} · {d.base_location||'—'}</div>
-                {isPending&&(
-                  <div style={{display:'flex',gap:8}} onClick={e=>e.stopPropagation()}>
-                    <Btn variant='teal' size='sm' style={{flex:1,justifyContent:'center'}} onClick={()=>approve(d.id)}>Approve</Btn>
-                    <Btn variant='danger' size='sm' onClick={()=>reject(d.id)}>×</Btn>
-                  </div>
-                )}
-              </div>
+      <div className="flex gap-2 mb-6">{['All','Pending','Active','Inactive'].map(t=><button key={t} onClick={()=>setTab(t)} className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${tab===t?'bg-[#1D9E75] text-white':'bg-[#141414] text-[#a3a3a3] hover:text-[#f5f5f5] hover:bg-[#1a1a1a]'}`}>{t==='Pending'?`Pending (${pendingCount})`:t}</button>)}</div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filtered.map(d=>(
+          <div key={d.id} className="bg-[#141414] border border-white/[0.08] rounded-lg overflow-hidden hover:border-white/[0.12] transition-all hover:-translate-y-0.5">
+            <div className="h-[150px] bg-[#1a1a1a] relative flex items-center justify-center">
+              <div className="text-[#737373] text-xs">Vehicle Photo</div>
+              <div className="absolute top-2 right-2"><StatusBadge status={d.status} variant="small"/></div>
+              {d.status==='pending'&&<div className="absolute top-2 left-2 bg-[#f59e0b] text-white px-2 py-0.5 rounded text-[10px] font-medium">REVIEW</div>}
             </div>
-          )
-        })}
-      </div>
-
-      {selected&&(
-        <div style={{position:'fixed',top:0,right:0,bottom:0,width:440,background:'var(--bg-surface)',borderLeft:'1px solid var(--border)',zIndex:100,overflowY:'auto',padding:24,boxShadow:'-4px 0 24px rgba(0,0,0,0.3)'}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-            <div style={{fontSize:15,fontWeight:600,color:'var(--text-1)'}}>Driver Dossier</div>
-            <button onClick={()=>setSelected(null)} style={{background:'var(--bg-elevated)',border:'1px solid var(--border)',borderRadius:'var(--r)',width:28,height:28,cursor:'pointer',color:'var(--text-2)',fontSize:14}}>×</button>
-          </div>
-          {selected.vehicle_photo_url&&(
-            <img src={selected.vehicle_photo_url} style={{width:'100%',height:200,objectFit:'cover',borderRadius:'var(--r-lg)',marginBottom:16,cursor:'zoom-in'}} onClick={()=>setLightbox(selected.vehicle_photo_url)} alt='vehicle' />
-          )}
-          <div style={{marginBottom:12}}>
-            <div style={{fontSize:16,fontWeight:600,color:'var(--text-1)'}}>{selected.full_name}</div>
-            <div style={{display:'flex',gap:6,marginTop:6,flexWrap:'wrap'}}>
-              <Badge status={selected.is_verified?'active':'pending'} label={selected.is_verified?'Verified':'Pending'} />
-              <span style={{fontSize:11,color:'var(--text-3)',fontFamily:'var(--font-mono)'}}>{selected.base_location}</span>
+            <div className="p-4">
+              <div className="font-medium mb-1">{d.name}</div>
+              <div className="text-xs text-[#737373] mb-3">{d.vehicle} • {d.plate}</div>
+              <div className="grid grid-cols-2 gap-2 text-xs mb-3"><div><div className="text-[#737373]">Phone</div><div className="font-mono text-[11px]">{d.phone}</div></div><div><div className="text-[#737373]">Location</div><div>{d.location}</div></div></div>
+              {d.status==='pending'&&<div className="flex gap-2"><button onClick={()=>setSel(d)} className="flex-1 py-1.5 bg-[#1D9E75] text-white rounded-lg text-xs font-medium hover:bg-[#188f6a]">Approve</button><button onClick={()=>setSel(d)} className="flex-1 py-1.5 bg-[rgba(239,68,68,0.1)] text-[#ef4444] border border-[rgba(239,68,68,0.2)] rounded-lg text-xs font-medium">Reject</button></div>}
             </div>
           </div>
-          <div style={{background:'var(--bg-elevated)',borderRadius:'var(--r)',padding:14,marginBottom:16}}>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-              {[['Vehicle',VL[selected.vehicle_type]||selected.vehicle_type],['Plate',selected.vehicle_plate],['License #',selected.license_number||'—'],['Expiry',selected.license_expiry?(new Date(selected.license_expiry)<new Date()?<span style={{color:'var(--red)',fontWeight:600}}>{selected.license_expiry} EXPIRED</span>:selected.license_expiry):'—'],['Phone',selected.phone||'—'],['Base',selected.base_location||'—']].map(([k,v]:any)=>(
-                <div key={k as string}>
-                  <div style={{fontSize:10,color:'var(--text-3)',fontFamily:'var(--font-mono)',textTransform:'uppercase',letterSpacing:1,marginBottom:3}}>{k}</div>
-                  <div style={{fontSize:13,color:'var(--text-1)'}}>{v}</div>
-                </div>
-              ))}
+        ))}
+      </div>
+      {sel&&(
+        <div className="fixed inset-0 bg-black/50 z-50 flex justify-end" onClick={()=>setSel(null)}>
+          <div className="w-[440px] bg-[#141414] border-l border-white/[0.08] h-full overflow-y-auto" onClick={e=>e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-start justify-between mb-6"><h2 className="text-lg font-medium">{sel.name}</h2><button onClick={()=>setSel(null)} className="text-[#737373] hover:text-[#f5f5f5]"><X className="w-5 h-5"/></button></div>
+              <div className="h-[200px] bg-[#1a1a1a] rounded-lg mb-6 flex items-center justify-center cursor-pointer hover:bg-[#222]" onClick={()=>setLightbox(true)}><div className="text-center"><ZoomIn className="w-6 h-6 text-[#737373] mx-auto mb-2"/><div className="text-xs text-[#737373]">Click to enlarge</div></div></div>
+              <div className="space-y-4 mb-6">{[['VEHICLE',sel.vehicle],['PLATE',sel.plate],['PHONE',sel.phone],['LOCATION',sel.location]].map(([l,v])=><div key={l}><div className="text-xs text-[#737373] mb-1">{l}</div><div className="text-sm font-mono">{v}</div></div>)}</div>
+              {sel.status==='pending'&&<><div className="mb-4"><label className="text-xs text-[#737373] mb-2 block">REJECTION REASON (OPTIONAL)</label><textarea value={rejection} onChange={e=>setRejection(e.target.value)} placeholder="Enter reason..." rows={3} className="w-full bg-[#1a1a1a] border border-white/[0.08] rounded-lg px-4 py-2 text-sm text-[#f5f5f5] placeholder:text-[#737373] focus:outline-none focus:border-[#1D9E75] resize-none"/></div><div className="space-y-3"><button className="w-full py-2 bg-[#1D9E75] text-white rounded-lg text-sm font-medium hover:bg-[#188f6a]">Approve Driver</button><button className="w-full py-2 bg-[rgba(239,68,68,0.1)] text-[#ef4444] border border-[rgba(239,68,68,0.2)] rounded-lg text-sm font-medium">Reject Application</button></div></>}
             </div>
           </div>
-          {(!selected.is_verified)&&(
-            <div style={{display:'flex',gap:8}}>
-              <Btn variant='teal' style={{flex:1,justifyContent:'center'}} onClick={()=>approve(selected.id)}>✓ Approve Driver</Btn>
-              <Btn variant='danger' style={{flex:1,justifyContent:'center'}} onClick={()=>reject(selected.id)}>Reject</Btn>
-            </div>
-          )}
         </div>
       )}
-
-      {lightbox&&(
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.92)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={()=>setLightbox(null)}>
-          <img src={lightbox} style={{maxWidth:'90vw',maxHeight:'90vh',borderRadius:'var(--r-lg)'}} alt='photo' />
-          <button style={{position:'absolute',top:20,right:20,background:'transparent',border:'none',color:'#fff',fontSize:28,cursor:'pointer'}}>×</button>
-        </div>
-      )}
+      {lightbox&&<div className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center" onClick={()=>setLightbox(false)}><div className="bg-[#1a1a1a] p-4 rounded-lg"><div className="text-center text-[#737373]">Vehicle Photo (Full Size)</div></div></div>}
     </AdminShell>
   )
 }
