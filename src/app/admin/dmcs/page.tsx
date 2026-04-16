@@ -3,105 +3,107 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { AdminShell } from '@/components/AdminShell'
-import { Panel, Table, TR, TD, Badge, Loading, PageHeader, Btn, Empty, Input } from '@/components/ui'
+import { Panel, Table, TR, TD, Badge, Loading, PageHeader, Input, Btn, StatCard } from '@/components/ui'
 
 const SUPA = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const KEY  = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const H = () => ({ apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' })
+const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const H = () => ({ apikey: KEY, Authorization: 'Bearer ' + KEY })
 
-export default function DMCsPage() {
+export default function AdminDMCs() {
   const router = useRouter()
   const [dmcs, setDmcs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
-  const [selected, setSelected] = useState<any|null>(null)
+  const [selected, setSelected] = useState<any>(null)
 
   useEffect(() => {
     const sb = createClient()
     sb.auth.getUser().then(({ data: { user } }) => {
       if (!user) { router.push('/admin/login'); return }
       sb.from('admin_users').select('id').eq('id', user.id).single().then(({ data }) => {
-        if (!data) router.push('/admin/login')
-        else load()
+        if (!data) router.push('/admin/login'); else load()
       })
     })
   }, [])
 
   async function load() {
     setLoading(true)
-    const r = await fetch(`${SUPA}/rest/v1/dmc_users?select=*&order=created_at.desc`, { headers: H() })
+    const r = await fetch(SUPA+'/rest/v1/dmc_users?select=*&order=created_at.desc', { headers: H() })
     const d = await r.json()
-    setDmcs(Array.isArray(d) ? d : [])
+    setDmcs(Array.isArray(d)?d:[])
     setLoading(false)
   }
 
-  async function setStatus(id: string, status: string) {
-    await fetch(`${SUPA}/rest/v1/dmc_users?id=eq.${id}`, { method:'PATCH', headers:H(), body:JSON.stringify({ subscription_status: status }) })
-    await load(); setSelected(null)
-  }
-
-  const filtered = dmcs.filter(d => {
-    const ms = !search || d.company_name?.toLowerCase().includes(search.toLowerCase()) || d.email?.toLowerCase().includes(search.toLowerCase())
-    const mf = filter === 'all' || d.subscription_status === filter
-    return ms && mf
+  const filtered = dmcs.filter(d=>{
+    const ms = !search||d.company_name?.toLowerCase().includes(search.toLowerCase())||d.email?.toLowerCase().includes(search.toLowerCase())
+    const mf = filter==='all'||d.subscription_status===filter
+    return ms&&mf
   })
+
+  const counts = { all:dmcs.length, trial:dmcs.filter(d=>d.subscription_status==='trial').length, active:dmcs.filter(d=>d.subscription_status==='active').length, expired:dmcs.filter(d=>d.subscription_status==='expired').length, suspended:dmcs.filter(d=>d.subscription_status==='suspended').length }
 
   if (loading) return <AdminShell><Loading /></AdminShell>
 
   return (
     <AdminShell>
-      {selected && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'flex-end',backdropFilter:'blur(4px)'}} onClick={() => setSelected(null)}>
-          <div onClick={e=>e.stopPropagation()} style={{width:420,height:'100vh',background:'var(--bg-surface)',borderLeft:'1px solid var(--border)',padding:28,overflowY:'auto',display:'flex',flexDirection:'column',gap:20}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <div style={{fontSize:16,fontWeight:600}}>{selected.company_name}</div>
-              <button onClick={()=>setSelected(null)} style={{background:'none',border:'none',color:'var(--text-3)',cursor:'pointer',fontSize:18}}>×</button>
-            </div>
-            <div style={{background:'var(--bg-elevated)',borderRadius:'var(--r)',padding:16,display:'flex',flexDirection:'column',gap:10}}>
-              {[['Email',selected.email],['Country',selected.country??'—'],['Language',selected.language_preference??'en'],['Plan',selected.subscription_plan??'—'],['Status',selected.subscription_status??'—'],['Trial ends',selected.trial_ends_at?new Date(selected.trial_ends_at).toLocaleDateString('en-GB'):'—'],['Joined',new Date(selected.created_at).toLocaleDateString('en-GB')]].map(([k,v])=>(
-                <div key={k} style={{display:'flex',justifyContent:'space-between',fontSize:13}}>
-                  <span style={{color:'var(--text-3)'}}>{k}</span>
-                  <span style={{fontFamily:'var(--font-mono)',fontSize:12}}>{v}</span>
-                </div>
-              ))}
-            </div>
-            <div style={{display:'flex',flexDirection:'column',gap:8}}>
-              {selected.subscription_status !== 'active' && <Btn variant="teal" onClick={()=>setStatus(selected.id,'active')}>✓ Activate Account</Btn>}
-              {selected.subscription_status !== 'suspended' && <Btn variant="danger" onClick={()=>setStatus(selected.id,'suspended')}>Suspend Account</Btn>}
-            </div>
-          </div>
-        </div>
-      )}
-
-      <PageHeader title="DMC Management" sub={`${dmcs.length} companies registered`}
-        actions={<Input value={search} onChange={setSearch} placeholder="Search company or email..." style={{width:240}} />}
-      />
-
-      <div style={{display:'flex',gap:6,marginBottom:20}}>
-        {['all','trial','active','expired','suspended'].map(f=>(
-          <button key={f} onClick={()=>setFilter(f)} style={{padding:'6px 14px',borderRadius:20,border:`1px solid ${filter===f?'var(--teal-20)':'var(--border)'}`,background:filter===f?'var(--teal-10)':'transparent',color:filter===f?'var(--teal)':'var(--text-3)',fontSize:12,cursor:'pointer',fontFamily:'var(--font-body)',textTransform:'capitalize' as const}}>{f}</button>
-        ))}
+      <PageHeader title='DMC Management' sub={dmcs.length+' companies registered'} />
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:20}}>
+        <StatCard label='Total' value={counts.all} color='var(--text-2)' />
+        <StatCard label='Active' value={counts.active} color='var(--teal)' />
+        <StatCard label='Trial' value={counts.trial} color='var(--purple)' />
+        <StatCard label='Expired' value={counts.expired} color='var(--red)' />
       </div>
-
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16,flexWrap:'wrap' as const,gap:8}}>
+        <div style={{display:'flex',gap:6}}>
+          {['all','trial','active','expired','suspended'].map(f=>(
+            <button key={f} onClick={()=>setFilter(f)} style={{padding:'5px 14px',borderRadius:20,fontSize:12,fontWeight:500,cursor:'pointer',border:'1px solid',transition:'all 0.12s',background:filter===f?'var(--teal-10)':'transparent',borderColor:filter===f?'var(--teal-20)':'var(--border)',color:filter===f?'var(--teal)':'var(--text-3)',textTransform:'capitalize' as const,fontFamily:'var(--font-body)'}}>{f}</button>
+          ))}
+        </div>
+        <Input value={search} onChange={setSearch} placeholder='Search company or email...' style={{width:240}} />
+      </div>
       <Panel>
-        {filtered.length === 0 ? <Empty icon="🏢" message="No DMCs found" /> : (
-          <Table columns={['COMPANY','EMAIL','COUNTRY','PLAN','STATUS','TRIAL ENDS','JOINED','']}>
+        {filtered.length===0?(
+          <div style={{padding:'40px',textAlign:'center',color:'var(--text-3)',fontSize:13}}>No DMCs found</div>
+        ):(
+          <Table columns={['COMPANY','EMAIL','COUNTRY','PLAN','STATUS','JOINED']}>
             {filtered.map(d=>(
               <TR key={d.id} onClick={()=>setSelected(d)}>
                 <TD><span style={{fontWeight:500}}>{d.company_name}</span></TD>
                 <TD muted>{d.email}</TD>
-                <TD muted>{d.country??'—'}</TD>
-                <TD mono muted>{d.subscription_plan??'—'}</TD>
-                <TD><Badge status={d.subscription_status??'inactive'} /></TD>
-                <TD muted>{d.trial_ends_at?new Date(d.trial_ends_at).toLocaleDateString('en-GB'):'—'}</TD>
-                <TD muted>{new Date(d.created_at).toLocaleDateString('en-GB')}</TD>
-                <TD><Btn variant="ghost" size="sm">Details →</Btn></TD>
+                <TD muted>{d.country||'—'}</TD>
+                <TD mono muted style={{textTransform:'capitalize' as const}}>{d.subscription_plan||'free'}</TD>
+                <TD><Badge status={d.subscription_status||'trial'} /></TD>
+                <TD muted>{d.created_at?new Date(d.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—'}</TD>
               </TR>
             ))}
           </Table>
         )}
       </Panel>
+      {selected&&(
+        <div style={{position:'fixed',top:0,right:0,bottom:0,width:420,background:'var(--bg-surface)',borderLeft:'1px solid var(--border)',zIndex:100,overflowY:'auto' as const,padding:24,boxShadow:'-4px 0 24px rgba(0,0,0,0.3)'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:20}}>
+            <div>
+              <div style={{fontSize:16,fontWeight:600,color:'var(--text-1)',marginBottom:4}}>{selected.company_name}</div>
+              <Badge status={selected.line_user_id?'active':'inactive'} label={selected.line_user_id?'● LINE':'○ No LINE'} />
+            </div>
+            <button onClick={()=>setSelected(null)} style={{background:'var(--bg-elevated)',border:'1px solid var(--border)',borderRadius:'var(--r)',width:28,height:28,cursor:'pointer',color:'var(--text-2)',fontSize:14}}>×</button>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:20}}>
+            {[['Email',selected.email],['Country',selected.country||'—'],['Contact',selected.contact_person||'—'],['Phone',selected.phone||'—'],['Address',selected.address||'—'],['City',selected.city||'—'],['Plan',selected.subscription_plan||'—'],['Status',selected.subscription_status||'—']].map(([k,v])=>(
+              <div key={k as string}>
+                <div style={{fontSize:10,color:'var(--text-3)',fontFamily:'var(--font-mono)',textTransform:'uppercase' as const,letterSpacing:1,marginBottom:3}}>{k}</div>
+                <div style={{fontSize:13,color:'var(--text-1)'}}>{v}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{display:'flex',flexDirection:'column' as const,gap:8}}>
+            <Btn variant='teal' style={{width:'100%',justifyContent:'center'}}>✓ Activate Account</Btn>
+            <Btn variant='danger' style={{width:'100%',justifyContent:'center'}}>Suspend Account</Btn>
+            <Btn variant='secondary' style={{width:'100%',justifyContent:'center'}}>Reset Password</Btn>
+          </div>
+        </div>
+      )}
     </AdminShell>
   )
 }
