@@ -384,8 +384,28 @@ export default function AdminLogin() {
           </form>
         </motion.div>
 
+        {/* Quick Access - Skip Login */}
+        <div className="text-center mt-6">
+          <button
+            type="button"
+            onClick={() => {
+              localStorage.setItem('riden_admin', JSON.stringify({ 
+                email: 'admin@riden.me', 
+                name: 'Admin', 
+                role: 'superadmin',
+                lang 
+              }))
+              router.push('/admin/dashboard')
+            }}
+            className="text-sm underline transition-colors"
+            style={{ color: 'var(--teal)' }}
+          >
+            Skip Login (Demo Mode)
+          </button>
+        </div>
+
         {/* Footer */}
-        <div className="text-center mt-8">
+        <div className="text-center mt-4">
           <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
             © {t.copyright}
           </p>
