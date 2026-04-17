@@ -2,66 +2,121 @@
 import { AdminShell } from '@/components/admin/admin-shell'
 import { StatCard } from '@/components/admin/stat-card'
 import { StatusBadge } from '@/components/admin/status-badge'
-import { Building2, Users, UserCheck, DollarSign, Calendar, Car, AlertCircle, FileText, RefreshCw } from 'lucide-react'
+import { Building2, Users, UserCheck, DollarSign, Map, Car, Clock, ClipboardList, RefreshCw, AlertTriangle } from 'lucide-react'
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import Link from 'next/link'
+import { motion, AnimatePresence } from 'framer-motion'
 
-const bookingTrend = [
-  {date:'Apr 10',bookings:12},{date:'Apr 11',bookings:19},{date:'Apr 12',bookings:15},
-  {date:'Apr 13',bookings:22},{date:'Apr 14',bookings:28},{date:'Apr 15',bookings:25},{date:'Apr 16',bookings:23},
-]
-const revenueTrend = [
-  {month:'Nov',revenue:142000},{month:'Dec',revenue:158000},{month:'Jan',revenue:165000},
-  {month:'Feb',revenue:172000},{month:'Mar',revenue:179000},{month:'Apr',revenue:186000},
-]
+const bookingTrend = [{date:'Apr 10',bookings:12},{date:'Apr 11',bookings:19},{date:'Apr 12',bookings:15},{date:'Apr 13',bookings:22},{date:'Apr 14',bookings:28},{date:'Apr 15',bookings:25},{date:'Apr 16',bookings:23}]
+const revenueTrend = [{month:'Nov',revenue:142000},{month:'Dec',revenue:158000},{month:'Jan',revenue:165000},{month:'Feb',revenue:172000},{month:'Mar',revenue:179000},{month:'Apr',revenue:186000}]
 const recentBookings = [
-  {ref:'RDN-2026-001',client:'Singapore Tours Ltd',dmc:'Bangkok Express DMC',days:'5',status:'confirmed',created:'2026-04-14'},
-  {ref:'RDN-2026-002',client:'Euro Travel Group',dmc:'Chiang Mai Adventures',days:'3',status:'pending',created:'2026-04-14'},
-  {ref:'RDN-2026-003',client:'Asia Pacific Tours',dmc:'Phuket Premier DMC',days:'7',status:'confirmed',created:'2026-04-13'},
-  {ref:'RDN-2026-004',client:'Global Destinations',dmc:'Bangkok Express DMC',days:'4',status:'in_progress',created:'2026-04-13'},
-  {ref:'RDN-2026-005',client:'Luxury Escapes Co',dmc:'Krabi Elite Travel',days:'6',status:'confirmed',created:'2026-04-12'},
+  {ref:'BK-2026-001',client:'Singapore Tours Ltd',dmc:'Bangkok Express DMC',days:5,status:'confirmed',created:'2026-04-14'},
+  {ref:'BK-2026-002',client:'Euro Travel Group',dmc:'Chiang Mai Adventures',days:3,status:'pending',created:'2026-04-14'},
+  {ref:'BK-2026-003',client:'Asia Pacific Tours',dmc:'Phuket Premier DMC',days:7,status:'confirmed',created:'2026-04-13'},
+  {ref:'BK-2026-004',client:'Global Destinations',dmc:'Bangkok Express DMC',days:4,status:'in_progress',created:'2026-04-13'},
+  {ref:'BK-2026-005',client:'Luxury Escapes Co',dmc:'Krabi Elite Travel',days:6,status:'confirmed',created:'2026-04-12'},
 ]
-const tt = {contentStyle:{backgroundColor:'#1a1a1a',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'8px',fontFamily:'monospace'}}
+const pendingDrivers = 12
+const tt = {contentStyle:{backgroundColor:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:8,fontFamily:'var(--font-mono)',fontSize:12}}
+const stagger = (i:number) => ({initial:{opacity:0,y:8},animate:{opacity:1,y:0},transition:{delay:i*0.05,duration:0.2}})
 
-export default function Page() {
-  const date = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})
+export default function DashboardPage() {
+  const date = new Date().toLocaleDateString('en-US',{weekday:'long',day:'numeric',month:'long'})
   return (
     <AdminShell>
-      <div className="flex items-center justify-between mb-6">
-        <div><h1 className="text-2xl font-medium">Command Center</h1><p className="text-sm text-[#737373] font-mono mt-0.5">{date}</p></div>
-        <button className="flex items-center gap-2 px-3 py-1.5 text-xs bg-[#1a1a1a] border border-white/[0.08] rounded-lg text-[#a3a3a3] hover:text-[#f5f5f5]"><RefreshCw className="w-4 h-4"/>Refresh</button>
-      </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-        <StatCard label="Active DMCs" value="47" color="teal" icon={<Building2 className="w-8 h-8"/>}/>
-        <StatCard label="Operators" value="182" color="blue" icon={<Users className="w-8 h-8"/>}/>
-        <StatCard label="Verified Drivers" value="329" color="green" icon={<UserCheck className="w-8 h-8"/>}/>
-        <StatCard label="Est. MRR" value="฿186,000" color="amber" icon={<DollarSign className="w-8 h-8"/>}/>
-      </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Active Trips" value="23" color="green" icon={<Calendar className="w-8 h-8"/>}/>
-        <StatCard label="Vehicles" value="456" color="grey" icon={<Car className="w-8 h-8"/>}/>
-        <StatCard label="Pending Review" value="12" color="amber" icon={<AlertCircle className="w-8 h-8"/>}/>
-        <StatCard label="Recent Bookings" value="89" color="blue" icon={<FileText className="w-8 h-8"/>}/>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className="bg-[#141414] border border-white/[0.08] rounded-xl">
-          <div className="px-6 py-4 border-b border-white/[0.08]"><h3 className="font-medium">7-Day Booking Trend</h3></div>
-          <div className="p-6"><ResponsiveContainer width="100%" height={200}><AreaChart data={bookingTrend}><defs><linearGradient id="cb" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#1D9E75" stopOpacity={0.3}/><stop offset="95%" stopColor="#1D9E75" stopOpacity={0}/></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)"/><XAxis dataKey="date" stroke="#737373" style={{fontSize:12}}/><YAxis stroke="#737373" style={{fontSize:12}}/><Tooltip {...tt}/><Area type="monotone" dataKey="bookings" stroke="#1D9E75" fillOpacity={1} fill="url(#cb)"/></AreaChart></ResponsiveContainer></div>
+      <motion.div {...stagger(0)} className="flex items-center justify-between mb-6">
+        <div>
+          <h1 style={{fontSize:22,fontWeight:700,fontFamily:'var(--font-body)'}}>Command Center</h1>
+          <p style={{fontSize:13,color:'var(--text-2)',marginTop:2}}>{date} · Bangkok</p>
         </div>
-        <div className="bg-[#141414] border border-white/[0.08] rounded-xl">
-          <div className="px-6 py-4 border-b border-white/[0.08]"><h3 className="font-medium">MRR Growth</h3></div>
-          <div className="p-6"><ResponsiveContainer width="100%" height={200}><LineChart data={revenueTrend}><CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)"/><XAxis dataKey="month" stroke="#737373" style={{fontSize:12}}/><YAxis stroke="#737373" style={{fontSize:12}}/><Tooltip {...tt} formatter={(v:number)=>`฿${v.toLocaleString()}`}/><Line type="monotone" dataKey="revenue" stroke="#1D9E75" strokeWidth={2} dot={{fill:'#1D9E75',r:4}}/></LineChart></ResponsiveContainer></div>
+        <button style={{display:'flex',alignItems:'center',gap:8,padding:'6px 14px',borderRadius:8,fontSize:12,background:'var(--bg-elevated)',border:'1px solid var(--border)',color:'var(--text-2)',cursor:'pointer'}}>
+          <RefreshCw size={14}/>Refresh
+        </button>
+      </motion.div>
+
+      <motion.div {...stagger(1)} style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16,marginBottom:16}}>
+        <StatCard label="Active DMCs" value={47} sublabel="companies" color="teal" icon={<Building2 size={18}/>}/>
+        <StatCard label="Operators" value={182} sublabel="fleet owners" color="blue" icon={<Users size={18}/>}/>
+        <StatCard label="Verified Drivers" value={329} sublabel="in pool" color="green" icon={<UserCheck size={18}/>}/>
+        <StatCard label="Est. MRR" value="฿186,000" sublabel="monthly recurring" color="amber" icon={<DollarSign size={18}/>}/>
+      </motion.div>
+      <motion.div {...stagger(2)} style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16,marginBottom:24}}>
+        <StatCard label="Active Trips" value={23} sublabel="running now" color="green" icon={<Map size={18}/>}/>
+        <StatCard label="Vehicles" value={456} sublabel="active fleet" color="grey" icon={<Car size={18}/>}/>
+        <StatCard label="Pending Review" value={12} sublabel="need approval" color="amber" icon={<Clock size={18}/>}/>
+        <StatCard label="Recent Bookings" value={89} sublabel="this week" color="blue" icon={<ClipboardList size={18}/>}/>
+      </motion.div>
+
+      <AnimatePresence>
+        {pendingDrivers > 0 && (
+          <motion.div initial={{opacity:0,height:0}} animate={{opacity:1,height:'auto'}} exit={{opacity:0,height:0}}
+            style={{background:'var(--amber-bg)',border:'1px solid rgba(245,158,11,0.15)',borderRadius:12,padding:'14px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
+            <div style={{display:'flex',alignItems:'center',gap:12}}>
+              <AlertTriangle size={18} style={{color:'var(--amber)'}}/>
+              <div>
+                <div style={{fontSize:13,fontWeight:500,color:'var(--amber)'}}>{pendingDrivers} drivers waiting for approval</div>
+                <div style={{fontSize:12,color:'var(--text-2)'}}>Review driver applications to activate their accounts</div>
+              </div>
+            </div>
+            <Link href="/admin/pending" style={{padding:'6px 14px',borderRadius:8,fontSize:12,background:'var(--bg-elevated)',border:'1px solid var(--border)',color:'var(--text-2)',textDecoration:'none'}}>Review</Link>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <motion.div {...stagger(3)} style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24,marginBottom:24}}>
+        <div style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:12,overflow:'hidden'}}>
+          <div style={{padding:'16px 24px',borderBottom:'1px solid var(--border)'}}><h3 style={{fontSize:14,fontWeight:600}}>7-Day Booking Trend</h3></div>
+          <div style={{padding:24}}>
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={bookingTrend}>
+                <defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--teal)" stopOpacity={0.3}/><stop offset="95%" stopColor="var(--teal)" stopOpacity={0}/></linearGradient></defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)"/>
+                <XAxis dataKey="date" stroke="var(--text-2)" style={{fontSize:11}}/><YAxis stroke="var(--text-2)" style={{fontSize:11}}/>
+                <Tooltip {...tt}/><Area type="monotone" dataKey="bookings" stroke="var(--teal)" strokeWidth={2} fill="url(#bg)"/>
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-      </div>
-      <div className="bg-[rgba(245,158,11,0.1)] border border-[rgba(245,158,11,0.2)] rounded-lg p-4 mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-3"><AlertCircle className="w-5 h-5 text-[#f59e0b]"/><div><div className="text-sm font-medium text-[#f59e0b]">12 drivers pending approval</div><div className="text-xs text-[#a3a3a3]">Review driver applications to activate their accounts</div></div></div>
-        <Link href="/admin/pending" className="px-3 py-1.5 text-xs bg-[#1a1a1a] border border-white/[0.08] rounded-lg text-[#a3a3a3] hover:text-[#f5f5f5]">Review</Link>
-      </div>
-      <div className="bg-[#141414] border border-white/[0.08] rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08]"><h3 className="font-medium">Recent Bookings</h3><Link href="/admin/bookings" className="text-xs text-[#1D9E75] hover:underline">View all</Link></div>
-        <table className="w-full"><thead><tr className="border-b border-white/[0.08]">{['Ref','Client','DMC','Days','Status','Created'].map(h=><th key={h} className="text-left px-4 py-3 text-xs text-[#737373] font-medium uppercase">{h}</th>)}</tr></thead>
-        <tbody>{recentBookings.map((b,i)=><tr key={i} className="border-b border-white/[0.04] hover:bg-[#1a1a1a]"><td className="px-4 py-3 text-sm font-mono text-[#1D9E75]">{b.ref}</td><td className="px-4 py-3 text-sm font-medium">{b.client}</td><td className="px-4 py-3 text-sm text-[#a3a3a3]">{b.dmc}</td><td className="px-4 py-3 text-sm font-mono">{b.days}</td><td className="px-4 py-3"><StatusBadge status={b.status}/></td><td className="px-4 py-3 text-sm font-mono text-[#a3a3a3]">{b.created}</td></tr>)}</tbody></table>
-      </div>
+        <div style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:12,overflow:'hidden'}}>
+          <div style={{padding:'16px 24px',borderBottom:'1px solid var(--border)'}}><h3 style={{fontSize:14,fontWeight:600}}>MRR Growth</h3></div>
+          <div style={{padding:24}}>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={revenueTrend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)"/>
+                <XAxis dataKey="month" stroke="var(--text-2)" style={{fontSize:11}}/><YAxis stroke="var(--text-2)" style={{fontSize:11}}/>
+                <Tooltip {...tt} formatter={(v:number)=>`฿${v.toLocaleString()}`}/>
+                <Line type="monotone" dataKey="revenue" stroke="var(--teal)" strokeWidth={2} dot={{fill:'var(--teal)',r:4}}/>
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </motion.div>
+
+      <motion.div {...stagger(4)} style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:12,overflow:'hidden'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 24px',borderBottom:'1px solid var(--border)'}}>
+          <div><h3 style={{fontSize:14,fontWeight:600}}>Recent Bookings</h3><p style={{fontSize:12,color:'var(--text-2)',marginTop:2}}>Latest platform activity</p></div>
+          <Link href="/admin/bookings" style={{fontSize:12,color:'var(--teal)',textDecoration:'none'}}>View all</Link>
+        </div>
+        <div style={{overflowX:'auto'}}>
+          <table style={{width:'100%',borderCollapse:'collapse'}}>
+            <thead><tr style={{borderBottom:'1px solid var(--border)',background:'var(--bg-base)'}}>
+              {['REF','CLIENT','DMC','DAYS','STATUS','CREATED'].map(h=><th key={h} style={{textAlign:'left',padding:'10px 16px',fontFamily:'var(--font-mono)',fontSize:10,color:'var(--text-2)',textTransform:'uppercase',letterSpacing:'0.08em'}}>{h}</th>)}
+            </tr></thead>
+            <tbody>{recentBookings.map((b,i)=>(
+              <tr key={i} style={{borderBottom:'1px solid rgba(255,255,255,0.04)',transition:'background 120ms',cursor:'pointer'}}
+                onMouseEnter={e=>e.currentTarget.style.background='var(--bg-elevated)'}
+                onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                <td style={{padding:'12px 16px',fontFamily:'var(--font-mono)',fontSize:13,color:'var(--teal)'}}>{b.ref}</td>
+                <td style={{padding:'12px 16px',fontSize:13,fontWeight:500}}>{b.client}</td>
+                <td style={{padding:'12px 16px',fontSize:13,color:'var(--text-2)'}}>{b.dmc}</td>
+                <td style={{padding:'12px 16px',fontFamily:'var(--font-mono)',fontSize:12,color:'var(--text-2)'}}>{b.days}d</td>
+                <td style={{padding:'12px 16px'}}><StatusBadge status={b.status}/></td>
+                <td style={{padding:'12px 16px',fontFamily:'var(--font-mono)',fontSize:12,color:'var(--text-2)'}}>{b.created}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      </motion.div>
     </AdminShell>
   )
 }
