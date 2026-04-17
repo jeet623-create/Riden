@@ -1,6 +1,6 @@
 {
-  "name": "riden-dmc-portal",
-  "version": "1.0.0",
+  "name": "riden-portal",
+  "version": "1.0.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
