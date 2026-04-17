@@ -27,13 +27,11 @@ export default function DMCLayout({ children }: { children: React.ReactNode }) {
   const [lang, setLang] = useState<'en'|'th'|'zh'>('en')
   const [time, setTime] = useState('')
   const [company, setCompany] = useState('DMC Portal')
-
-  // Skip layout for login page
-  if (pathname === '/dmc/login') {
-    return <>{children}</>
-  }
+  const isLoginPage = pathname === '/dmc/login'
 
   useEffect(() => {
+    if (isLoginPage) return
+    
     const stored = localStorage.getItem('riden_dmc')
     if (stored) {
       const data = JSON.parse(stored)
@@ -52,7 +50,12 @@ export default function DMCLayout({ children }: { children: React.ReactNode }) {
     updateTime()
     const interval = setInterval(updateTime, 1000)
     return () => clearInterval(interval)
-  }, [])
+  }, [isLoginPage])
+
+  // Skip layout for login page
+  if (isLoginPage) {
+    return <>{children}</>
+  }
 
   function logout() {
     localStorage.removeItem('riden_dmc')
