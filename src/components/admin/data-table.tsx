@@ -1,28 +1,55 @@
 'use client'
 import { useState } from 'react'
 import { ChevronUp, ChevronDown } from 'lucide-react'
-interface Column<T> { key: string; header: string; mono?: boolean; className?: string; render?: (item: T) => React.ReactNode; sortable?: boolean }
-interface DataTableProps<T> { columns: Column<T>[]; data: T[]; sortable?: boolean; onRowClick?: (item: T) => void }
-export function DataTable<T extends Record<string, any>>({ columns, data, sortable=true, onRowClick }: DataTableProps<T>) {
+interface Column<T> { key: string; header: string; mono?: boolean; className?: string; render?: (item: T) => React.ReactNode }
+interface DataTableProps<T> { columns: Column<T>[]; data: T[]; onRowClick?: (item: T) => void }
+export function DataTable<T extends Record<string, any>>({ columns, data, onRowClick }: DataTableProps<T>) {
   const [sortCol, setSortCol] = useState<string|null>(null)
   const [sortDir, setSortDir] = useState<'asc'|'desc'>('asc')
-  const handleSort = (key: string) => { if (!sortable) return; if (sortCol===key) setSortDir(d=>d==='asc'?'desc':'asc'); else { setSortCol(key); setSortDir('asc') } }
-  const sorted = [...data]
-  if (sortCol && sortable) sorted.sort((a,b) => { const av=a[sortCol],bv=b[sortCol]; if(av===bv) return 0; return (av>bv?1:-1)*(sortDir==='asc'?1:-1) })
+  const sorted = [...data].sort((a, b) => {
+    if (!sortCol) return 0
+    const av = a[sortCol], bv = b[sortCol]
+    if (av === bv) return 0
+    return (av > bv ? 1 : -1) * (sortDir === 'asc' ? 1 : -1)
+  })
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
-        <thead><tr className="border-b border-white/[0.08]">{columns.map(col => {
-          const isSortable = sortable && col.sortable !== false; const isSorted = sortCol===col.key
-          return <th key={col.key} className={`text-left px-4 py-3 text-xs text-[#737373] font-medium uppercase ${isSortable?'cursor-pointer hover:text-[#f5f5f5] select-none':''}`} onClick={()=>isSortable&&handleSort(col.key)}>
-            <div className="flex items-center gap-1">{col.header}{isSortable&&<div className="flex flex-col"><ChevronUp className={`w-3 h-3 -mb-1 ${isSorted&&sortDir==='asc'?'text-[#1D9E75]':'text-white/[0.08]'}`}/><ChevronDown className={`w-3 h-3 ${isSorted&&sortDir==='desc'?'text-[#1D9E75]':'text-white/[0.08]'}`}/></div>}</div>
-          </th>
-        })}</tr></thead>
-        <tbody>{sorted.map((item,i) => (
-          <tr key={i} className={`border-b border-white/[0.04] hover:bg-[#1a1a1a] transition-colors ${onRowClick?'cursor-pointer':''}`} onClick={()=>onRowClick?.(item)}>
-            {columns.map(col => <td key={col.key} className={`px-4 py-3 text-sm ${col.mono?'font-mono':''} ${col.className||''}`}>{col.render?col.render(item):item[col.key]}</td>)}
+        <thead>
+          <tr style={{ borderBottom: '1px solid var(--border)' }}>
+            {columns.map(col => (
+              <th key={col.key} onClick={() => { if(sortCol===col.key) setSortDir(d=>d==='asc'?'desc':'asc'); else {setSortCol(col.key);setSortDir('asc')} }}
+                className="text-left px-4 py-3 cursor-pointer select-none hover:text-[var(--text-1)] transition-colors"
+                style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                <div className="flex items-center gap-1">{col.header}
+                  <div className="flex flex-col opacity-40">
+                    <ChevronUp className={`w-3 h-3 -mb-1 ${sortCol===col.key&&sortDir==='asc'?'opacity-100 text-[var(--teal)]':''}`}/>
+                    <ChevronDown className={`w-3 h-3 ${sortCol===col.key&&sortDir==='desc'?'opacity-100 text-[var(--teal)]':''}`}/>
+                  </div>
+                </div>
+              </th>
+            ))}
           </tr>
-        ))}</tbody>
+        </thead>
+        <tbody>
+          {sorted.map((item, i) => (
+            <tr key={i} onClick={() => onRowClick?.(item)}
+              className="transition-colors duration-100"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: onRowClick ? 'pointer' : 'default' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              {columns.map(col => (
+                <td key={col.key} className={`px-4 py-3 text-sm ${col.className || ''}`}
+                  style={col.mono ? { fontFamily: 'var(--font-mono)', fontSize: 12 } : {}}>
+                  {col.render ? col.render(item) : item[col.key]}
+                </td>
+              ))}
+            </tr>
+          ))}
+          {data.length === 0 && (
+            <tr><td colSpan={columns.length} className="px-4 py-12 text-center" style={{ color: 'var(--text-3)' }}>No data found</td></tr>
+          )}
+        </tbody>
       </table>
     </div>
   )
