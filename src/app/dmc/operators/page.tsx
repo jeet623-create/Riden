@@ -1,53 +1,100 @@
-'use client';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-const SUPA = (process.env.NEXT_PUBLIC_SUPABASE_URL || '') + '/functions/v1';
-export default function OperatorsPage() {
-  const router = useRouter();
-  const [preferred, setPreferred] = useState<any[]>([]);
-  const [results, setResults] = useState<any[]>([]);
-  const [q, setQ] = useState('');
-  const [dmcId, setDmcId] = useState('');
-  const [loading, setLoading] = useState(false);
-  useEffect(() => {
-    const id = localStorage.getItem('dmc_id');
-    if (!id) { router.push('/dmc/login'); return; }
-    setDmcId(id);
-    fetch(SUPA+'/operator-search?action=search&q=all&dmc_id='+id).then(r=>r.json()).then(d=>setPreferred((d.operators||[]).filter((o:any)=>o.is_preferred)));
-  }, []);
-  useEffect(() => {
-    if (q.length>=2) fetch(SUPA+'/operator-search?action=search&q='+encodeURIComponent(q)+'&dmc_id='+dmcId).then(r=>r.json()).then(d=>setResults(d.operators||[]));
-    else setResults([]);
-  }, [q]);
-  async function add(opId: string) { setLoading(true); await fetch(SUPA+'/operator-search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dmc_id:dmcId,operator_id:opId})}); const res=await fetch(SUPA+'/operator-search?action=search&q=all&dmc_id='+dmcId); const d=await res.json(); setPreferred((d.operators||[]).filter((o:any)=>o.is_preferred)); setLoading(false); }
-  async function remove(opId: string) { await fetch(SUPA+'/operator-search',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({dmc_id:dmcId,operator_id:opId})}); setPreferred(p=>p.filter(o=>o.id!==opId)); }
-  const inp: React.CSSProperties = {width:'100%',background:'#0a1a15',border:'1px solid #1a3028',borderRadius:8,padding:'10px 12px',color:'#e8f5f0',fontSize:14,boxSizing:'border-box'};
+"use client"
+import { useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Star, X, Phone, MapPin, Truck } from "lucide-react"
+import { useLanguage } from "@/hooks/use-language"
+
+const operators = [
+  { id:1, name:"Somchai Transport", contact:"Somchai J.", phone:"+66 81 234 5678", base:"Bangkok", vehicles:5, types:["Van 9","Van 12","Sedan"], trips:47, rating:4.8, preferred:true },
+  { id:2, name:"Island Express", contact:"Prasert K.", phone:"+66 76 345 6789", base:"Phuket", vehicles:8, types:["Minibus 20","Coach 30","SUV"], trips:32, rating:4.6, preferred:true },
+  { id:3, name:"Bangkok Fleet Co", contact:"Wichai N.", phone:"+66 89 456 7890", base:"Bangkok", vehicles:12, types:["Coach 40","Minibus 15","Van 12"], trips:89, rating:4.9, preferred:false },
+  { id:4, name:"Northern Roads", contact:"Niran C.", phone:"+66 85 567 8901", base:"Chiang Mai", vehicles:3, types:["Van 9","SUV"], trips:15, rating:4.5, preferred:false },
+  { id:5, name:"Hua Hin Wheels", contact:"Manat S.", phone:"+66 83 678 9012", base:"Hua Hin", vehicles:4, types:["Van 12","Sedan"], trips:28, rating:4.7, preferred:false },
+]
+
+export default function DmcOperatorsPage() {
+  const { t } = useLanguage()
+  const [sel, setSel] = useState<typeof operators[0]|null>(null)
+  const [q, setQ] = useState("")
+
+  const filtered = operators.filter(o => !q || o.name.toLowerCase().includes(q.toLowerCase()) || o.base.toLowerCase().includes(q.toLowerCase()))
+
   return (
-    <div style={{minHeight:'100vh',background:'#07100D',color:'#e8f5f0',fontFamily:'Inter,sans-serif',padding:20}}>
-      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20}}>
-        <a href="/dmc/dashboard" style={{color:'#19C977',textDecoration:'none'}}>Back</a>
-        <h1 style={{fontSize:22,fontWeight:800,margin:0}}>Preferred Operators</h1>
+    <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.2 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
+        <div>
+          <h1 style={{ fontSize:22, fontWeight:700, color:"var(--text-1,#f0f0f0)" }}>{t({ en:"Operators", th:"ผู้ให้บริการ", zh:"运营商" })}</h1>
+          <p style={{ fontSize:13, color:"var(--text-2,#999)", marginTop:2 }}>{operators.filter(o=>o.preferred).length} preferred · {operators.length} total</p>
+        </div>
+        <input value={q} onChange={e=>setQ(e.target.value)} placeholder={t({ en:"Search operators...", th:"ค้นหา...", zh:"搜索..." })}
+          style={{ width:220, height:36, padding:"0 12px", borderRadius:8, border:"1px solid var(--border,#242)", background:"var(--bg-elevated,#1a1a1a)", color:"var(--text-1,#f0f0f0)", fontSize:13, outline:"none" }} />
       </div>
-      <div style={{background:'#0d1e19',border:'1px solid #1a3028',borderRadius:12,padding:16,marginBottom:16}}>
-        <div style={{fontSize:16,fontWeight:700,color:'#19C977',marginBottom:12}}>Your List ({preferred.length})</div>
-        {preferred.length===0 ? <div style={{color:'#7aab94',fontSize:13}}>None yet. Search below to add.</div>
-        : preferred.map((op:any)=>(
-          <div key={op.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #1a3028'}}>
-            <div><div style={{fontWeight:600}}>{op.company_name}</div><div style={{fontSize:12,color:'#7aab94'}}>{op.phone} - {op.base_location} - {op.riden_id}</div></div>
-            <button onClick={()=>remove(op.id)} style={{background:'transparent',border:'1px solid #ff6b6b',color:'#ff6b6b',borderRadius:6,padding:'4px 10px',fontSize:12,cursor:'pointer'}}>Remove</button>
+
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))", gap:16 }}>
+        {filtered.map(op => (
+          <div key={op.id} onClick={()=>setSel(op)} style={{ background:"var(--bg-surface,#111)", border:`1px solid ${op.preferred?"rgba(29,158,117,0.3)":"var(--border,#242)"}`, borderRadius:12, padding:20, cursor:"pointer", transition:"all 150ms" }}
+            onMouseEnter={e=>e.currentTarget.style.borderColor=op.preferred?"rgba(29,158,117,0.5)":"rgba(255,255,255,0.1)"}
+            onMouseLeave={e=>e.currentTarget.style.borderColor=op.preferred?"rgba(29,158,117,0.3)":"var(--border,#242)"}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:12 }}>
+              <div>
+                <div style={{ fontWeight:600, fontSize:14, color:"var(--text-1,#f0f0f0)", marginBottom:2 }}>{op.name}</div>
+                <div style={{ fontSize:12, color:"var(--text-2,#999)", display:"flex", alignItems:"center", gap:4 }}>
+                  <MapPin size={11}/>{op.base}
+                </div>
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+                {op.preferred && <span style={{ fontSize:10, padding:"2px 8px", borderRadius:99, background:"rgba(29,158,117,0.1)", color:"#1D9E75", fontFamily:"var(--font-mono,monospace)" }}>PREFERRED</span>}
+                <span style={{ display:"flex", alignItems:"center", gap:2, fontSize:12, color:"#f59e0b" }}><Star size={12} fill="#f59e0b"/>{op.rating}</span>
+              </div>
+            </div>
+            <div style={{ display:"flex", gap:16, marginBottom:12 }}>
+              <div style={{ textAlign:"center" }}>
+                <div style={{ fontFamily:"var(--font-mono,monospace)", fontSize:18, fontWeight:700, color:"var(--text-1,#f0f0f0)" }}>{op.vehicles}</div>
+                <div style={{ fontSize:10, color:"var(--text-2,#999)", textTransform:"uppercase" }}>Vehicles</div>
+              </div>
+              <div style={{ textAlign:"center" }}>
+                <div style={{ fontFamily:"var(--font-mono,monospace)", fontSize:18, fontWeight:700, color:"var(--text-1,#f0f0f0)" }}>{op.trips}</div>
+                <div style={{ fontSize:10, color:"var(--text-2,#999)", textTransform:"uppercase" }}>Trips</div>
+              </div>
+            </div>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
+              {op.types.map(v => <span key={v} style={{ fontSize:10, padding:"2px 8px", borderRadius:99, background:"var(--bg-elevated,#1a1a1a)", color:"var(--text-2,#999)", border:"1px solid var(--border,#242)" }}>{v}</span>)}
+            </div>
           </div>
         ))}
       </div>
-      <div style={{background:'#0d1e19',border:'1px solid #1a3028',borderRadius:12,padding:16}}>
-        <div style={{fontSize:16,fontWeight:700,color:'#19C977',marginBottom:12}}>Search Operators</div>
-        <input style={inp} value={q} onChange={e=>setQ(e.target.value)} placeholder="Search name, city, or RIDEN ID (e.g. OP-1042)" />
-        {results.length>0 && <div style={{marginTop:8}}>{results.map((op:any)=>(
-          <div key={op.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #1a3028'}}>
-            <div><div style={{fontWeight:600}}>{op.company_name} {op.is_preferred?'*':''}</div><div style={{fontSize:12,color:'#7aab94'}}>{op.phone} - {op.base_location} - {op.riden_id}</div></div>
-            {!op.is_preferred ? <button onClick={()=>add(op.id)} disabled={loading} style={{background:'#19C977',border:'none',color:'#07100D',borderRadius:6,padding:'6px 12px',fontSize:12,cursor:'pointer',fontWeight:700}}>+ Add</button> : <span style={{fontSize:12,color:'#19C977'}}>Added</span>}
-          </div>
-        ))}</div>}
-      </div>
-    </div>
-  );
+
+      <AnimatePresence>
+        {sel && (
+          <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} onClick={()=>setSel(null)}
+            style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", backdropFilter:"blur(4px)", zIndex:50, display:"flex", justifyContent:"flex-end" }}>
+            <motion.div initial={{ x:60 }} animate={{ x:0 }} exit={{ x:60 }} transition={{ duration:0.25 }} onClick={e=>e.stopPropagation()}
+              style={{ width:400, background:"var(--bg-surface,#111)", borderLeft:"1px solid var(--border,#242)", height:"100%", overflowY:"auto", padding:24 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+                <div style={{ fontSize:16, fontWeight:600, color:"var(--text-1,#f0f0f0)" }}>{sel.name}</div>
+                <button onClick={()=>setSel(null)} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--text-2,#999)" }}><X size={18}/></button>
+              </div>
+              <div style={{ background:"var(--bg-elevated,#1a1a1a)", borderRadius:10, padding:16, marginBottom:20 }}>
+                {[["Contact",sel.contact],["Phone",sel.phone],["Base",sel.base],["Vehicles",String(sel.vehicles)],["Total Trips",String(sel.trips)],["Rating",String(sel.rating)+" ⭐"]].map(([l,v])=>(
+                  <div key={l} style={{ display:"flex", justifyContent:"space-between", padding:"8px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
+                    <span style={{ fontFamily:"var(--font-mono,monospace)", fontSize:10, color:"var(--text-3,#555)", textTransform:"uppercase", letterSpacing:1 }}>{l}</span>
+                    <span style={{ fontFamily:"var(--font-mono,monospace)", fontSize:12, color:"var(--text-1,#f0f0f0)" }}>{v}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginBottom:16 }}>
+                <div style={{ fontFamily:"var(--font-mono,monospace)", fontSize:10, color:"var(--text-3,#555)", textTransform:"uppercase", letterSpacing:1, marginBottom:8 }}>VEHICLE TYPES</div>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                  {sel.types.map(v=><span key={v} style={{ fontSize:12, padding:"4px 12px", borderRadius:99, background:"var(--bg-elevated,#1a1a1a)", border:"1px solid var(--border,#242)", color:"var(--text-2,#999)" }}>{v}</span>)}
+                </div>
+              </div>
+              <button style={{ width:"100%", padding:10, borderRadius:8, fontSize:13, fontWeight:500, background:"#1D9E75", color:"white", border:"none", cursor:"pointer" }}>
+                {t({ en:"Book This Operator", th:"จองผู้ให้บริการนี้", zh:"预订此运营商" })}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  )
 }
