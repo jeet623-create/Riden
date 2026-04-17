@@ -2,42 +2,118 @@
 import { useState } from 'react'
 import { AdminShell } from '@/components/admin/admin-shell'
 import { StatusBadge } from '@/components/admin/status-badge'
-import { MessageSquare } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { MessageSquare, X, Send } from 'lucide-react'
+import { toast } from 'sonner'
+
 const tickets = [
-  {id:1,company:'Bangkok Express DMC',status:'open',subject:'Payment processing issue',message:'We are experiencing difficulties processing our subscription payment.',email:'contact@bangkokexpress.com',date:'2026-04-15 10:30',fullMessage:'We are experiencing difficulties processing our subscription payment. When we try to update our payment method, we get an error message. Could you please help us resolve this issue?'},
-  {id:2,company:'Chiang Mai Adventures',status:'replied',subject:'Question about driver verification',message:'How long does the driver verification process typically take?',email:'info@cmadventures.com',date:'2026-04-14 14:20',fullMessage:'How long does the driver verification process typically take? We have submitted 3 driver applications and want to know when we can expect them to be approved.'},
-  {id:3,company:'Phuket Premier DMC',status:'open',subject:'Upgrade to Pro plan',message:'We would like to upgrade our account from Growth to Pro plan...',email:'hello@phuketpremier.com',date:'2026-04-13 09:15',fullMessage:'We would like to upgrade our account from Growth to Pro plan. Can you help us with this upgrade and let us know if there will be any changes to our billing cycle?'},
-  {id:4,company:'Krabi Elite Travel',status:'closed',subject:'Feature request: Calendar export',message:'It would be great to have an option to export our booking calendar...',email:'support@krabielite.com',date:'2026-04-10 16:45',fullMessage:'It would be great to have an option to export our booking calendar to external calendar applications like Google Calendar. Is this something you are planning to add?'},
+  {id:1,company:'Bangkok Express DMC',email:'contact@bangkokexpress.com',subject:'Payment processing issue',message:'We are experiencing difficulties processing our subscription payment. When we try to update our payment method, we get an error message.',status:'open',date:'2026-04-15 10:30'},
+  {id:2,company:'Chiang Mai Adventures',email:'info@cmadventures.com',subject:'Question about driver verification',message:'How long does the driver verification process typically take? We have submitted 3 driver applications.',status:'replied',date:'2026-04-14 14:20'},
+  {id:3,company:'Phuket Premier DMC',email:'hello@phuketpremier.com',subject:'Upgrade to Pro plan',message:'We would like to upgrade our account from Growth to Pro plan. Can you help us with this?',status:'open',date:'2026-04-13 09:15'},
+  {id:4,company:'Krabi Elite Travel',email:'support@krabielite.com',subject:'Feature request: Calendar export',message:'It would be great to have an option to export our booking calendar to Google Calendar.',status:'closed',date:'2026-04-10 16:45'},
 ]
-export default function Page() {
-  const [tab, setTab] = useState('Open')
-  const [sel, setSel] = useState(tickets[0])
-  const [reply, setReply] = useState('')
-  const filtered = tab==='All'?tickets:tickets.filter(t=>t.status===tab.toLowerCase())
+
+export default function SupportPage() {
+  const [tab,setTab] = useState('All')
+  const [sel,setSel] = useState(tickets[0])
+  const [reply,setReply] = useState('')
+  const [sending,setSending] = useState(false)
   const openCount = tickets.filter(t=>t.status==='open').length
+  const filtered = tab==='All'?tickets:tickets.filter(t=>t.status===tab.toLowerCase())
+
+  async function sendReply() {
+    if(!reply.trim()) return
+    setSending(true)
+    await new Promise(r=>setTimeout(r,800))
+    toast.success('Reply sent')
+    setReply('')
+    setSending(false)
+  }
+
   return (
     <AdminShell>
-      <div className="flex gap-6 h-[calc(100vh-88px)]">
-        <div className="w-[340px] flex-shrink-0">
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-4"><h1 className="text-xl font-medium">Support Inbox</h1><span className="bg-[rgba(29,158,117,0.1)] text-[#1D9E75] px-2.5 py-1 rounded-full text-xs font-medium font-mono">{openCount} OPEN</span></div>
-            <div className="flex gap-2 mb-4">{['All','Open','Replied','Closed'].map(t=><button key={t} onClick={()=>setTab(t)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${tab===t?'bg-[#1D9E75] text-white':'bg-[#141414] text-[#a3a3a3] hover:text-[#f5f5f5] hover:bg-[#1a1a1a]'}`}>{t}</button>)}</div>
+      <div style={{display:'flex',gap:0,height:'calc(100vh - 88px)',overflow:'hidden'}}>
+        {/* Left panel */}
+        <div style={{width:340,flexShrink:0,display:'flex',flexDirection:'column',borderRight:'1px solid var(--border)'}}>
+          <div style={{padding:'20px 16px 0',flexShrink:0}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+              <h1 style={{fontSize:18,fontWeight:600}}>Support Inbox</h1>
+              {openCount>0&&<span style={{background:'var(--amber-bg)',border:'1px solid rgba(245,158,11,0.2)',color:'var(--amber)',borderRadius:99,padding:'2px 10px',fontFamily:'var(--font-mono)',fontSize:11}}>{openCount} open</span>}
+            </div>
+            <div style={{display:'flex',gap:6,marginBottom:12,flexWrap:'wrap'}}>
+              {['All','Open','Replied','Closed'].map(t=>(
+                <button key={t} onClick={()=>setTab(t)}
+                  style={{padding:'4px 12px',borderRadius:99,fontSize:11,cursor:'pointer',border:`1px solid ${tab===t?'var(--teal-20)':'var(--border)'}`,background:tab===t?'var(--teal-10)':'transparent',color:tab===t?'var(--teal)':'var(--text-3)',transition:'all 150ms'}}>
+                  {t}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="space-y-2">{filtered.map(t=><button key={t.id} onClick={()=>setSel(t)} className={`w-full text-left p-4 rounded-lg border transition-all ${sel?.id===t.id?'bg-[#1a1a1a] border-white/[0.12]':'bg-[#141414] border-white/[0.08] hover:border-white/[0.12]'}`}><div className="flex items-start justify-between mb-2"><span className="text-sm font-medium">{t.company}</span><StatusBadge status={t.status} variant="small"/></div><div className="text-sm font-medium mb-1">{t.subject}</div><div className="text-xs text-[#737373] mb-2 line-clamp-2">{t.message}</div><div className="text-[10px] text-[#737373] font-mono">{t.date}</div></button>)}</div>
-        </div>
-        <div className="flex-1 bg-[#141414] border border-white/[0.08] rounded-lg flex flex-col">
-          {sel?(
-            <>
-              <div className="p-6 border-b border-white/[0.08]"><div className="flex items-start justify-between mb-2"><h2 className="text-lg font-medium">{sel.subject}</h2><StatusBadge status={sel.status}/></div><div className="text-sm text-[#737373]">{sel.company} • {sel.email}</div></div>
-              <div className="flex-1 p-6 overflow-y-auto"><div className="bg-[#1a1a1a] border border-white/[0.08] rounded-lg p-4 mb-4"><p className="text-sm mb-3">{sel.fullMessage}</p><div className="text-xs text-[#737373] font-mono">Received: {sel.date}</div></div></div>
-              <div className="p-6 border-t border-white/[0.08]">
-                <label className="text-xs text-[#737373] mb-2 block">REPLY</label>
-                <textarea value={reply} onChange={e=>setReply(e.target.value)} placeholder="Type your reply..." rows={4} className="w-full bg-[#1a1a1a] border border-white/[0.08] rounded-lg px-4 py-2 text-sm text-[#f5f5f5] placeholder:text-[#737373] focus:outline-none focus:border-[#1D9E75] resize-none mb-3"/>
-                <div className="flex gap-2"><button className="px-4 py-2 bg-[#1D9E75] text-white rounded-lg text-sm font-medium hover:bg-[#188f6a]">Send Reply</button><button onClick={()=>setReply('')} className="px-4 py-2 bg-transparent text-[#a3a3a3] hover:text-[#f5f5f5] rounded-lg text-sm">Clear</button>{sel.status==='open'&&<button className="px-4 py-2 bg-[#1a1a1a] border border-white/[0.08] text-[#a3a3a3] rounded-lg text-sm ml-auto">Close Ticket</button>}</div>
+          <div style={{flex:1,overflowY:'auto'}}>
+            {filtered.map(t=>(
+              <div key={t.id} onClick={()=>setSel(t)}
+                style={{padding:'14px 16px',borderBottom:'1px solid var(--border)',cursor:'pointer',background:sel?.id===t.id?'var(--bg-elevated)':'transparent',borderLeft:`2px solid ${sel?.id===t.id?'var(--teal)':'transparent'}`,transition:'all 120ms'}}
+                onMouseEnter={e=>{if(sel?.id!==t.id)e.currentTarget.style.background='var(--bg-elevated)'}}
+                onMouseLeave={e=>{if(sel?.id!==t.id)e.currentTarget.style.background='transparent'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+                  <span style={{fontSize:13,fontWeight:500}}>{t.company}</span>
+                  <StatusBadge status={t.status} variant="small"/>
+                </div>
+                <div style={{fontSize:12,fontWeight:500,marginBottom:3}}>{t.subject}</div>
+                <div style={{fontSize:11,color:'var(--text-3)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:4}}>{t.message}</div>
+                <div style={{fontFamily:'var(--font-mono)',fontSize:10,color:'var(--text-3)'}}>{t.date}</div>
               </div>
-            </>
+            ))}
+            {filtered.length===0&&(
+              <div style={{padding:48,textAlign:'center',color:'var(--text-3)'}}>
+                <MessageSquare size={32} style={{margin:'0 auto 8px',opacity:0.2}}/>
+                <div style={{fontSize:13}}>No tickets</div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right panel */}
+        <div style={{flex:1,display:'flex',flexDirection:'column',background:'var(--bg-surface)'}}>
+          {!sel?(
+            <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:8,color:'var(--text-3)'}}>
+              <MessageSquare size={40} style={{opacity:0.2}}/>
+              <div style={{fontSize:13}}>Select a ticket to view</div>
+            </div>
           ):(
-            <div className="flex-1 flex items-center justify-center"><div className="text-center"><MessageSquare className="w-12 h-12 text-[#737373] mx-auto mb-3 opacity-20"/><p className="text-[#737373]">Select a ticket to view</p></div></div>
+            <>
+              <div style={{padding:'18px 24px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+                <div>
+                  <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>{sel.subject}</div>
+                  <div style={{fontSize:12,color:'var(--text-2)'}}>{sel.company} · {sel.email}</div>
+                </div>
+                <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                  <StatusBadge status={sel.status}/>
+                  {sel.status!=='closed'&&(
+                    <button onClick={()=>toast.success('Ticket closed')} style={{padding:'5px 12px',borderRadius:6,fontSize:11,background:'transparent',border:'1px solid var(--border)',color:'var(--text-2)',cursor:'pointer'}}>Close</button>
+                  )}
+                </div>
+              </div>
+              <div style={{flex:1,overflowY:'auto',padding:'20px 24px'}}>
+                <div style={{background:'var(--bg-elevated)',borderRadius:16,padding:'14px 18px',fontSize:14,lineHeight:1.6,maxWidth:600}}>{sel.message}</div>
+                <div style={{fontFamily:'var(--font-mono)',fontSize:10,color:'var(--text-3)',marginTop:8}}>RECEIVED — {sel.date}</div>
+              </div>
+              {sel.status!=='closed'&&(
+                <div style={{padding:'16px 24px',borderTop:'1px solid var(--border)'}}>
+                  <textarea value={reply} onChange={e=>setReply(e.target.value)} placeholder="Type your reply..." rows={4}
+                    style={{width:'100%',background:'var(--bg-elevated)',border:'1px solid var(--border)',borderRadius:12,padding:'10px 14px',fontSize:13,color:'var(--text-1)',resize:'none',outline:'none',fontFamily:'var(--font-body)',transition:'border-color 150ms'}}
+                    onFocus={e=>e.target.style.borderColor='var(--teal)'}
+                    onBlur={e=>e.target.style.borderColor='var(--border)'}/>
+                  <div style={{display:'flex',gap:8,marginTop:10}}>
+                    <button onClick={sendReply} disabled={!reply.trim()||sending}
+                      style={{display:'flex',alignItems:'center',gap:6,padding:'7px 16px',borderRadius:8,fontSize:13,fontWeight:500,background:'var(--teal)',color:'white',border:'none',cursor:!reply.trim()||sending?'not-allowed':'pointer',opacity:!reply.trim()||sending?0.5:1}}>
+                      <Send size={14}/>{sending?'Sending...':'Send Reply'}
+                    </button>
+                    <button onClick={()=>setReply('')} style={{padding:'7px 14px',borderRadius:8,fontSize:12,background:'transparent',border:'1px solid var(--border)',color:'var(--text-2)',cursor:'pointer'}}>Clear</button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
