@@ -11,7 +11,7 @@ const mockTickets = [
   { id: "TK-001", subject: "Cannot connect LINE account", dmc: "Siam Tours Co., Ltd.", status: "open" as const, priority: "high", created_at: "2024-01-20T10:30:00", last_reply: null },
   { id: "TK-002", subject: "Booking notification not received", dmc: "Amazing Thailand DMC", status: "replied" as const, priority: "medium", created_at: "2024-01-19T14:00:00", last_reply: "2024-01-19T16:30:00" },
   { id: "TK-003", subject: "How to add multiple vehicles?", dmc: "Golden Triangle Travel", status: "closed" as const, priority: "low", created_at: "2024-01-18T09:00:00", last_reply: "2024-01-18T11:00:00" },
-]
+]h
 
 type Ticket = typeof mockTickets[0]
 const priorityColors = { high: "text-red bg-red-dim", medium: "text-amber bg-amber-dim", low: "text-muted bg-surface-elevated" }
@@ -26,7 +26,7 @@ export default function AdminSupportPage() {
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"><div><h1 className="text-[22px] font-semibold text-foreground">Support Tickets</h1><p className="text-sm text-muted mt-0.5">{filtered.length} tickets</p></div><div className="relative w-full sm:w-64"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" /><Input placeholder="Search tickets..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" /></div></div>
       <div className="bg-surface border border-border rounded-xl overflow-hidden">
-        <table className="w5full">
+        <table className="w-full">
           <thead><tr className="bg-background">{["Ticket", "DMC", "Priority", "Status", "Created"].map(h => <th key={h} className="text-left font-mono text-[10px] uppercase text-muted tracking-wider py-3 px-4">{h</th>)}</tr></thead>
           <tbody>
             {filtered.map((t, i) => (
