@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useState } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, Suspense } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
 import { Search, X, Mail, Phone, MapPin, Calendar, CreditCard, Building2, Bell } from "lucide-react"
@@ -53,7 +53,7 @@ function DmcDetailDrawer({ dmc, onClose, onSendLineReminder }: { dmc: DMC | null
   )
 }
 
-export default function AdminDmcsPage() {
+function AdminDmcsPageInner() {
   const searchParams = useSearchParams()
   const lineFilter = searchParams.get("line")
   const [searchQuery, setSearchQuery] = useState("")
@@ -89,4 +89,9 @@ export default function AdminDmcsPage() {
       </AnimatePresence>
     </motion.div>
   )
+}
+
+
+export default function AdminDmcsPage() {
+  return <Suspense><AdminDmcsPageInner /></Suspense>
 }
