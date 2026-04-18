@@ -1,124 +1,179 @@
+
 "use client"
 
 export const dynamic = 'force-dynamic'
 
-import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
 import Link from "next/link"
-import { toast } from "sonner"
-import { ClipboardList, Clock, Map, CreditCard, Plus, ArrowRight, Timer } from "lucide-react"
-import { StatCard } from "@/components/dmc/stat-card"
-import { StatusBadge } from "@/components/dmc/status-badge"
-import { LineConnectBanner } from "@/components/dmc/line-connect-banner"
-import { Button } from "@/components/ui/button"
-import { useLanguage } from "@/hooks/use-language"
+import { supabase } from "@/lib/supabase"
 
-const mockDmcData = {
-  companyName: "Siam Tours",
-  subscriptionPlan: "trial" as const,
-  subscriptionStatus: "trial" as const,
-  lineUserId: null as string | null,
-  stats: { totalBookings: 47, pending: 5, activeTrips: 3 }
+type DmcUser = {
+  id: string
+  company_name: string
+  subscription_plan: string
+  subscription_status: string
+  line_user_id: string | null
+  trial_ends_at: string | null
 }
 
-const mockBookings = [
-  { id: "BK-2024-001", client: "Adventure Tours", days: 3, status: "confirmed" as const, date: "2024-01-15" },
-  { id: "BK-2024-002", client: "Luxury Travels", days: 7, status: "pending" as const, date: "2024-01-14" },
-  { id: "BK-2024-003", client: "Budget Backpackers", days: 2, status: "in_progress" as const, date: "2024-01-13" },
-  { id: "BK-2024-004", client: "Family Vacations", days: 5, status: "completed" as const, date: "2024-01-12" },
-  { id: "BK-2024-005", client: "Corporate Events", days: 1, status: "confirmed" as const, date: "2024-01-11" },
-]
-
-const sparklineData = {
-  bookings: [12, 19, 23, 31, 38, 42, 47],
-  pending: [2, 3, 5, 4, 6, 3, 5],
-  active: [1, 2, 2, 3, 4, 3, 3],
+type Stats = {
+  total_bookings: number
+  active_trips: number
+  pending_bookings: number
+  confirmed_bookings: number
 }
 
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString("en-US", { month: "short", day: "numeric" })
-}
+export default function DmcDashboardPage() {
+  const [dmc, setDmc] = useState<DmcUser | null>(null)
+  const [stats, setStats] = useState<Stats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [now, setNow] = useState(new Date())
 
-function getCurrentDate() {
-  return new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
-}
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(timer)
+  }, [])
 
-export default function DMCDashboardPage() {
-  const { companyName, subscriptionPlan, subscriptionStatus, lineUserId: initialLineUserId, stats } = mockDmcData
-  const { t } = useLanguage()
-  const [lineUserId, setLineUserId] = useState<string | null>(initialLineUserId)
+  useEffect(() => {
+    const stored = localStorage.getItem("dmc_user")
+    if (stored) {
+      try {
+        const user = JSON.parse(stored)
+        setDmc(user)
+        fetchStats(user.id)
+      } catch {}
+    } else {
+      setLoading(false)
+    }
+  }, [])
 
-  const handleLineConnect = async (newLineUserId: string) => {
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setLineUserId(newLineUserId)
-    toast.success(t({ en: "LINE connected! You'll now receive notifications.", th: "เชื่อมต่อ LINE แล้ว!", zh: "LINE 已连接！" }))
+  async function fetchStats(dmcId: string) {
+    const [
+      { count: total_bookings },
+      { count: active_trips },
+      { count: pending_bookings },
+      { count: confirmed_bookings },
+    ] = await Promise.all([
+      supabase.from("bookings").select("*", { count: "exact", head: true }).eq("dmc_id", dmcId),
+      supabase.from("trips").select("*", { count: "exact", head: true }).eq("dmc_id", dmcId).eq("status", "in_progress"),
+      supabase.from("bookings").select("*", { count: "exact", head: true }).eq("dmc_id", dmcId).eq("status", "pending"),
+      supabase.from("bookings").select("*", { count: "exact", head: true }).eq("dmc_id", dmcId).eq("status", "confirmed"),
+    ])
+    setStats({
+      total_bookings: total_bookings || 0,
+      active_trips: active_trips || 0,
+      pending_bookings: pending_bookings || 0,
+      confirmed_bookings: confirmed_bookings || 0,
+    })
+    setLoading(false)
   }
 
+  const dateStr = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
+  const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })
+
+  const isTrial = dmc?.subscription_status === "trial"
+  const trialDaysLeft = dmc?.trial_ends_at
+    ? Math.max(0, Math.ceil((new Date(dmc.trial_ends_at).getTime() - Date.now()) / 86400000))
+    : null
+
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, ease: "easeOut" }}>
-      <AnimatePresence>
-        {subscriptionStatus === "trial" && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-            className="w-full bg-[rgba(245,158,11,0.08)] border border-[rgba(245,158,11,0.2)] rounded-xl p-3.5 px-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-            <div className="flex items-center gap-2">
-              <Timer className="w-4 h-4 text-[#f59e0b]" />
-              <span className="text-[13px] font-medium text-[#f59e0b]">{t({ en: "Trial account — upgrade to unlock all features", th: "บัญชีทดลอง — อัพเกรดเพื่อปลดล็อคฟีเจอร์ทั้งหมด", zh: "试用账户 — 升级以解锁所有功能" })}</span>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+      {isTrial && (
+        <div className="mb-4 flex items-center justify-between bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="text-amber-400 text-sm">⏰</span>
+            <p className="text-sm text-amber-400">
+              Trial account — {trialDaysLeft !== null ? `${trialDaysLeft} days left` : "upgrade to unlock all features"}
+            </p>
+          </div>
+          <span className="text-xs text-amber-400 font-medium cursor-pointer hover:underline">Contact us →</span>
+        </div>
+      )}
+
+      {!dmc?.line_user_id && (
+        <div className="mb-4 flex items-center justify-between bg-[rgba(0,185,74,0.06)] border border-[rgba(0,185,74,0.15)] rounded-xl px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-[#06C755] rounded-lg flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-[10px] font-bold">LINE</span>
             </div>
-            <Button variant="secondary" size="sm" className="bg-[rgba(245,158,11,0.1)] hover:bg-[rgba(245,158,11,0.2)] text-[#f59e0b] border-0" asChild>
-              <Link href="/dmc/support">{t({ en: "Contact us", th: "ติดต่อเรา", zh: "联系我们" })}</Link>
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <div>
+              <p className="text-sm font-medium text-foreground">Connect your LINE account</p>
+              <p className="text-xs text-muted">Receive booking notifications, driver alerts and emergency updates on LINE</p>
+            </div>
+          </div>
+          <button className="px-4 py-1.5 rounded-lg bg-[#06C755] text-white text-sm font-medium whitespace-nowrap hover:bg-[#05b34c] transition-colors">
+            Connect LINE →
+          </button>
+        </div>
+      )}
 
-      <LineConnectBanner lineUserId={lineUserId} onConnect={handleLineConnect} />
-
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-[22px] font-semibold text-foreground">{t({ en: `Welcome back, ${companyName}!`, th: `ยินดีต้อนรับกลับ, ${companyName}!`, zh: `欢迎回来, ${companyName}!` })}</h1>
-          <p className="text-sm text-muted mt-0.5">{getCurrentDate()}</p>
+          <h1 className="text-[22px] font-semibold text-foreground">
+            Welcome back, {dmc?.company_name || "..."}!
+          </h1>
+          <p className="text-sm text-muted mt-0.5">{dateStr} · Bangkok</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90" asChild>
-          <Link href="/dmc/bookings/new"><Plus className="w-4 h-4 mr-2" />{t({ en: "New Booking", th: "จองใหม่", zh: "新预订" })}</Link>
-        </Button>
+        <Link href="/dmc/bookings/new">
+          <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors">
+            + New Booking
+          </button>
+        </Link>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label={t({ en: "Total Bookings", th: "การจองทั้งหมด", zh: "总预订数" })} value={stats.totalBookings} subLabel={t({ en: "all time", th: "ตลอดกาล", zh: "全部时间" })} icon={ClipboardList} accentColor="primary" sparklineData={sparklineData.bookings} />
-        <StatCard label={t({ en: "Pending", th: "รอดำเนินการ", zh: "待处理" })} value={stats.pending} subLabel={t({ en: "awaiting dispatch", th: "รอการส่ง", zh: "等待派遣" })} icon={Clock} accentColor="amber" sparklineData={sparklineData.pending} />
-        <StatCard label={t({ en: "Active Trips", th: "ทริปที่กำลังดำเนินการ", zh: "进行中的行程" })} value={stats.activeTrips} subLabel={t({ en: "running now", th: "กำลังดำเนินการ", zh: "正在进行" })} icon={Map} accentColor="green" sparklineData={sparklineData.active} />
-        <StatCard label={t({ en: "Plan", th: "แพ็คเกจ", zh: "套餐" })} value={1} subLabel={subscriptionPlan.toUpperCase()} icon={CreditCard} accentColor="blue" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {[
+          { label: "TOTAL BOOKINGS", value: stats?.total_bookings, sub: "all time", color: "text-primary" },
+          { label: "ACTIVE TRIPS", value: stats?.active_trips, sub: "running now", color: "text-blue-400" },
+          { label: "PENDING", value: stats?.pending_bookings, sub: "awaiting confirmation", color: "text-amber-400" },
+          { label: "CONFIRMED", value: stats?.confirmed_bookings, sub: "ready to go", color: "text-primary" },
+        ].map((c, i) => (
+          <motion.div key={c.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+            className="bg-surface border border-border rounded-xl p-4">
+            <p className="font-mono text-[10px] uppercase tracking-wider text-muted mb-2">{c.label}</p>
+            {loading ? (
+              <div className="h-8 w-12 bg-surface-elevated rounded animate-pulse mb-1" />
+            ) : (
+              <p className={`text-[28px] font-bold ${c.color}`}>{c.value}</p>
+            )}
+            <p className="text-[12px] text-muted">{c.sub}</p>
+          </motion.div>
+        ))}
       </div>
 
-      <div className="bg-surface border border-border rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background">
-          <h2 className="text-sm font-semibold text-foreground">{t({ en: "Recent Bookings", th: "การจองล่าสุด", zh: "最近预订" })}</h2>
-          <Link href="/dmc/bookings" className="text-xs text-primary hover:text-primary/80 font-medium flex items-center gap-1 transition-colors">
-            {t({ en: "View all", th: "ดูทั้งหมด", zh: "查看全部" })}<ArrowRight className="w-3 h-3" />
-          </Link>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-surface border border-border rounded-xl p-4">
+          <h3 className="text-sm font-semibold text-foreground mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { label: "New Booking", href: "/dmc/bookings/new", color: "bg-primary/10 text-primary border-primary/20" },
+              { label: "View Calendar", href: "/dmc/calendar", color: "bg-blue-400/10 text-blue-400 border-blue-400/20" },
+              { label: "Check Payments", href: "/dmc/payments", color: "bg-amber-400/10 text-amber-400 border-amber-400/20" },
+              { label: "View Reports", href: "/dmc/reports", color: "bg-purple-400/10 text-purple-400 border-purple-400/20" },
+            ].map(a => (
+              <Link key={a.label} href={a.href}>
+                <div className={`border rounded-lg px-3 py-2.5 text-sm font-medium cursor-pointer hover:opacity-80 transition-opacity ${a.color}`}>
+                  {a.label}
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-background">
-                {["Ref","Client","Days","Status","Date"].map(h => (
-                  <th key={h} className="text-left font-mono text-[10px] uppercase text-muted tracking-wider py-3 px-4">{t({ en: h, th: h, zh: h })}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {mockBookings.map((booking, index) => (
-                <motion.tr key={booking.id} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 * index }}
-                  className="border-b border-border table-row-hover cursor-pointer hover:bg-surface-elevated">
-                  <td className="py-3 px-4 font-mono text-xs text-foreground">{booking.id}</td>
-                  <td className="py-3 px-4 text-sm text-foreground">{booking.client}</td>
-                  <td className="py-3 px-4 font-mono text-xs text-muted">{booking.days}</td>
-                  <td className="py-3 px-4"><StatusBadge status={booking.status} showPulse={booking.status === "in_progress"} /></td>
-                  <td className="py-3 px-4 font-mono text-xs text-muted">{formatDate(booking.date)}</td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="bg-surface border border-border rounded-xl p-4">
+          <h3 className="text-sm font-semibold text-foreground mb-1">Account Status</h3>
+          <div className="space-y-3 mt-3">
+            {[
+              { label: "Plan", value: dmc?.subscription_plan || "—" },
+              { label: "Status", value: dmc?.subscription_status || "—" },
+              { label: "LINE", value: dmc?.line_user_id ? "Connected" : "Not connected" },
+            ].map(r => (
+              <div key={r.label} className="flex justify-between py-2 border-b border-border">
+                <span className="text-sm text-muted">{r.label}</span>
+                <span className={`text-sm font-medium ${r.label === "LINE" && dmc?.line_user_id ? "text-[#06C755]" : "text-foreground"}`}>{r.value}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </motion.div>
