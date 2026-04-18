@@ -11,7 +11,7 @@ const mockTickets = [
   { id: "TK-001", subject: "Cannot connect LINE account", dmc: "Siam Tours Co., Ltd.", status: "open" as const, priority: "high", created_at: "2024-01-20T10:30:00", last_reply: null },
   { id: "TK-002", subject: "Booking notification not received", dmc: "Amazing Thailand DMC", status: "replied" as const, priority: "medium", created_at: "2024-01-19T14:00:00", last_reply: "2024-01-19T16:30:00" },
   { id: "TK-003", subject: "How to add multiple vehicles?", dmc: "Golden Triangle Travel", status: "closed" as const, priority: "low", created_at: "2024-01-18T09:00:00", last_reply: "2024-01-18T11:00:00" },
-]h
+]
 
 type Ticket = typeof mockTickets[0]
 const priorityColors = { high: "text-red bg-red-dim", medium: "text-amber bg-amber-dim", low: "text-muted bg-surface-elevated" }
