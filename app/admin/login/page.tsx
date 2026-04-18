@@ -76,8 +76,8 @@ export default function AdminLoginPage() {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                classNamE="w-full h-10 px-3 pr-10 rounded-lg border border-input bg-background text-foreground text-[14px] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                placeholder="â¢â¢â¢â¢â¢â¢â¢â¢"
+                className="w-full h-10 px-3 pr-10 rounded-lg border border-input bg-background text-foreground text-[14px] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 required
               />
               <button
