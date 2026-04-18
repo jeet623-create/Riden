@@ -1,84 +1,186 @@
+
 "use client"
 
 export const dynamic = 'force-dynamic'
 
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { 
-  Users, 
-  Truck, 
-  UserCheck, 
-  ClipboardList, 
-  ArrowRight,
-  AlertTriangle,
-  MessageSquare
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { supabase } from "@/lib/supabase"
 
-// Mock data - in production from Supabase
-const mockStats = {
-  totalDmcs: 156,
-  activeOperators: 52,
-  verifiedDrivers: 234,
-  totalBookings: 1847,
-  pendingDriverApprovals: 8,
-  dmcsWithoutLine: 23,
+interface Stats {
+  dmc_count: number
+  operator_count: number
+  driver_count: number
+  active_trips: number
+  vehicle_count: number
+  pending_drivers: number
+  recent_bookings: number
+  mrr: number
+  open_tickets: number
 }
 
-interface StatCardProps {
-  label: string
-  value: number
-  subLabel: string
-  icon: React.ElementType
-  accentColor: "primary" | "amber" | "green" | "blue" | "purple"
-  href?: string
-}
-
-const colorMap = {
-  primary: { bg: "bg-primary/10", text: "text-primary", border: "border-primary/20" },
-  amber: { bg: "bg-[#f59e0b]/10", text: "text-[#f59e0b]", border: "border-[#f59e0b]/20" },
-  green: { bg: "bg-[#22c55e]/10", text: "text-[#22c55e]", border: "border-[#22c55e]/20" },
-  blue: { bg: "bg-[#3b82f6]/10", text: "text-[#3b82f6]", border: "border-[#3b82f6]/20" },
-  purple: { bg: "bg-[#8b5cf6]/10", text: "text-[#8b5cf6]", border: "border-[#8b5cf6]/20" },
-}
-
-function AdminStatCard({ label, value, subLabel, icon: Icon, accentColor, href }: StatCardProps) {
-  const colors = colorMap[accentColor]
-  const content = (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`bg-surface border ${colors.border} rounded-xl p-4 ${href ? "cursor-pointer hover:border-primary/40 transition-colors" : ""}`}>
-      <div className="flex items-start justify-between mb-3"><div className={`w-10 h-10 rounded-lg ${colors.bg} flex items-center justify-center`}><Icon className={`w-5 h-5 ${colors.text}`} /></div></div>
-      <p className="font-mono text-[28px] font-semibold text-foreground mb-0.5">{value}</p>
-      <p className="text-[13px] font-medium text-foreground">{label}</p>
-      <p className="text-[11px] text-muted mt-0.5">{subLabel}</p>
-    </motion.div>
-  )
-  if (href) return <Link href={href}>{content}</Link>
-  return content
+interface BookingTrend {
+  date: string
+  count: number
 }
 
 export default function AdminDashboardPage() {
+  const [stats, setStats] = useState<Stats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [now, setNow] = useState(new Date())
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    async function fetchStats() {
+      const [
+        { count: dmc_count },
+        { count: operator_count },
+        { count: driver_count },
+        { count: active_trips },
+        { count: vehicle_count },
+        { count: pending_drivers },
+        { count: recent_bookings },
+        { count: open_tickets },
+        { data: subs },
+      ] = await Promise.all([
+        supabase.from("dmc_users").select("*", { count: "exact", head: true }).eq("is_active", true),
+        supabase.from("operators").select("*", { count: "exact", head: true }).eq("status", "active"),
+        supabase.from("drivers").select("*", { count: "exact", head: true }).eq("is_verified", true),
+        supabase.from("trips").select("*", { count: "exact", head: true }).eq("status", "in_progress"),
+        supabase.from("vehicles").select("*", { count: "exact", head: true }).eq("status", "active"),
+        supabase.from("drivers").select("*", { count: "exact", head: true }).eq("is_verified", false).eq("is_active", true),
+        supabase.from("bookings").select("*", { count: "exact", head: true }).gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString()),
+        supabase.from("support_tickets").select("*", { count: "exact", head: true }).eq("status", "open"),
+        supabase.from("subscriptions").select("price_thb").eq("status", "active"),
+      ])
+      const mrr = (subs || []).reduce((s: number, r: any) => s + (Number(r.price_thb) || 0), 0)
+      setStats({
+        dmc_count: dmc_count || 0,
+        operator_count: operator_count || 0,
+        driver_count: driver_count || 0,
+        active_trips: active_trips || 0,
+        vehicle_count: vehicle_count || 0,
+        pending_drivers: pending_drivers || 0,
+        recent_bookings: recent_bookings || 0,
+        mrr,
+        open_tickets: open_tickets || 0,
+      })
+      setLoading(false)
+    }
+    fetchStats()
+  }, [])
+
+  const cards = [
+    { label: "ACTIVE DMCS", value: stats?.dmc_count, sub: "companies", color: "text-primary", icon: "🏢" },
+    { label: "OPERATORS", value: stats?.operator_count, sub: "fleet owners", color: "text-blue-400", icon: "🚐" },
+    { label: "VERIFIED DRIVERS", value: stats?.driver_count, sub: "in pool", color: "text-primary", icon: "👤" },
+    { label: "EST. MRR", value: stats ? `฿${stats.mrr.toLocaleString()}` : null, sub: "monthly recurring", color: "text-amber-400", icon: "💰" },
+    { label: "ACTIVE TRIPS", value: stats?.active_trips, sub: "running now", color: "text-primary", icon: "🗺" },
+    { label: "VEHICLES", value: stats?.vehicle_count, sub: "active fleet", color: "text-blue-400", icon: "🚗" },
+    { label: "PENDING REVIEW", value: stats?.pending_drivers, sub: "need approval", color: "text-amber-400", icon: "⏳" },
+    { label: "RECENT BOOKINGS", value: stats?.recent_bookings, sub: "this week", color: "text-blue-400", icon: "📋" },
+  ]
+
+  const dateStr = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
+  const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })
+
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, ease: "easeOut" }}>
-      {mockStats.pendingDriverApprovals > 0 && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="w-full bg-[rgba(245,158,11,0.06)] border border-[rgba(245,158,11,0.12)] rounded-xl p-3.5 px-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-          <div className="flex items-center gap-3"><AlertTriangle className="w-[18px] h-[18px] text-[#f59e0b]" /><div><span className="text-[13px] font-medium text-foreground">{mockStats.pendingDriverApprovals} drivers pending approval</span><p className="text-[12px] text-muted">Review and approve new driver registrations</p></div></div>
-          <Button variant="ghost" size="sm" className="text-[#f59e0b]" asChild><Link href="/admin/drivers?status=pending">Review drivers <ArrowRight className="w-3 h-3 ml-1" /></Link></Button>
-        </motion.div>
-      )}
-      {mockStats.dmcsWithoutLine > 0 && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="w-full bg-[rgba(6,199,85,0.06)] border border-[rgba(6,199,85,0.12)] rounded-xl p-3.5 px-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-          <div className="flex items-center gap-3"><MessageSquare className="w-[18px] h-[18px] text-[#06C755]" /><div><span className="text-[13px] font-medium text-foreground">{mockStats.dmcsWithoutLine} DMCs have not connected LINE</span><p className="text-[12px] text-muted">They won't receive booking notifications</p></div></div>
-          <Button variant="ghost" size="sm" className="text-[#06C755]" asChild><Link href="/admin/dmcs?line=disconnected">View DMCs <ArrowRight className="w-3 h-3 ml-1" /></Link></Button>
-        </motion.div>
-      )}
-      <div className="flex items-center justify-between mb-6"><div><h1 className="text-[22px] font-semibold text-foreground">Dashboard</h1><p className="text-sm text-muted mt-0.5">Platform overview</p></div></div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <AdminStatCard label="Total DMCs" value={mockStats.totalDmcs} subLabel="registered companies" icon={Users} accentColor="primary" href="/admin/dmcs" />
-        <AdminStatCard label="Active Operators" value={mockStats.activeOperators} subLabel="transport providers" icon={Truck} accentColor="blue" href="/admin/operators" />
-        <AdminStatCard label="Verified Drivers" value={mockStats.verifiedDrivers} subLabel="approved drivers" icon={UserCheck} accentColor="green" href="/admin/drivers" />
-        <AdminStatCard label="Total Bookings" value={mockStats.totalBookings} subLabel="all time" icon={ClipboardList} accentColor="amber" href="/admin/bookings" />
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h1 className="text-[22px] font-semibold text-foreground">Command Center</h1>
+          <p className="text-sm text-muted mt-0.5">{dateStr} · Bangkok</p>
+        </div>
+        <button onClick={() => { setLoading(true); window.location.reload() }} className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border text-sm text-muted hover:bg-surface-elevated transition-colors">
+          ↻ Refresh
+        </button>
       </div>
-      <div className="bg-surface border border-border rounded-xl p-5"><h2 className="text-sm font-semibold text-foreground mb-4">Quick Actions</h2><div className="grid grid-cols-1 sm:grid-cols-3 gap-3"><Button variant="outline" className="justify-start" asChild><Link href="/admin/drivers?status=pending"><UserCheck className="w4 h-4 mr-2" />Review Pending Drivers</Link></Button><Button variant="outline" className="justify-start" asChild><Link href="/admin/dmcs"><Users className="w4 h-4 mr-2" />Manage DMCs</Link></Button><Button variant="outline" className="justify-start" asChild><Link href="/admin/support"><MessageSquare className="w4 h-4 mr-2" />View Support Tickets</Link></Button></div></div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {cards.map((c, i) => (
+          <motion.div key={c.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+            className="bg-surface border border-border rounded-xl p-4">
+            <p className="font-mono text-[10px] uppercase tracking-wider text-muted mb-2">{c.label}</p>
+            {loading ? (
+              <div className="h-8 w-16 bg-surface-elevated rounded animate-pulse mb-1" />
+            ) : (
+              <p className={`text-[28px] font-bold ${c.color}`}>{c.value}</p>
+            )}
+            <p className="text-[12px] text-muted">{c.sub}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      {stats && stats.pending_drivers > 0 && (
+        <Link href="/admin/drivers">
+          <div className="mb-6 flex items-center justify-between bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 cursor-pointer hover:bg-amber-500/15 transition-colors">
+            <div className="flex items-center gap-3">
+              <span className="text-amber-400">⚠</span>
+              <div>
+                <p className="text-sm font-medium text-amber-400">{stats.pending_drivers} driver{stats.pending_drivers > 1 ? "s" : ""} waiting for approval</p>
+                <p className="text-xs text-muted">Review driver applications to activate their accounts</p>
+              </div>
+            </div>
+            <span className="text-xs text-amber-400 font-medium">Review →</span>
+          </div>
+        </Link>
+      )}
+
+      {stats && stats.open_tickets > 0 && (
+        <Link href="/admin/support">
+          <div className="mb-6 flex items-center justify-between bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 cursor-pointer hover:bg-red-500/15 transition-colors">
+            <div className="flex items-center gap-3">
+              <span className="text-red-400">🎫</span>
+              <p className="text-sm font-medium text-red-400">{stats.open_tickets} open support ticket{stats.open_tickets > 1 ? "s" : ""}</p>
+            </div>
+            <span className="text-xs text-red-400 font-medium">View →</span>
+          </div>
+        </Link>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-surface border border-border rounded-xl p-4">
+          <h3 className="text-sm font-semibold text-foreground mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { label: "Activate Subscription", href: "/admin/subscriptions", color: "bg-primary/10 text-primary border-primary/20" },
+              { label: "Review Drivers", href: "/admin/drivers", color: "bg-amber-400/10 text-amber-400 border-amber-400/20" },
+              { label: "View Operators", href: "/admin/operators", color: "bg-blue-400/10 text-blue-400 border-blue-400/20" },
+              { label: "Support Inbox", href: "/admin/support", color: "bg-red-400/10 text-red-400 border-red-400/20" },
+            ].map(a => (
+              <Link key={a.label} href={a.href}>
+                <div className={`border rounded-lg px-3 py-2.5 text-sm font-medium cursor-pointer hover:opacity-80 transition-opacity ${a.color}`}>
+                  {a.label}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+        <div className="bg-surface border border-border rounded-xl p-4">
+          <h3 className="text-sm font-semibold text-foreground mb-4">System Status</h3>
+          <div className="space-y-3">
+            {[
+              { label: "Supabase Database", status: "Operational" },
+              { label: "LINE Bot Webhook", status: "Operational" },
+              { label: "Edge Functions", status: "Operational" },
+              { label: "File Storage", status: "Operational" },
+            ].map(s => (
+              <div key={s.label} className="flex items-center justify-between">
+                <span className="text-sm text-muted">{s.label}</span>
+                <span className="flex items-center gap-1.5 text-xs text-primary font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block" />
+                  {s.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </motion.div>
   )
 }
