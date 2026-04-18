@@ -1,85 +1,159 @@
+
 "use client"
 
 export const dynamic = 'force-dynamic'
 
-import { useState } from "react"
-import { useSearchParams, Suspense } from "next/navigation"
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
-import { Search, X, Phone, MapPin, User, CheckCircle, XCircle } from "lucide-react"
-import { Input } from "@/components/ui/input"
+import { Search, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { StatusBadge } from "@/components/dmc/status-badge"
+import { Input } from "@/components/ui/input"
+import { supabase } from "@/lib/supabase"
 
-const mockDrivers = [
-  { id: 1, name: "Somchai Thongdee", phone: "+66 81 111 2222", operator: "Bangkok Express Transport", license_number: "BKK-12345", status: "active" as const, location: "Bangkok" },
-  { id: 2, name: "Nattapong Srisuk", phone: "+66 82 333 4444", operator: "Phuket Premium Vans", license_number: "PKT-67890", status: "pending" as const, location: "Phuket" },
-  { id: 3, name: "Wichai Phanich", phone: "+66 83 555 6666", operator: "Chiang Mai Coach Co.", license_number: "CNX-11111", status: "pending" as const, location: "Chiang Mai" },
-  { id: 4, name: "Prasert Chaiyasit", phone: "+66 84 777 8888", operator: "Bangkok Express Transport", license_number: "BKK-22222", status: "active" as const, location: "Bangkok" },
-]
-
-type Driver = typeof mockDrivers[0]
+type Driver = {
+  id: string
+  full_name: string
+  phone: string
+  vehicle_type: string
+  vehicle_plate: string
+  vehicle_brand_model: string
+  base_location: string
+  is_verified: boolean
+  is_active: boolean
+  license_number: string
+  license_expiry: string
+  created_at: string
+}
 
 function AdminDriversPageInner() {
   const searchParams = useSearchParams()
-  const statusFilter = searchParams.get("status")
+  const statusFilter = searchParams.get("status") || "pending"
+  const [drivers, setDrivers] = useState<Driver[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null)
+  const [activeTab, setActiveTab] = useState<"pending" | "active" | "inactive">(
+    statusFilter === "active" ? "active" : statusFilter === "inactive" ? "inactive" : "pending"
+  )
 
-  const filteredDrivers = mockDrivers.filter(driver => {
-    const matchesSearch = driver.name.toLowerCase().includes(searchQuery.toLowerCase()) || driver.operator.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = statusFilter === "pending" ? driver.status === "pending" : true
-    return matchesSearch && matchesStatus
-  })
+  useEffect(() => {
+    async function fetchDrivers() {
+      let query = supabase.from("drivers").select("id,full_name,phone,vehicle_type,vehicle_plate,vehicle_brand_model,base_location,is_verified,is_active,license_number,license_expiry,created_at").order("created_at", { ascending: false })
+      if (activeTab === "pending") query = query.eq("is_verified", false).eq("is_active", true)
+      else if (activeTab === "active") query = query.eq("is_verified", true).eq("is_active", true)
+      else query = query.eq("is_active", false)
+      const { data } = await query
+      setDrivers(data || [])
+      setLoading(false)
+    }
+    setLoading(true)
+    fetchDrivers()
+  }, [activeTab])
+
+  const filtered = drivers.filter(d =>
+    d.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (d.vehicle_plate || "").toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  async function approveDriver(id: string, name: string) {
+    await supabase.from("drivers").update({ is_verified: true }).eq("id", id)
+    setDrivers(prev => prev.filter(d => d.id !== id))
+    toast.success(`${name} approved`)
+  }
+
+  async function rejectDriver(id: string, name: string) {
+    await supabase.from("drivers").update({ is_active: false }).eq("id", id)
+    setDrivers(prev => prev.filter(d => d.id !== id))
+    toast.error(`${name} rejected`)
+  }
+
+  const tabs = [
+    { key: "pending", label: "Pending" },
+    { key: "active", label: "Active" },
+    { key: "inactive", label: "Inactive" },
+  ] as const
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"><div><h1 className="text-[22px] font-semibold text-foreground">Drivers</h1><p className="text-sm text-muted mt-0.5">{filteredDrivers.length} {statusFilter === "pending" ? "pending approval" : "total"}</p></div><div className="relative w-full sm:w-64"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" /><Input placeholder="Search drivers..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" /></div></div>
-      <div className="bg-surface border border-border rounded-xl overflow-hidden">
-        <table className="w5full">
-          <thead><tr className="bg-background">{["Driver", "Operator", "License", "Location", "Status"].map(h => <th key={h} className="text-left font-mono text-[10px] uppercase text-muted tracking-wider py-3 px-4">{h}</th>)}</tr></thead>
-          <tbody>
-            {filteredDrivers.map((driver, i) => (
-              <motion.tr key={driver.id} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.03 * i }} onClick={() => setSelectedDriver(driver)} className="border-b border-border cursor-pointer hover:bg-surface-elevated transition-colors">
-                <td className="py-3 px-4"><p className="text-sm font-medium text-foreground">{driver.name}</p><p className="text-[12px] text-muted">{driver.phone}</p></td>
-                <td className="py-3 px-4 text-sm text-muted">{driver.operator}</td>
-                <td className="py-3 px-4 font-mono text-xs text-muted">{driver.license_number}</td>
-                <td className="py-3 px-4 text-sm text-muted">{driver.location}</td>
-                <td className="py-3 px-4"><StatusBadge status={driver.status} /></td>
-              </motion.tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-[22px] font-semibold text-foreground">Driver Verification</h1>
+          {filtered.length > 0 && activeTab === "pending" && (
+            <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-amber-400/10 text-amber-400 font-mono text-[11px]">{filtered.length} PENDING</span>
+          )}
+        </div>
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+          <Input placeholder="Search drivers..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+        </div>
       </div>
-      <AnimatePresence>
-        {selectedDriver && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedDriver(null)} className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" />
-            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="fixed right-0 top-0 h-full w-full max-w-[440px] bg-surface border-l border-border z-50 flex flex-col">
-              <div className="h-14 border-b border-border px-5 flex items-center justify-between"><h2 className="text-[15px] font-semibold text-foreground">Driver Details</h2><button onClick={() => setSelectedDriver(null)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-elevated"><X className="w-4 h-4 text-muted" /></button></div>
-              <div className="flex-1 overflow-y-auto p-5">
-                <div className="flex items-start gap-4 mb-6"><div className="w-14 h-14 rounded-xl bg-green/10 flex items-center justify-center"><User className="w-6 h-6 text-green" /></div><div><h3 className="text-[17px] font-semibold text-foreground">{selectedDriver.name}</h3><p className="text-[13px] text-muted mt-0.5">{selectedDriver.operator}</p><div className="mt-2"><StatusBadge status={selectedDriver.status} /></div></div></div>
-                <div className="space-y-3">
-                  {[{ Icon: Phone, label: "Phone", value: selectedDriver.phone }, { Icon: User, label: "License", value: selectedDriver.license_number }, { Icon: MapPin, label: "Location", value: selectedDriver.location }].map(({ Icon, label, value }) => (
-                    <div key={label} className="flex items-start gap-3 py-2.5 border-b border-border"><Icon className="w-4 h-4 text-muted mt-0.5" /><div><p className="font-mono text-[10px] uppercase text-muted tracking-wider">{label}</p><p className="text-[13px] text-foreground mt-0.5">{value}</p></div></div>
-                  ))}
+
+      <div className="flex gap-2 mb-6">
+        {tabs.map(t => (
+          <button key={t.key} onClick={() => setActiveTab(t.key)}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${activeTab === t.key ? "bg-primary text-white" : "bg-surface border border-border text-muted hover:text-foreground"}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-48 bg-surface border border-border rounded-xl animate-pulse" />)}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-16 text-muted">No {activeTab} drivers</div>
+      ) : activeTab === "pending" ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((d, i) => (
+            <motion.div key={d.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 * i }}
+              className="bg-surface border border-border rounded-xl overflow-hidden">
+              <div className="relative h-32 bg-surface-elevated flex items-center justify-center">
+                <span className="text-muted text-sm">No photo uploaded</span>
+                <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-amber-400/10 text-amber-400 font-mono text-[10px] uppercase">Review</div>
+                <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-surface text-muted font-mono text-[10px]">Pending</div>
+              </div>
+              <div className="p-4">
+                <p className="font-semibold text-foreground">{d.full_name}</p>
+                <p className="text-[12px] text-muted mt-0.5">{d.vehicle_type} · {d.vehicle_plate}</p>
+                <p className="text-[12px] text-muted">{d.phone} · {d.base_location}</p>
+                <div className="flex gap-2 mt-3">
+                  <Button size="sm" className="flex-1 bg-primary text-white" onClick={() => approveDriver(d.id, d.full_name)}>Approve</Button>
+                  <Button size="sm" variant="destructive" className="flex-1" onClick={() => rejectDriver(d.id, d.full_name)}>Reject</Button>
                 </div>
               </div>
-              <div className="border-t border-border p-4">
-                {selectedDriver.status === "pending" ? (
-                  <div className="flex gap-3"><Button variant="outline" className="flex-1 border-red/30 text-red" onClick={() => { toast.error(`${selectedDriver.name} rejected`); setSelectedDriver(null) }}><XCircle className="w-4 h-4 mr-2" />Reject</Button><Button className="flex-1 bg-green text-white" onClick={() => { toast.success(`${selectedDriver.name} approved`); setSelectedDriver(null) }}><CheckCircle className="w-4 h-4 mr-2" />Approve</Button></div>
-                ) : (
-                  <div className="flex gap-3"><Button variant="secondary" className="flex-1" onClick={() => setSelectedDriver(null)}>Close</Button><Button className="flex-1 bg-primary">Edit Driver</Button></div>
-                )}
-              </div>
             </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-surface border border-border rounded-xl overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-background">
+                {["Name", "Vehicle", "Plate", "Base", "License Expiry"].map(h => (
+                  <th key={h} className="text-left font-mono text-[10px] uppercase text-muted tracking-wider py-3 px-4">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((d, i) => (
+                <motion.tr key={d.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.02 * i }}
+                  className="border-b border-border hover:bg-surface-elevated transition-colors">
+                  <td className="py-3 px-4 text-sm font-medium text-foreground">{d.full_name}</td>
+                  <td className="py-3 px-4 text-sm text-muted">{d.vehicle_type} · {d.vehicle_brand_model}</td>
+                  <td className="py-3 px-4 font-mono text-xs text-muted">{d.vehicle_plate}</td>
+                  <td className="py-3 px-4 text-sm text-muted">{d.base_location}</td>
+                  <td className="py-3 px-4 font-mono text-xs text-muted">{d.license_expiry || "—"}</td>
+                </motion.tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </motion.div>
   )
 }
-
 
 export default function AdminDriversPage() {
   return <Suspense><AdminDriversPageInner /></Suspense>
