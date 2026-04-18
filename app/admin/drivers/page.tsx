@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useState } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, Suspense } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
 import { Search, X, Phone, MapPin, User, CheckCircle, XCircle } from "lucide-react"
@@ -20,7 +20,7 @@ const mockDrivers = [
 
 type Driver = typeof mockDrivers[0]
 
-export default function AdminDriversPage() {
+function AdminDriversPageInner() {
   const searchParams = useSearchParams()
   const statusFilter = searchParams.get("status")
   const [searchQuery, setSearchQuery] = useState("")
@@ -78,4 +78,9 @@ export default function AdminDriversPage() {
       </AnimatePresence>
     </motion.div>
   )
+}
+
+
+export default function AdminDriversPage() {
+  return <Suspense><AdminDriversPageInner /></Suspense>
 }
