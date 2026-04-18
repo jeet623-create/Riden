@@ -1,5 +1,7 @@
 "use client"
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
 import { Download, ClipboardList, Clock, CheckCircle } from "lucide-react"
@@ -34,7 +36,7 @@ function AnimatedBar({ width, color, delay }: { width: number; color: string; de
 
 function AnimatedNumber({ value, delay }: { value: number; delay: number }) {
   const [displayValue, setDisplayValue] = useState(0)
-  const frameRef = useRef<number | undefined>(undefined)
+  const frameRef = useRef<number>()
   useEffect(() => {
     const timer = setTimeout(() => {
       const duration = 800
@@ -73,8 +75,8 @@ export default function ReportsPage() {
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-baseline gap-3">
-          <h1 className="text-[22px] font-semibold text-foreground">{t({ en: "Reports", th: "à¸£à¸²à¸¢à¸à¸²à¸", zh: "æ¥å" })}</h1>
-          <span className="text-[13px] text-muted">Monthly summary â {monthLabel}</span>
+          <h1 className="text-[22px] font-semibold text-foreground">{t({ en: "Reports", th: "รายงาน", zh: "报告" })}</h1>
+          <span className="text-[13px] text-muted">Monthly summary — {monthLabel}</span>
         </div>
         <div className="flex items-center gap-3">
           <Input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="w-[160px] h-9 bg-surface" />
