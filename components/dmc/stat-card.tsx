@@ -25,8 +25,8 @@ function easeOutQuart(t: number): number { return 1 - Math.pow(1 - t, 4) }
 export function StatCard({ label, value, subLabel, icon: Icon, accentColor = "primary", sparklineData }: StatCardProps) {
   const [displayValue, setDisplayValue] = useState(0)
   const [isHovered, setIsHovered] = useState(false)
-  const animationRef = useRef<number>()
-  const startTimeRef = useRef<number>()
+  const animationRef = useRef<number | undefined>(undefined)
+  const startTimeRef = useRef<number | undefined>(undefined)
   const colors = colorMap[accentColor]
 
   useEffect(() => {
