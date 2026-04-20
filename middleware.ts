@@ -35,9 +35,8 @@ export async function middleware(request: NextRequest) {
 
   if (!isStaticAsset) {
     if (hostname.startsWith('admin.')) {
-      if (!url.pathname.startsWith('/admin')) {
-        newPath = '/admin' + (url.pathname === '/' ? '' : url.pathname)
-      }
+      if (url.pathname === '/') newPath = '/admin/dashboard'
+      else if (!url.pathname.startsWith('/admin')) newPath = '/admin' + url.pathname
     } else if (hostname.startsWith('dmc.')) {
       if (url.pathname === '/') newPath = '/dmc/dashboard'
       else if (!url.pathname.startsWith('/dmc')) newPath = '/dmc' + url.pathname
