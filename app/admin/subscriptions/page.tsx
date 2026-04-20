@@ -1,206 +1,603 @@
-
 "use client"
 
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { X } from "lucide-react"
+import { useState, useEffect, useMemo, useCallback, useRef } from "react"
+import Link from "next/link"
+import { useSearchParams } from "next/navigation"
+import {
+  Search, RefreshCcw, Upload, ExternalLink, Mail, Phone, CheckCircle2, X as XIcon,
+  Calendar as CalendarIcon, CreditCard, AlertTriangle, FileText, Eye,
+} from "lucide-react"
 import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { StatusBadge } from "@/components/dmc/status-badge"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
+import { Panel, Skel, EmptyRow, PillBadge, fmtTime, fmtDateShort, daysUntil } from "@/components/admin/console"
+
+type DMC = {
+  id: string
+  company_name: string
+  contact_person: string | null
+  email: string
+  phone: string | null
+  country: string | null
+  subscription_plan: string | null
+  subscription_status: string | null
+  trial_ends_at: string | null
+  line_user_id: string | null
+  total_bookings: number | null
+  created_at: string
+  latest_sub_status?: string | null
+  latest_sub_payment_proof_url?: string | null
+  latest_sub_plan?: string | null
+}
 
 type Sub = {
   id: string
   dmc_id: string
-  plan: string
-  price_thb: number
-  start_date: string
-  end_date: string
-  status: string
+  plan: string | null
+  price_thb: number | null
+  status: string | null
+  start_date: string | null
+  end_date: string | null
+  payment_proof_url: string | null
+  activated_at: string | null
   created_at: string
-  dmc_users: { company_name: string; email: string } | null
+  notes: string | null
 }
 
-type DmcUser = { id: string; company_name: string; email: string }
+type Plan = { id: string; name: string; price: number; features: string[] }
 
-const PLANS = [
-  { key: "starter", label: "Starter", price: 2000 },
-  { key: "growth", label: "Growth", price: 4000 },
-  { key: "pro", label: "Pro", price: 6000 },
+const PLANS: Plan[] = [
+  { id: "starter", name: "Starter", price: 2000, features: ["Up to 50 bookings/mo", "Basic LINE notifications", "Email support"] },
+  { id: "growth", name: "Growth", price: 4000, features: ["Up to 200 bookings/mo", "Priority LINE notifications", "Priority support"] },
+  { id: "pro", name: "Pro", price: 6000, features: ["Unlimited bookings", "All features", "Dedicated support"] },
+  { id: "custom", name: "Custom", price: 0, features: ["Custom pricing", "Tailored plan", "Direct sales"] },
 ]
 
-export default function AdminSubscriptionsPage() {
-  const [subs, setSubs] = useState<Sub[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showActivate, setShowActivate] = useState(false)
-  const [dmcs, setDmcs] = useState<DmcUser[]>([])
-  const [form, setForm] = useState({
-    dmc_id: "", plan: "starter", months: 1,
-    start_date: new Date().toISOString().slice(0, 10),
-  })
-  const [saving, setSaving] = useState(false)
+type ListTab = "awaiting" | "recent" | "all"
 
-  useEffect(() => {
-    fetchSubs()
-    fetchDmcs()
+export default function AdminSubscriptionsPage() {
+  const search = useSearchParams()
+  const preselectDmcId = search?.get("dmc")
+
+  const [dmcs, setDmcs] = useState<DMC[]>([])
+  const [latestSubs, setLatestSubs] = useState<Record<string, Sub>>({})
+  const [recentActivations, setRecentActivations] = useState<Sub[]>([])
+  const [loading, setLoading] = useState(true)
+  const [tab, setTab] = useState<ListTab>("awaiting")
+  const [q, setQ] = useState("")
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [stats, setStats] = useState<Record<string, { bookings: number; trips: number }>>({})
+
+  // form state
+  const [planId, setPlanId] = useState<string>("starter")
+  const [customPrice, setCustomPrice] = useState<string>("")
+  const [startDate, setStartDate] = useState<string>(new Date().toISOString().slice(0, 10))
+  const [endDate, setEndDate] = useState<string>("")
+  const [proofFile, setProofFile] = useState<File | null>(null)
+  const [proofNote, setProofNote] = useState<string>("")
+  const [adminNotes, setAdminNotes] = useState<string>("")
+  const [submitting, setSubmitting] = useState(false)
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true)
+    const supabase = createClient()
+
+    const { data: dmcData } = await supabase
+      .from("dmc_users")
+      .select("id, company_name, contact_person, email, phone, country, subscription_plan, subscription_status, trial_ends_at, line_user_id, total_bookings, created_at")
+      .order("created_at", { ascending: false })
+    const dmcList = (dmcData ?? []) as DMC[]
+    setDmcs(dmcList)
+
+    const dmcIds = dmcList.map(d => d.id)
+    if (dmcIds.length > 0) {
+      const { data: subs } = await supabase
+        .from("subscriptions")
+        .select("id, dmc_id, plan, price_thb, status, start_date, end_date, payment_proof_url, activated_at, created_at, notes")
+        .in("dmc_id", dmcIds)
+        .order("created_at", { ascending: false })
+      const subList = (subs ?? []) as Sub[]
+      const map: Record<string, Sub> = {}
+      for (const s of subList) if (!map[s.dmc_id]) map[s.dmc_id] = s
+      setLatestSubs(map)
+
+      const sevenDaysAgoIso = new Date(Date.now() - 7 * 86400000).toISOString()
+      setRecentActivations(subList.filter(s => s.status === "active" && s.activated_at && s.activated_at >= sevenDaysAgoIso).slice(0, 5))
+    }
+
+    setLoading(false)
   }, [])
 
-  async function fetchSubs() {
-    const { data } = await supabase
-      .from("subscriptions")
-      .select("*, dmc_users(company_name, email)")
-      .order("created_at", { ascending: false })
-    setSubs(data || [])
-    setLoading(false)
-  }
+  useEffect(() => { fetchAll() }, [fetchAll])
 
-  async function fetchDmcs() {
-    const { data } = await supabase.from("dmc_users").select("id, company_name, email").eq("is_active", true).order("company_name")
-    setDmcs(data || [])
-  }
+  useEffect(() => {
+    if (preselectDmcId && !selectedId) setSelectedId(preselectDmcId)
+  }, [preselectDmcId, selectedId])
 
-  async function activatePlan() {
-    if (!form.dmc_id) { toast.error("Select a DMC"); return }
-    setSaving(true)
-    const plan = PLANS.find(p => p.key === form.plan)!
-    const start = new Date(form.start_date)
-    const end = new Date(start)
-    end.setMonth(end.getMonth() + form.months)
+  // Fetch bookings/trips counts for selected DMC
+  useEffect(() => {
+    if (!selectedId) return
+    if (stats[selectedId]) return
+    ;(async () => {
+      const supabase = createClient()
+      const [{ count: bookings }, { count: trips }] = await Promise.all([
+        supabase.from("bookings").select("*", { count: "exact", head: true }).eq("dmc_id", selectedId),
+        supabase.from("trips").select("*", { count: "exact", head: true }).eq("dmc_id", selectedId),
+      ])
+      setStats(s => ({ ...s, [selectedId]: { bookings: bookings ?? 0, trips: trips ?? 0 } }))
+    })()
+  }, [selectedId, stats])
 
-    const { error } = await supabase.from("subscriptions").insert({
-      dmc_id: form.dmc_id,
-      plan: form.plan,
-      price_thb: plan.price * form.months,
-      start_date: start.toISOString().slice(0, 10),
-      end_date: end.toISOString().slice(0, 10),
-      status: "active",
-    })
+  const selected = useMemo(() => dmcs.find(d => d.id === selectedId) ?? null, [dmcs, selectedId])
+  const selectedSub = selectedId ? latestSubs[selectedId] : undefined
 
-    if (!error) {
-      // Update dmc_users subscription info
-      await supabase.from("dmc_users").update({
-        subscription_plan: form.plan,
-        subscription_status: "active",
-      }).eq("id", form.dmc_id)
+  // derive "awaiting" set
+  const awaitingIds = useMemo(() => {
+    const now = Date.now()
+    const sevenDaysFwd = now + 7 * 86400000
+    return new Set(dmcs.filter(d => {
+      if (d.subscription_status === "suspended") return true
+      if (d.subscription_status === "trial") {
+        if (d.trial_ends_at) {
+          const t = new Date(d.trial_ends_at).getTime()
+          if (t <= sevenDaysFwd) return true
+        }
+        return false
+      }
+      const sub = latestSubs[d.id]
+      if (sub?.payment_proof_url && sub.status !== "active") return true
+      return false
+    }).map(d => d.id))
+  }, [dmcs, latestSubs])
 
-      toast.success("Plan activated successfully")
-      setShowActivate(false)
-      fetchSubs()
-    } else {
-      toast.error("Failed to activate: " + error.message)
+  const filteredDmcs = useMemo(() => {
+    const ql = q.toLowerCase()
+    let list = dmcs
+    if (tab === "awaiting") list = dmcs.filter(d => awaitingIds.has(d.id))
+    else if (tab === "recent") {
+      const activatedIdsByRecent = new Set(recentActivations.map(s => s.dmc_id))
+      list = dmcs.filter(d => activatedIdsByRecent.has(d.id))
     }
-    setSaving(false)
+    if (ql) list = list.filter(d =>
+      (d.company_name ?? "").toLowerCase().includes(ql) ||
+      (d.email ?? "").toLowerCase().includes(ql) ||
+      (d.country ?? "").toLowerCase().includes(ql)
+    )
+    return list
+  }, [dmcs, tab, q, awaitingIds, recentActivations])
+
+  // end-date default syncs to start+30d when not manually edited
+  useEffect(() => {
+    if (!endDate && startDate) setEndDate(addDaysISO(startDate, 30))
+  }, [startDate, endDate])
+
+  // reset form when switching DMC
+  useEffect(() => {
+    setPlanId("starter")
+    setCustomPrice("")
+    setStartDate(new Date().toISOString().slice(0, 10))
+    setEndDate(addDaysISO(new Date().toISOString().slice(0, 10), 30))
+    setProofFile(null)
+    setProofNote("")
+    setAdminNotes("")
+  }, [selectedId])
+
+  const total = useMemo(() => {
+    if (planId === "custom") return Number(customPrice) || 0
+    return PLANS.find(p => p.id === planId)?.price ?? 0
+  }, [planId, customPrice])
+
+  async function uploadProofIfAny(dmcId: string): Promise<string | null> {
+    if (!proofFile) return null
+    const supabase = createClient()
+    const safeName = proofFile.name.replace(/[^a-zA-Z0-9._-]/g, "_")
+    const path = `${dmcId}/${Date.now()}-${safeName}`
+    const { error } = await supabase.storage.from("payment-proofs").upload(path, proofFile, { upsert: false })
+    if (error) throw new Error(`Upload failed: ${error.message}`)
+    const { data: signed, error: sErr } = await supabase.storage.from("payment-proofs").createSignedUrl(path, 60 * 60 * 24 * 365)
+    if (sErr) throw new Error(`Signed URL failed: ${sErr.message}`)
+    return signed.signedUrl
   }
 
-  const mrr = subs.filter(s => s.status === "active").reduce((sum, s) => sum + (Number(s.price_thb) || 0), 0)
+  async function activate() {
+    if (!selected) return
+    if (!startDate || !endDate) { toast.error("Billing dates required"); return }
+    if (planId === "custom") {
+      const p = Number(customPrice)
+      if (!p || p <= 0) { toast.error("Custom price must be > 0"); return }
+    }
+    setSubmitting(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      const proofUrl = await uploadProofIfAny(selected.id)
+      const combinedNotes = [
+        proofNote.trim() ? `Payment ref: ${proofNote.trim()}` : "",
+        adminNotes.trim() ? `Admin: ${adminNotes.trim()}` : "",
+      ].filter(Boolean).join(" | ") || null
+
+      const { error: insErr } = await supabase.from("subscriptions").insert({
+        dmc_id: selected.id,
+        plan: planId,
+        price_thb: total,
+        start_date: startDate,
+        end_date: endDate,
+        status: "active",
+        payment_proof_url: proofUrl,
+        activated_by: user?.id ?? null,
+        activated_at: new Date().toISOString(),
+        notes: combinedNotes,
+      })
+      if (insErr) { throw new Error(`Subscription insert: ${insErr.message}`) }
+
+      const { error: updErr } = await supabase.from("dmc_users").update({
+        subscription_plan: planId,
+        subscription_status: "active",
+        trial_ends_at: endDate,
+        is_active: true,
+      }).eq("id", selected.id)
+      if (updErr) { throw new Error(`DMC update: ${updErr.message}`) }
+
+      // best-effort email
+      try {
+        await supabase.functions.invoke("send-email", {
+          body: {
+            type: "subscription_activated",
+            dmc_id: selected.id,
+            plan: planId,
+            end_date: endDate,
+          },
+        })
+      } catch (e) {
+        // TODO: send-email may not support subscription_activated template yet
+        console.warn("send-email skipped:", e)
+      }
+
+      toast.success(`${selected.company_name} activated on ${PLANS.find(p => p.id === planId)?.name ?? planId} until ${fmtDateShort(endDate)}`)
+
+      // auto-select next
+      const idx = filteredDmcs.findIndex(d => d.id === selected.id)
+      const next = filteredDmcs[idx + 1] ?? filteredDmcs[idx - 1] ?? null
+      setSelectedId(next && next.id !== selected.id ? next.id : null)
+      await fetchAll()
+    } catch (e: any) {
+      toast.error(e?.message ?? "Activation failed")
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-4 text-[13px]">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[22px] font-semibold text-foreground">Subscriptions</h1>
-          <p className="text-sm text-muted mt-0.5">Manual bank transfer activation · MRR: ฿{mrr.toLocaleString()}</p>
+          <div className="font-mono text-[10px] uppercase text-muted tracking-[0.18em]">ADMIN · SUBSCRIPTIONS</div>
+          <div className="text-foreground text-[15px] font-medium">Activation queue</div>
         </div>
-        <Button onClick={() => setShowActivate(true)} className="bg-primary text-white">+ Activate Plan</Button>
+        <button onClick={fetchAll} className="flex items-center gap-1.5 h-8 px-2.5 rounded-md border border-border bg-surface text-[12px] text-muted hover:text-foreground hover:border-primary/40 transition-colors">
+          <RefreshCcw className="w-3 h-3" /> R
+        </button>
       </div>
 
-      <div className="bg-surface border border-border rounded-xl overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-background">
-              {["Company", "Email", "Plan", "Amount", "Start", "End", "Status"].map(h => (
-                <th key={h} className="text-left font-mono text-[10px] uppercase text-muted tracking-wider py-3 px-4">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? Array.from({ length: 4 }).map((_, i) => (
-              <tr key={i} className="border-b border-border">
-                {Array.from({ length: 7 }).map((_, j) => (
-                  <td key={j} className="py-3 px-4"><div className="h-4 bg-surface-elevated rounded animate-pulse" /></td>
-                ))}
-              </tr>
-            )) : subs.map((s, i) => (
-              <motion.tr key={s.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.03 * i }}
-                className="border-b border-border hover:bg-surface-elevated transition-colors">
-                <td className="py-3 px-4 text-sm font-medium text-foreground">{s.dmc_users?.company_name || "—"}</td>
-                <td className="py-3 px-4 text-sm text-muted">{s.dmc_users?.email || "—"}</td>
-                <td className="py-3 px-4 font-mono text-xs text-muted uppercase">{s.plan}</td>
-                <td className="py-3 px-4 font-mono text-sm text-primary">฿{Number(s.price_thb).toLocaleString()}</td>
-                <td className="py-3 px-4 font-mono text-xs text-muted">{s.start_date}</td>
-                <td className="py-3 px-4 font-mono text-xs text-muted">{s.end_date}</td>
-                <td className="py-3 px-4"><StatusBadge status={s.status as any} /></td>
-              </motion.tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
+        {/* LEFT — queue + recent */}
+        <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+          <Panel
+            title={`${tab === "awaiting" ? "AWAITING" : tab === "recent" ? "ACTIVATED · 7d" : "ALL"} · ${filteredDmcs.length}`}
+          >
+            <div className="flex items-center gap-1 mb-2 text-[12px]">
+              <TabButton active={tab === "awaiting"} onClick={() => setTab("awaiting")}>Awaiting</TabButton>
+              <TabButton active={tab === "recent"} onClick={() => setTab("recent")}>Activated · 7d</TabButton>
+              <TabButton active={tab === "all"} onClick={() => setTab("all")}>All</TabButton>
+            </div>
+            <div className="relative mb-2">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" />
+              <input
+                placeholder="Search"
+                value={q}
+                onChange={e => setQ(e.target.value)}
+                className="h-8 w-full pl-8 pr-3 rounded-md bg-background border border-border text-[12px] text-foreground placeholder:text-muted focus:outline-none focus:border-primary"
+              />
+            </div>
+            <div className="space-y-1 max-h-[calc(100vh-320px)] overflow-y-auto -mx-1 px-1">
+              {loading ? <Skel rows={5} />
+                : filteredDmcs.length === 0 ? (
+                  <div className="py-8 text-center">
+                    <div className="font-display italic text-foreground text-[14px]">
+                      {tab === "awaiting" ? "Queue is clear. 🎉" : tab === "recent" ? "Nothing activated in the last 7 days." : "No DMCs yet."}
+                    </div>
+                  </div>
+                ) : filteredDmcs.map(d => {
+                  const sub = latestSubs[d.id]
+                  return (
+                    <QueueCard
+                      key={d.id}
+                      dmc={d}
+                      sub={sub}
+                      selected={d.id === selectedId}
+                      onClick={() => setSelectedId(d.id)}
+                    />
+                  )
+                })}
+            </div>
+          </Panel>
 
-      <AnimatePresence>
-        {showActivate && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowActivate(false)} className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" />
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div className="bg-surface border border-border rounded-2xl w-full max-w-md p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-[17px] font-semibold text-foreground">Activate Subscription</h2>
-                  <button onClick={() => setShowActivate(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-elevated">
-                    <X className="w-4 h-4 text-muted" />
+          <Panel title="RECENTLY ACTIVATED · 7d">
+            {recentActivations.length === 0 ? <EmptyRow text="None this week." /> : (
+              <ul className="divide-y divide-border">
+                {recentActivations.map(s => {
+                  const dmc = dmcs.find(d => d.id === s.dmc_id)
+                  return (
+                    <li key={s.id} className="py-2 flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-foreground truncate">{dmc?.company_name ?? s.dmc_id.slice(0, 8)}</div>
+                        <div className="text-[11px] text-muted font-mono truncate">{s.plan} · ฿{Number(s.price_thb ?? 0).toLocaleString()}</div>
+                      </div>
+                      <span className="font-mono text-[11px] text-muted">{fmtTime(s.activated_at)} ago</span>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </Panel>
+        </div>
+
+        {/* RIGHT — form */}
+        <div>
+          {!selected ? (
+            <Panel>
+              <div className="py-16 text-center">
+                <div className="font-display italic text-foreground text-[18px]">Select a DMC to activate.</div>
+                <div className="text-[11px] text-muted mt-2">Pick an entry from the queue on the left.</div>
+              </div>
+            </Panel>
+          ) : (
+            <div className="space-y-4">
+              <DmcSummary dmc={selected} sub={selectedSub} stats={stats[selected.id]} />
+
+              <Panel title="PLAN SELECTION">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {PLANS.map(p => {
+                    const active = planId === p.id
+                    return (
+                      <button key={p.id}
+                        onClick={() => setPlanId(p.id)}
+                        className={`text-left p-3 rounded-lg border transition-colors ${active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium text-foreground">{p.name}</div>
+                          <div className={`w-4 h-4 rounded-full border ${active ? "border-primary" : "border-border"} flex items-center justify-center`}>
+                            {active && <div className="w-2 h-2 rounded-full bg-primary" />}
+                          </div>
+                        </div>
+                        <div className="font-mono text-[13px] text-foreground mt-0.5">
+                          {p.id === "custom" ? "฿ custom" : `฿${p.price.toLocaleString()}`}
+                          <span className="text-[11px] text-muted ml-1">/ period</span>
+                        </div>
+                        <ul className="mt-2 space-y-0.5">
+                          {p.features.map(f => (
+                            <li key={f} className="text-[11px] text-muted">· {f}</li>
+                          ))}
+                        </ul>
+                      </button>
+                    )
+                  })}
+                </div>
+                {planId === "custom" && (
+                  <div className="mt-3">
+                    <label className="font-mono text-[10px] uppercase text-muted tracking-wider mb-1 block">Custom Price (THB)</label>
+                    <input
+                      type="number" min={0} value={customPrice}
+                      onChange={e => setCustomPrice(e.target.value)}
+                      className="h-8 w-40 bg-background border border-input rounded-md px-2 text-[13px] text-foreground focus:outline-none focus:border-primary font-mono"
+                    />
+                  </div>
+                )}
+              </Panel>
+
+              <Panel title="BILLING PERIOD" icon={<CalendarIcon className="w-3 h-3" />}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="font-mono text-[10px] uppercase text-muted tracking-wider mb-1 block">Start date</label>
+                    <input
+                      type="date" value={startDate}
+                      onChange={e => setStartDate(e.target.value)}
+                      className="h-8 w-full bg-background border border-input rounded-md px-2 text-[13px] text-foreground focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-mono text-[10px] uppercase text-muted tracking-wider mb-1 block">End date</label>
+                    <input
+                      type="date" value={endDate}
+                      onChange={e => setEndDate(e.target.value)}
+                      className="h-8 w-full bg-background border border-input rounded-md px-2 text-[13px] text-foreground focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 mt-3">
+                  <span className="font-mono text-[10px] uppercase text-muted tracking-wider">Presets:</span>
+                  {[{ l: "1mo", d: 30 }, { l: "3mo", d: 90 }, { l: "6mo", d: 180 }, { l: "1yr", d: 365 }].map(p => (
+                    <button key={p.l}
+                      onClick={() => setEndDate(addDaysISO(startDate, p.d))}
+                      className="h-7 px-2.5 rounded-md border border-border bg-surface text-[11px] text-muted hover:text-foreground hover:border-primary/40"
+                    >{p.l}</button>
+                  ))}
+                </div>
+                <div className="mt-3 text-[12px]">
+                  <span className="text-muted">Total amount:</span>{" "}
+                  <span className="font-mono text-foreground text-[14px]">฿{total.toLocaleString()}</span>
+                </div>
+              </Panel>
+
+              <Panel title="PAYMENT PROOF" icon={<FileText className="w-3 h-3" />}>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <input ref={fileInputRef} type="file" accept="image/*,application/pdf" onChange={e => setProofFile(e.target.files?.[0] ?? null)} className="hidden" />
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="h-8 px-3 rounded-md border border-border bg-surface text-[12px] text-muted hover:text-foreground hover:border-primary/40 inline-flex items-center gap-1.5"
+                    >
+                      <Upload className="w-3.5 h-3.5" /> {proofFile ? "Replace file" : "Upload file"}
+                    </button>
+                    {proofFile && (
+                      <div className="text-[12px] text-foreground flex items-center gap-1.5">
+                        <span className="truncate max-w-[200px]">{proofFile.name}</span>
+                        <span className="text-muted font-mono">{(proofFile.size / 1024).toFixed(0)} KB</span>
+                        <button onClick={() => setProofFile(null)} className="text-muted hover:text-[color:var(--danger)]"><XIcon className="w-3.5 h-3.5" /></button>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="font-mono text-[10px] uppercase text-muted tracking-wider mb-1 block">Reference / note</label>
+                    <input
+                      value={proofNote}
+                      onChange={e => setProofNote(e.target.value)}
+                      placeholder="Transfer reference, bank name, etc."
+                      className="h-8 w-full bg-background border border-input rounded-md px-2 text-[13px] text-foreground focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+              </Panel>
+
+              <Panel title="ADMIN NOTES (internal)">
+                <textarea
+                  value={adminNotes}
+                  onChange={e => setAdminNotes(e.target.value)}
+                  placeholder="Optional internal notes"
+                  className="w-full min-h-[64px] bg-background border border-input rounded-md px-2 py-1.5 text-[13px] text-foreground resize-y focus:outline-none focus:border-primary"
+                />
+              </Panel>
+
+              <div className="flex items-center justify-between pt-2">
+                <div className="flex items-center gap-2 text-[12px]">
+                  <button
+                    disabled
+                    title="Invoice PDF coming in Phase 3i"
+                    className="h-8 px-3 rounded-md border border-border bg-surface text-muted text-[12px] inline-flex items-center gap-1.5 opacity-60 cursor-not-allowed"
+                  >
+                    <FileText className="w-3.5 h-3.5" /> Download Invoice PDF
+                  </button>
+                  <span className="text-[11px] text-muted italic font-display">Coming in Phase 3i</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedId(null)}
+                    className="h-9 px-3 rounded-md text-[12px] text-muted hover:text-foreground"
+                  >Cancel</button>
+                  <button
+                    onClick={activate}
+                    disabled={submitting}
+                    className="h-9 px-4 rounded-md bg-primary text-white text-[13px] font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
+                  >
+                    <CheckCircle2 className="w-4 h-4" /> {submitting ? "Activating…" : "Activate Subscription →"}
                   </button>
                 </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="font-mono text-[10px] uppercase text-muted tracking-wider">Select DMC</label>
-                    <select value={form.dmc_id} onChange={e => setForm(f => ({ ...f, dmc_id: e.target.value }))}
-                      className="mt-1 w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground">
-                      <option value="">— Select DMC —</option>
-                      {dmcs.map(d => <option key={d.id} value={d.id}>{d.company_name}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="font-mono text-[10px] uppercase text-muted tracking-wider">Plan</label>
-                    <div className="mt-1 grid grid-cols-3 gap-2">
-                      {PLANS.map(p => (
-                        <button key={p.key} onClick={() => setForm(f => ({ ...f, plan: p.key }))}
-                          className={`py-2 rounded-lg border text-sm font-medium transition-colors ${form.plan === p.key ? "border-primary bg-primary/10 text-primary" : "border-border text-muted hover:border-foreground"}`}>
-                          {p.label}<br />
-                          <span className="text-[10px]">฿{p.price.toLocaleString()}/mo</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="font-mono text-[10px] uppercase text-muted tracking-wider">Start Date</label>
-                      <input type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))}
-                        className="mt-1 w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground" />
-                    </div>
-                    <div>
-                      <label className="font-mono text-[10px] uppercase text-muted tracking-wider">Months</label>
-                      <select value={form.months} onChange={e => setForm(f => ({ ...f, months: Number(e.target.value) }))}
-                        className="mt-1 w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground">
-                        {[1, 3, 6, 12].map(m => <option key={m} value={m}>{m} month{m > 1 ? "s" : ""}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
-                    <p className="text-sm text-foreground">Total: <span className="font-bold text-primary">฿{(PLANS.find(p => p.key === form.plan)!.price * form.months).toLocaleString()}</span></p>
-                  </div>
-                </div>
-                <div className="flex gap-3 mt-6">
-                  <Button variant="secondary" className="flex-1" onClick={() => setShowActivate(false)}>Cancel</Button>
-                  <Button className="flex-1 bg-primary" onClick={activatePlan} disabled={saving}>
-                    {saving ? "Activating..." : "Activate Plan"}
-                  </Button>
-                </div>
               </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </motion.div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   )
+}
+
+// ---------- Queue card ----------
+function QueueCard({
+  dmc, sub, selected, onClick,
+}: { dmc: DMC; sub?: Sub; selected: boolean; onClick: () => void }) {
+  const source = sub?.payment_proof_url ? "bank transfer" : dmc.subscription_status === "suspended" ? "suspended" : dmc.subscription_status === "trial" ? "trial ending" : "review"
+  const tone =
+    dmc.subscription_status === "active" ? "primary" :
+    dmc.subscription_status === "trial" ? "warning" :
+    dmc.subscription_status === "suspended" ? "danger" :
+    "muted"
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full text-left px-2 py-2 rounded-md transition-colors border-l-2
+        ${selected ? "bg-primary/10 border-primary" : "bg-transparent border-transparent hover:bg-surface-elevated"}`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-foreground font-medium truncate">{dmc.company_name}</span>
+        <PillBadge tone={tone as any}>{dmc.subscription_status ?? "—"}</PillBadge>
+      </div>
+      <div className="text-[11px] text-muted truncate flex items-center gap-2">
+        <span className="font-mono">{dmc.country ?? "—"}</span>
+        <span>·</span>
+        <span>{source}</span>
+      </div>
+      <div className="text-[11px] text-muted font-mono">{fmtTime(dmc.created_at)} ago</div>
+    </button>
+  )
+}
+
+// ---------- Summary ----------
+function DmcSummary({ dmc, sub, stats }: { dmc: DMC; sub?: Sub; stats?: { bookings: number; trips: number } }) {
+  const trialLeft = daysUntil(dmc.trial_ends_at)
+  return (
+    <Panel>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="font-display italic text-[22px] font-semibold text-foreground leading-tight">{dmc.company_name}</h2>
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            {dmc.country && <span className="text-[12px] text-muted">{dmc.country}</span>}
+            {dmc.email && <a href={`mailto:${dmc.email}`} className="text-[12px] text-muted hover:text-primary inline-flex items-center gap-1"><Mail className="w-3 h-3" />{dmc.email}</a>}
+            {dmc.phone && <a href={`tel:${dmc.phone}`} className="text-[12px] text-muted hover:text-primary inline-flex items-center gap-1"><Phone className="w-3 h-3" />{dmc.phone}</a>}
+          </div>
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            <PillBadge tone={dmc.subscription_status === "active" ? "primary" : dmc.subscription_status === "trial" ? "warning" : "danger"}>
+              {dmc.subscription_status ?? "—"}
+            </PillBadge>
+            {dmc.subscription_plan && <PillBadge>{dmc.subscription_plan}</PillBadge>}
+            {dmc.trial_ends_at && (
+              <span className="font-mono text-[11px] text-muted">
+                trial ends {fmtDateShort(dmc.trial_ends_at)}{trialLeft != null ? ` · ${trialLeft}d` : ""}
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-4 mt-3 text-[12px] text-muted">
+            <span>Member since <span className="text-foreground font-mono">{fmtTime(dmc.created_at)} ago</span></span>
+            {stats && (
+              <>
+                <span>Bookings <span className="text-foreground font-mono">{stats.bookings}</span></span>
+                <span>Trips <span className="text-foreground font-mono">{stats.trips}</span></span>
+              </>
+            )}
+            <Link href={`/admin/dmcs/${dmc.id}`} className="text-primary hover:underline inline-flex items-center gap-1">
+              Full detail <ExternalLink className="w-3 h-3" />
+            </Link>
+          </div>
+          {sub?.payment_proof_url && (
+            <div className="mt-3 text-[12px]">
+              <a href={sub.payment_proof_url} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                <Eye className="w-3.5 h-3.5" /> Last payment proof
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    </Panel>
+  )
+}
+
+// ---------- Small Tab button ----------
+function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`h-7 px-2.5 rounded-md text-[11px] whitespace-nowrap transition-colors
+        ${active ? "bg-primary/15 text-primary border border-primary/30" : "bg-surface border border-border text-muted hover:text-foreground hover:border-primary/30"}`}
+    >{children}</button>
+  )
+}
+
+function addDaysISO(iso: string, days: number) {
+  const d = new Date(iso + "T00:00:00")
+  d.setDate(d.getDate() + days)
+  return d.toISOString().slice(0, 10)
 }
