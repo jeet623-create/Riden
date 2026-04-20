@@ -27,17 +27,21 @@ export async function middleware(request: NextRequest) {
   await supabase.auth.getUser()
 
   // 2. Hostname-based rewrites (admin.*, dmc.*)
+  // Never rewrite paths that look like static files (/foo.svg, /bar.png, etc.)
   const hostname = request.headers.get('host') || ''
   const url = request.nextUrl.clone()
   let newPath: string | null = null
+  const isStaticAsset = /\.[a-z0-9]{1,6}$/i.test(url.pathname)
 
-  if (hostname.startsWith('admin.')) {
-    if (!url.pathname.startsWith('/admin')) {
-      newPath = '/admin' + (url.pathname === '/' ? '' : url.pathname)
+  if (!isStaticAsset) {
+    if (hostname.startsWith('admin.')) {
+      if (!url.pathname.startsWith('/admin')) {
+        newPath = '/admin' + (url.pathname === '/' ? '' : url.pathname)
+      }
+    } else if (hostname.startsWith('dmc.')) {
+      if (url.pathname === '/') newPath = '/dmc/dashboard'
+      else if (!url.pathname.startsWith('/dmc')) newPath = '/dmc' + url.pathname
     }
-  } else if (hostname.startsWith('dmc.')) {
-    if (url.pathname === '/') newPath = '/dmc/dashboard'
-    else if (!url.pathname.startsWith('/dmc')) newPath = '/dmc' + url.pathname
   }
 
   const finalPathname = newPath || url.pathname
