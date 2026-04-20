@@ -1,33 +1,58 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
 
 type Language = "en" | "th" | "zh"
 
 export default function DMCLoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialError = searchParams.get("error") === "no_profile"
+    ? "No DMC account linked to this login. Contact RIDEN support."
+    : ""
+
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [language, setLanguage] = useState<Language>("en")
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
+  const [error, setError] = useState(initialError)
+  const [needsConfirm, setNeedsConfirm] = useState(false)
+  const [resent, setResent] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    setNeedsConfirm(false)
     setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    if (email === "demo@riden.co" && password === "demo123") {
-      router.push("/dmc/dashboard")
-    } else {
-      setError("Invalid email or password")
+    const supabase = createClient()
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    if (signInError) {
+      const msg = signInError.message
+      if (/email.*confirm/i.test(msg) || /not.*confirm/i.test(msg)) {
+        setNeedsConfirm(true)
+        setError("Email not confirmed. Check your inbox for the verification link.")
+      } else {
+        setError(msg || "Invalid email or password")
+      }
       setIsLoading(false)
+      return
     }
+    router.push("/dmc/dashboard")
+    router.refresh()
+  }
+
+  async function resendConfirmation() {
+    if (!email) return
+    const supabase = createClient()
+    const { error: resendError } = await supabase.auth.resend({ type: "signup", email })
+    if (!resendError) setResent(true)
+    else setError(resendError.message)
   }
 
   return (
@@ -79,6 +104,12 @@ export default function DMCLoginPage() {
               {error && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="bg-red-dim border border-red/20 rounded-lg px-3 py-2">
                   <p className="text-[12px] text-red">{error}</p>
+                  {needsConfirm && !resent && (
+                    <button type="button" onClick={resendConfirmation} className="mt-1.5 text-[12px] text-primary hover:underline">
+                      Resend confirmation email →
+                    </button>
+                  )}
+                  {resent && <p className="mt-1.5 text-[12px] text-primary">Confirmation email sent. Check your inbox.</p>}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -89,7 +120,7 @@ export default function DMCLoginPage() {
           </form>
           <p className="mt-6 text-center text-[12px] text-muted">
             {"Don't have an account? "}
-            <Link href="/register" className="text-primary hover:text-primary/80 transition-colors">Register</Link>
+            <Link href="/dmc/register" className="text-primary hover:text-primary/80 transition-colors">Register</Link>
           </p>
           <div className="mt-6 pt-4 border-t border-border">
             <Link href="/privacy" className="block text-center text-[11px] text-muted hover:text-foreground transition-colors">Privacy Policy</Link>

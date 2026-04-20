@@ -1,4 +1,3 @@
-
 "use client"
 
 export const dynamic = 'force-dynamic'
@@ -9,7 +8,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
 
 type Operator = { id: string; company_name: string; base_location: string }
 
@@ -46,17 +45,17 @@ export default function NewBookingPage() {
   })
 
   useEffect(() => {
-    const stored = localStorage.getItem("dmc_user")
-    if (stored) {
-      try { setDmcId(JSON.parse(stored).id) } catch {}
-    }
-    loadOperators()
+    (async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) setDmcId(user.id)
+      const { data } = await supabase.from("operators")
+        .select("id, company_name, base_location")
+        .eq("status", "active")
+        .order("company_name")
+      setOperators(data || [])
+    })()
   }, [])
-
-  async function loadOperators() {
-    const { data } = await supabase.from("operators").select("id, company_name, base_location").eq("status", "active").order("company_name")
-    setOperators(data || [])
-  }
 
   function update(field: string, value: any) {
     setForm(f => ({ ...f, [field]: value }))
@@ -69,9 +68,9 @@ export default function NewBookingPage() {
     if (!dmcId) { toast.error("Not logged in"); return }
 
     setSaving(true)
+    const supabase = createClient()
     const booking_ref = generateRef()
 
-    // Create booking
     const { data: booking, error: bErr } = await supabase.from("bookings").insert({
       booking_ref,
       dmc_id: dmcId,
@@ -94,12 +93,10 @@ export default function NewBookingPage() {
       return
     }
 
-    // Create trip records for each day
     const tripInserts = Array.from({ length: form.total_days }, (_, i) => {
       const d = new Date(form.pickup_date)
       d.setDate(d.getDate() + i)
       return {
-        id: `T${booking_ref.replace("BK-", "").replace("-", "")}-${i + 1}`,
         booking_id: booking.id,
         dmc_id: dmcId,
         day_number: i + 1,
@@ -115,7 +112,12 @@ export default function NewBookingPage() {
       }
     })
 
-    await supabase.from("trips").insert(tripInserts)
+    const { error: tErr } = await supabase.from("trips").insert(tripInserts)
+    if (tErr) {
+      toast.error("Booking saved but trip creation failed: " + tErr.message)
+      setSaving(false)
+      return
+    }
 
     toast.success(`Booking ${booking_ref} created!`)
     router.push("/dmc/bookings")
@@ -133,7 +135,6 @@ export default function NewBookingPage() {
       </div>
 
       <div className="space-y-6">
-        {/* Client Info */}
         <div className="bg-surface border border-border rounded-xl p-5">
           <h3 className="text-sm font-semibold text-foreground mb-4">Client Information</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -148,7 +149,6 @@ export default function NewBookingPage() {
           </div>
         </div>
 
-        {/* Trip Details */}
         <div className="bg-surface border border-border rounded-xl p-5">
           <h3 className="text-sm font-semibold text-foreground mb-4">Trip Details</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -185,7 +185,6 @@ export default function NewBookingPage() {
           </div>
         </div>
 
-        {/* First Day Route */}
         <div className="bg-surface border border-border rounded-xl p-5">
           <h3 className="text-sm font-semibold text-foreground mb-4">First Day Route</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -208,7 +207,6 @@ export default function NewBookingPage() {
           </div>
         </div>
 
-        {/* Operator */}
         <div className="bg-surface border border-border rounded-xl p-5">
           <h3 className="text-sm font-semibold text-foreground mb-4">Preferred Operator</h3>
           <select value={form.preferred_operator_id} onChange={e => update("preferred_operator_id", e.target.value)}
@@ -218,7 +216,6 @@ export default function NewBookingPage() {
           </select>
         </div>
 
-        {/* Notes */}
         <div className="bg-surface border border-border rounded-xl p-5">
           <h3 className="text-sm font-semibold text-foreground mb-4">Special Requirements</h3>
           <textarea value={form.special_requirements} onChange={e => update("special_requirements", e.target.value)}

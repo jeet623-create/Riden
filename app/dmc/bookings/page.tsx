@@ -1,4 +1,3 @@
-
 "use client"
 
 export const dynamic = 'force-dynamic'
@@ -9,7 +8,7 @@ import Link from "next/link"
 import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { StatusBadge } from "@/components/dmc/status-badge"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
 
 type Booking = {
   id: string
@@ -32,15 +31,18 @@ export default function DmcBookingsPage() {
   const [dmcId, setDmcId] = useState<string | null>(null)
 
   useEffect(() => {
-    const stored = localStorage.getItem("dmc_user")
-    if (stored) {
-      try { setDmcId(JSON.parse(stored).id) } catch {}
-    }
+    (async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) setDmcId(user.id)
+      else setLoading(false)
+    })()
   }, [])
 
   useEffect(() => {
     if (!dmcId) return
     async function fetchBookings() {
+      const supabase = createClient()
       let query = supabase.from("bookings")
         .select("id,booking_ref,client_name,total_days,status,created_at")
         .eq("dmc_id", dmcId)

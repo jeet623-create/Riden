@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { LayoutDashboard, ClipboardList, Calendar, Truck, UserCheck, FileBarChart, CreditCard, MessageSquare, LogOut, ChevronLeft, ChevronRight } from "lucide-react"
 import { useLanguage, Language } from "@/hooks/use-language"
+import { createClient } from "@/lib/supabase/client"
 
 interface NavItem {
   href: string
@@ -16,7 +17,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: "/dmc/dashboard", icon: LayoutDashboard, label: { en: "Dashboard", th: "แดชบอร์ด", zh: "仪表板" } },
-  { href: "/dmc/bookings", icon: ClipboardList, label: { en: "Bookings", th: "การจอง", zh: "预订" }, badge: 3 },
+  { href: "/dmc/bookings", icon: ClipboardList, label: { en: "Bookings", th: "การจอง", zh: "预订" } },
   { href: "/dmc/calendar", icon: Calendar, label: { en: "Calendar", th: "ปฏิทิน", zh: "日历" } },
   { href: "/dmc/operators", icon: Truck, label: { en: "Operators", th: "ผู้ให้บริการ", zh: "运营商" } },
   { href: "/dmc/drivers", icon: UserCheck, label: { en: "Drivers", th: "คนขับ", zh: "司机" } },
@@ -27,21 +28,27 @@ const navItems: NavItem[] = [
 
 interface DmcSidebarProps {
   companyName?: string
-  subscriptionPlan?: "trial" | "starter" | "pro" | "enterprise"
+  subscriptionPlan?: string
 }
 
-export function DmcSidebar({ companyName = "DMC Company", subscriptionPlan = "trial" }: DmcSidebarProps) {
+const planColors: Record<string, string> = {
+  trial: "bg-amber-dim text-amber",
+  starter: "bg-primary-dim text-primary",
+  growth: "bg-primary-dim text-primary",
+  pro: "bg-blue-dim text-blue",
+  enterprise: "bg-[rgba(139,92,246,0.1)] text-[#8b5cf6]",
+}
+
+export function DmcSidebar({ companyName = "DMC", subscriptionPlan = "trial" }: DmcSidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const { language, t } = useLanguage()
   const [collapsed, setCollapsed] = useState(false)
   const [bangkokTime, setBangkokTime] = useState("")
+  const [signingOut, setSigningOut] = useState(false)
 
-  const planColors = {
-    trial: "bg-amber-dim text-amber",
-    starter: "bg-primary-dim text-primary",
-    pro: "bg-blue-dim text-blue",
-    enterprise: "bg-[rgba(139,92,246,0.1)] text-[#8b5cf6]"
-  }
+  const planKey = subscriptionPlan?.toLowerCase() || "trial"
+  const planStyle = planColors[planKey] || planColors.trial
 
   useEffect(() => {
     const updateTime = () => {
@@ -51,6 +58,14 @@ export function DmcSidebar({ companyName = "DMC Company", subscriptionPlan = "tr
     const interval = setInterval(updateTime, 1000)
     return () => clearInterval(interval)
   }, [])
+
+  async function handleSignOut() {
+    setSigningOut(true)
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push("/dmc/login")
+    router.refresh()
+  }
 
   return (
     <motion.aside
@@ -72,7 +87,7 @@ export function DmcSidebar({ companyName = "DMC Company", subscriptionPlan = "tr
               <span className="font-mono text-[9px] text-primary uppercase tracking-widest mt-1">DMC Portal</span>
               <div className="mt-2 pt-2 border-t border-border">
                 <div className="text-xs font-medium text-foreground truncate">{companyName}</div>
-                <span className={`inline-block mt-1 px-2 py-0.5 rounded-full font-mono text-[10px] uppercase ${planColors[subscriptionPlan]}`}>{subscriptionPlan}</span>
+                <span className={`inline-block mt-1 px-2 py-0.5 rounded-full font-mono text-[10px] uppercase ${planStyle}`}>{planKey}</span>
               </div>
             </motion.div>
           )}
@@ -116,13 +131,14 @@ export function DmcSidebar({ companyName = "DMC Company", subscriptionPlan = "tr
             </motion.div>
           )}
         </AnimatePresence>
-        <button className="w-full flex items-center gap-3 py-2 px-3 rounded-lg text-muted hover:text-red hover:bg-red-dim transition-colors">
+        <button onClick={handleSignOut} disabled={signingOut}
+          className="w-full flex items-center gap-3 py-2 px-3 rounded-lg text-muted hover:text-red hover:bg-red-dim transition-colors disabled:opacity-50">
           <LogOut className="w-5 h-5 shrink-0" />
           <AnimatePresence>
             {!collapsed && (
               <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: "auto" }} exit={{ opacity: 0, width: 0 }}
                 className="text-sm font-medium whitespace-nowrap">
-                {t({ en: "Sign Out", th: "ออกจากระบบ", zh: "退出" })}
+                {signingOut ? "..." : t({ en: "Sign Out", th: "ออกจากระบบ", zh: "退出" })}
               </motion.span>
             )}
           </AnimatePresence>

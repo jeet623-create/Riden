@@ -1,4 +1,3 @@
-
 "use client"
 
 export const dynamic = 'force-dynamic'
@@ -6,7 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
 
 type DmcUser = {
   id: string
@@ -36,19 +35,22 @@ export default function DmcDashboardPage() {
   }, [])
 
   useEffect(() => {
-    const stored = localStorage.getItem("dmc_user")
-    if (stored) {
-      try {
-        const user = JSON.parse(stored)
-        setDmc(user)
-        fetchStats(user.id)
-      } catch {}
-    } else {
-      setLoading(false)
-    }
+    (async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setLoading(false); return }
+      const { data: dmcData } = await supabase
+        .from("dmc_users")
+        .select("id, company_name, subscription_plan, subscription_status, line_user_id, trial_ends_at")
+        .eq("id", user.id)
+        .single()
+      if (!dmcData) { setLoading(false); return }
+      setDmc(dmcData)
+      await fetchStats(user.id, supabase)
+    })()
   }, [])
 
-  async function fetchStats(dmcId: string) {
+  async function fetchStats(dmcId: string, supabase: ReturnType<typeof createClient>) {
     const [
       { count: total_bookings },
       { count: active_trips },
@@ -70,7 +72,6 @@ export default function DmcDashboardPage() {
   }
 
   const dateStr = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
-  const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })
 
   const isTrial = dmc?.subscription_status === "trial"
   const trialDaysLeft = dmc?.trial_ends_at
