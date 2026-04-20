@@ -15,28 +15,14 @@ export function middleware(req: NextRequest) {
     return NextResponse.rewrite(url)
   }
 
-  // dmc.riden.me -> rewrite to /dmc/* (or root DMC pages)
+  // dmc.riden.me -> rewrite flat paths to /dmc/*
   if (hostname.startsWith('dmc.')) {
-    // Already on a DMC path — let it through
-    if (
-      url.pathname.startsWith('/dashboard') ||
-      url.pathname.startsWith('/bookings') ||
-      url.pathname.startsWith('/calendar') ||
-      url.pathname.startsWith('/operators') ||
-      url.pathname.startsWith('/drivers') ||
-      url.pathname.startsWith('/trips') ||
-      url.pathname.startsWith('/payments') ||
-      url.pathname.startsWith('/reports') ||
-      url.pathname.startsWith('/support') ||
-      url.pathname.startsWith('/login') ||
-      url.pathname.startsWith('/register') ||
-      url.pathname.startsWith('/privacy')
-    ) {
-      return NextResponse.next()
-    }
-    // Rewrite root to /dashboard for DMC
     if (url.pathname === '/') {
-      url.pathname = '/dashboard'
+      url.pathname = '/dmc/dashboard'
+      return NextResponse.rewrite(url)
+    }
+    if (!url.pathname.startsWith('/dmc')) {
+      url.pathname = '/dmc' + url.pathname
       return NextResponse.rewrite(url)
     }
     return NextResponse.next()
