@@ -3,136 +3,224 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ============================================================
+   RIDEN Brand System v5 — Studio palette
+   Supersedes all prior color tokens. Dark mode = studio-ink surface.
+   ============================================================ */
+
 :root {
-  --background: #f8f8f8;
-  --surface: #ffffff;
-  --surface-elevated: #f2f2f2;
-  --border: #e5e5e5;
-  --border-strong: #cccccc;
-  --primary: #1D9E75;
-  --primary-dim: rgba(29,158,117,0.10);
-  --primary-border: rgba(29,158,117,0.20);
-  --foreground: #0a0a0a;
-  --muted: #555555;
-  --muted-foreground: #aaaaaa;
-  --amber: #f59e0b;
-  --amber-dim: rgba(245,158,11,0.08);
-  --red: #ef4444;
-  --red-dim: rgba(239,68,68,0.08);
-  --green: #22c55e;
-  --blue: #3b82f6;
-  --blue-dim: rgba(59,130,246,0.1);
+  /* Studio palette (heroes) */
+  --studio-ink: #0A0A0B;
+  --studio-sand: #EDE6D7;
+  --studio-teal: #1D9E75;
+  --studio-text-dark: #F5F4F0;
+  --studio-text-sand: #1A1A1C;
+  --studio-muted-dark: #6B6B70;
+  --studio-muted-sand: #8E887A;
+
+  /* Functional colors (UI states) */
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --panic: #DC2626;
+  --info: #3B82F6;
+  --pool: #A78BFA;
+
+  /* Protected brand color (LINE connect only) */
   --line-green: #06C755;
-  --line-green-dim: rgba(6,199,85,0.06);
-  --line-green-border: rgba(6,199,85,0.12);
-  --card: #ffffff;
-  --card-foreground: #0a0a0a;
-  --popover: #ffffff;
-  --popover-foreground: #0a0a0a;
-  --primary-foreground: #ffffff;
-  --secondary: #f2f2f2;
-  --secondary-foreground: #0a0a0a;
-  --accent: #1D9E75;
-  --accent-foreground: #ffffff;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --input: #e5e5e5;
-  --ring: #1D9E75;
-  --radius: 0.5rem;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #0a0a0a;
-  --sidebar-primary: #1D9E75;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(29,158,117,0.10);
-  --sidebar-accent-foreground: #0a0a0a;
-  --sidebar-border: #e5e5e5;
-  --sidebar-ring: #1D9E75;
+
+  /* Transparent variants */
+  --studio-teal-dim: rgba(29, 158, 117, 0.10);
+  --studio-teal-border: rgba(29, 158, 117, 0.20);
+  --success-dim: rgba(34, 197, 94, 0.10);
+  --warning-dim: rgba(245, 158, 11, 0.08);
+  --danger-dim: rgba(239, 68, 68, 0.08);
+  --panic-dim: rgba(220, 38, 38, 0.15);
+  --info-dim: rgba(59, 130, 246, 0.10);
+  --pool-dim: rgba(167, 139, 250, 0.10);
+  --line-green-dim: rgba(6, 199, 85, 0.06);
+  --line-green-border: rgba(6, 199, 85, 0.15);
+
+  /* Radii */
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-full: 9999px;
+
+  /* Light (sand) theme — shadcn-compatible semantic tokens */
+  --background: var(--studio-sand);
+  --foreground: var(--studio-text-sand);
+  --surface: #FFFFFF;
+  --surface-elevated: #F5F0E1;
+  --border: rgba(26, 26, 28, 0.10);
+  --border-strong: rgba(26, 26, 28, 0.20);
+  --muted: var(--studio-muted-sand);
+  --muted-foreground: rgba(26, 26, 28, 0.50);
+  --card: #FFFFFF;
+  --card-foreground: var(--studio-text-sand);
+  --popover: #FFFFFF;
+  --popover-foreground: var(--studio-text-sand);
+  --primary: var(--studio-teal);
+  --primary-foreground: #FFFFFF;
+  --primary-dim: var(--studio-teal-dim);
+  --primary-border: var(--studio-teal-border);
+  --secondary: rgba(26, 26, 28, 0.05);
+  --secondary-foreground: var(--studio-text-sand);
+  --accent: var(--studio-teal);
+  --accent-foreground: #FFFFFF;
+  --destructive: var(--danger);
+  --destructive-foreground: #FFFFFF;
+  --input: rgba(26, 26, 28, 0.12);
+  --ring: var(--studio-teal);
+  --radius: var(--r-md);
+
+  /* Legacy name aliases kept working */
+  --amber: var(--warning);
+  --amber-dim: var(--warning-dim);
+  --red: var(--danger);
+  --red-dim: var(--danger-dim);
+  --green: var(--success);
+  --blue: var(--info);
+  --blue-dim: var(--info-dim);
+  --purple: var(--pool);
+  --bg-surface: var(--surface);
+  --bg-elevated: var(--surface-elevated);
+  --bg-base: var(--background);
+  --text-1: var(--foreground);
+  --text-2: var(--muted);
+  --text-3: var(--muted-foreground);
+  --teal: var(--studio-teal);
+  --teal-10: var(--studio-teal-dim);
+  --teal-20: var(--studio-teal-border);
+  --amber-bg: var(--warning-dim);
+  --red-bg: var(--danger-dim);
+  --blue-bg: var(--info-dim);
+  --purple-bg: var(--pool-dim);
+  --font-body: var(--font-inter);
+  --font-brand: var(--font-syne);
+
+  /* Sidebar */
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: var(--studio-text-sand);
+  --sidebar-primary: var(--studio-teal);
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: var(--studio-teal-dim);
+  --sidebar-accent-foreground: var(--studio-text-sand);
+  --sidebar-border: rgba(26, 26, 28, 0.08);
+  --sidebar-ring: var(--studio-teal);
 }
 
 .dark {
-  --background: #080808;
-  --surface: #111111;
-  --surface-elevated: #1a1a1a;
-  --border: #242424;
-  --border-strong: #333333;
-  --primary: #1D9E75;
-  --primary-dim: rgba(29,158,117,0.10);
-  --primary-border: rgba(29,158,117,0.20);
-  --foreground: #f0f0f0;
-  --muted: #999999;
-  --muted-foreground: #555555;
-  --amber: #f59e0b;
-  --amber-dim: rgba(245,158,11,0.08);
-  --red: #ef4444;
-  --red-dim: rgba(239,68,68,0.08);
-  --green: #22c55e;
-  --blue: #3b82f6;
-  --blue-dim: rgba(59,130,246,0.1);
-  --line-green: #06C755;
-  --line-green-dim: rgba(6,199,85,0.06);
-  --line-green-border: rgba(6,199,85,0.15);
-  --card: #111111;
-  --card-foreground: #f0f0f0;
-  --popover: #111111;
-  --popover-foreground: #f0f0f0;
-  --primary-foreground: #ffffff;
-  --secondary: #1a1a1a;
-  --secondary-foreground: #f0f0f0;
-  --accent: #1D9E75;
-  --accent-foreground: #ffffff;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --input: #242424;
-  --ring: #1D9E75;
-  --sidebar: #111111;
-  --sidebar-foreground: #f0f0f0;
-  --sidebar-primary: #1D9E75;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(29,158,117,0.10);
-  --sidebar-accent-foreground: #f0f0f0;
-  --sidebar-border: #242424;
-  --sidebar-ring: #1D9E75;
+  --background: var(--studio-ink);
+  --foreground: var(--studio-text-dark);
+  --surface: #111113;
+  --surface-elevated: #1A1A1D;
+  --border: rgba(245, 244, 240, 0.08);
+  --border-strong: rgba(245, 244, 240, 0.16);
+  --muted: var(--studio-muted-dark);
+  --muted-foreground: rgba(245, 244, 240, 0.40);
+  --card: #111113;
+  --card-foreground: var(--studio-text-dark);
+  --popover: #111113;
+  --popover-foreground: var(--studio-text-dark);
+  --primary: var(--studio-teal);
+  --primary-foreground: #FFFFFF;
+  --primary-dim: var(--studio-teal-dim);
+  --primary-border: var(--studio-teal-border);
+  --secondary: rgba(245, 244, 240, 0.06);
+  --secondary-foreground: var(--studio-text-dark);
+  --accent: var(--studio-teal);
+  --accent-foreground: #FFFFFF;
+  --destructive: var(--danger);
+  --destructive-foreground: #FFFFFF;
+  --input: rgba(245, 244, 240, 0.12);
+  --ring: var(--studio-teal);
+
+  --sidebar: #0F0F11;
+  --sidebar-foreground: var(--studio-text-dark);
+  --sidebar-primary: var(--studio-teal);
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: var(--studio-teal-dim);
+  --sidebar-accent-foreground: var(--studio-text-dark);
+  --sidebar-border: rgba(245, 244, 240, 0.08);
+  --sidebar-ring: var(--studio-teal);
 }
 
+/* Decorative helpers */
 .dot-grid {
-  background-image: radial-gradient(circle, rgba(29,158,117,0.05) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(29, 158, 117, 0.05) 1px, transparent 1px);
   background-size: 28px 28px;
 }
 
 html.custom-cursor,
 html.custom-cursor * { cursor: none !important; }
 
-button:active, [role="button"]:active { transform: scale(0.97); transition: transform 80ms ease; }
+/* Motion — scoped hover/focus transitions (spec §7) */
+button, a, [role="button"], input, textarea, select {
+  transition: color 120ms ease-out, background-color 120ms ease-out, border-color 120ms ease-out, opacity 120ms ease-out;
+}
 
-.table-row-hover { transition: all 120ms ease; }
-.table-row-hover:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+button:active, [role="button"]:active {
+  transform: scale(0.97);
+  transition: transform 80ms ease-out;
+}
 
-* { transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease; }
+.table-row-hover {
+  transition: background-color 120ms ease-out;
+}
 
-@keyframes skeleton-pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.7; } }
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Keyframes */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+}
 .skeleton-pulse { animation: skeleton-pulse 1.5s ease-in-out infinite; }
 
-@keyframes pulse-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
 .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
 
+@keyframes panic-pulse {
+  0%, 100% { background: rgba(220, 38, 38, 0.15); }
+  50% { background: rgba(220, 38, 38, 0.30); }
+}
+.panic-pulse { animation: panic-pulse 1s ease-in-out infinite; }
+
+/* ============================================================
+   Tailwind v4 @theme — exposes tokens as utility classes
+   ============================================================ */
 @theme inline {
-  --font-sans: var(--font-dm-sans), 'DM Sans', sans-serif;
-  --font-mono: var(--font-dm-mono), 'DM Mono', monospace;
-  --font-logo: var(--font-monoton), 'Monoton', cursive;
-  --font-thai: var(--font-sarabun), 'Sarabun', sans-serif;
-  --font-chinese: var(--font-noto-sans-sc), 'Noto Sans SC', sans-serif;
+  --font-sans: var(--font-inter), 'Inter Tight', system-ui, sans-serif;
+  --font-display: var(--font-syne), 'Syne', system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), 'JetBrains Mono', ui-monospace, monospace;
+  --font-thai: var(--font-thai), 'IBM Plex Sans Thai', sans-serif;
+  --font-chinese: var(--font-sc), 'Noto Sans SC', sans-serif;
+
   --color-background: var(--background);
+  --color-foreground: var(--foreground);
   --color-surface: var(--surface);
   --color-surface-elevated: var(--surface-elevated);
-  --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
   --color-primary-dim: var(--primary-dim);
   --color-primary-border: var(--primary-border);
-  --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -145,20 +233,49 @@ button:active, [role="button"]:active { transform: scale(0.97); transition: tran
   --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-amber: var(--amber);
-  --color-amber-dim: var(--amber-dim);
-  --color-red: var(--red);
-  --color-red-dim: var(--red-dim);
-  --color-green: var(--green);
-  --color-blue: var(--blue);
-  --color-blue-dim: var(--blue-dim);
+
+  /* Functional tokens */
+  --color-success: var(--success);
+  --color-success-dim: var(--success-dim);
+  --color-warning: var(--warning);
+  --color-warning-dim: var(--warning-dim);
+  --color-danger: var(--danger);
+  --color-danger-dim: var(--danger-dim);
+  --color-panic: var(--panic);
+  --color-panic-dim: var(--panic-dim);
+  --color-info: var(--info);
+  --color-info-dim: var(--info-dim);
+  --color-pool: var(--pool);
+  --color-pool-dim: var(--pool-dim);
   --color-line-green: var(--line-green);
   --color-line-green-dim: var(--line-green-dim);
   --color-line-green-border: var(--line-green-border);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Legacy aliases — kept for backward compat, do not add new usage */
+  --color-amber: var(--warning);
+  --color-amber-dim: var(--warning-dim);
+  --color-red: var(--danger);
+  --color-red-dim: var(--danger-dim);
+  --color-green: var(--success);
+  --color-blue: var(--info);
+  --color-blue-dim: var(--info-dim);
+  --color-purple: var(--pool);
+
+  /* Studio palette direct */
+  --color-studio-ink: var(--studio-ink);
+  --color-studio-sand: var(--studio-sand);
+  --color-studio-teal: var(--studio-teal);
+  --color-studio-text-dark: var(--studio-text-dark);
+  --color-studio-text-sand: var(--studio-text-sand);
+
+  /* Radii */
+  --radius-xs: var(--r-xs);
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
+
+  /* Sidebar */
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -171,5 +288,6 @@ button:active, [role="button"]:active { transform: scale(0.97); transition: tran
 
 @layer base {
   * { @apply border-border outline-ring/50; }
-  body { @apply bg-background text-foreground; }
+  body { @apply bg-background text-foreground font-sans antialiased; }
+  code, pre, kbd, samp { font-family: var(--font-mono); }
 }

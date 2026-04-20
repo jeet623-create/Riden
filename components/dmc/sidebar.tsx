@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { LayoutDashboard, ClipboardList, Calendar, Truck, UserCheck, FileBarChart, CreditCard, MessageSquare, LogOut, ChevronLeft, ChevronRight } from "lucide-react"
 import { useLanguage, Language } from "@/hooks/use-language"
 import { createClient } from "@/lib/supabase/client"
+import { Wordmark } from "@/components/brand/Wordmark"
+import { Monogram } from "@/components/brand/Monogram"
 
 interface NavItem {
   href: string
@@ -32,11 +34,11 @@ interface DmcSidebarProps {
 }
 
 const planColors: Record<string, string> = {
-  trial: "bg-amber-dim text-amber",
+  trial: "bg-warning-dim text-warning",
   starter: "bg-primary-dim text-primary",
   growth: "bg-primary-dim text-primary",
-  pro: "bg-blue-dim text-blue",
-  enterprise: "bg-[rgba(139,92,246,0.1)] text-[#8b5cf6]",
+  pro: "bg-info-dim text-info",
+  enterprise: "bg-pool-dim text-pool",
 }
 
 export function DmcSidebar({ companyName = "DMC", subscriptionPlan = "trial" }: DmcSidebarProps) {
@@ -72,20 +74,19 @@ export function DmcSidebar({ companyName = "DMC", subscriptionPlan = "trial" }: 
       initial={false}
       animate={{ width: collapsed ? 56 : 232 }}
       transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
-      className="fixed left-0 top-0 h-screen bg-surface border-r border-border flex flex-col z-50"
+      className="fixed left-0 top-0 h-screen bg-sidebar border-r border-sidebar-border flex flex-col z-50"
     >
-      <div className="h-16 border-b border-border flex items-center px-3 relative">
+      <div className="h-16 border-b border-sidebar-border flex items-center px-3 relative">
         <AnimatePresence mode="wait">
           {collapsed ? (
-            <motion.div key="collapsed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="font-logo text-white text-sm">R</span>
+            <motion.div key="collapsed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center justify-center text-primary">
+              <Monogram size="md" variant="solid" />
             </motion.div>
           ) : (
-            <motion.div key="expanded" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col">
-              <span className="font-logo text-primary text-base leading-none">RIDEN</span>
-              <span className="font-mono text-[9px] text-primary uppercase tracking-widest mt-1">DMC Portal</span>
-              <div className="mt-2 pt-2 border-t border-border">
+            <motion.div key="expanded" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col text-foreground">
+              <Wordmark size="sm" />
+              <span className="font-mono text-[9px] text-primary uppercase tracking-[0.15em] mt-1">DMC Portal</span>
+              <div className="mt-2 pt-2 border-t border-sidebar-border">
                 <div className="text-xs font-medium text-foreground truncate">{companyName}</div>
                 <span className={`inline-block mt-1 px-2 py-0.5 rounded-full font-mono text-[10px] uppercase ${planStyle}`}>{planKey}</span>
               </div>
@@ -93,7 +94,7 @@ export function DmcSidebar({ companyName = "DMC", subscriptionPlan = "trial" }: 
           )}
         </AnimatePresence>
         <button onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-surface border border-border rounded-full flex items-center justify-center hover:bg-surface-elevated transition-colors">
+          className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-sidebar border border-sidebar-border rounded-full flex items-center justify-center hover:bg-surface-elevated transition-colors">
           {collapsed ? <ChevronRight className="w-3 h-3 text-muted" /> : <ChevronLeft className="w-3 h-3 text-muted" />}
         </button>
       </div>
@@ -104,8 +105,8 @@ export function DmcSidebar({ companyName = "DMC", subscriptionPlan = "trial" }: 
           const Icon = item.icon
           return (
             <Link key={item.href} href={item.href}
-              className={`flex items-center gap-3 py-2.5 px-3 rounded-lg transition-colors relative ${isActive ? "bg-primary-dim border-l-2 border-l-primary text-primary" : "text-muted hover:bg-surface-elevated hover:text-foreground"}`}>
-              <Icon className="w-5 h-5 shrink-0" />
+              className={`flex items-center gap-3 py-2.5 px-3 rounded-lg relative ${isActive ? "bg-primary-dim border-l-2 border-l-primary text-primary" : "text-muted hover:bg-surface-elevated hover:text-foreground"}`}>
+              <Icon className="w-5 h-5 shrink-0" strokeWidth={1.75} />
               <AnimatePresence>
                 {!collapsed && (
                   <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: "auto" }} exit={{ opacity: 0, width: 0 }}
@@ -115,25 +116,25 @@ export function DmcSidebar({ companyName = "DMC", subscriptionPlan = "trial" }: 
                 )}
               </AnimatePresence>
               {item.badge && item.badge > 0 && (
-                <span className="absolute right-2 w-4 h-4 rounded-full bg-amber text-[10px] font-mono flex items-center justify-center text-white">{item.badge}</span>
+                <span className="absolute right-2 w-4 h-4 rounded-full bg-warning text-[10px] font-mono flex items-center justify-center text-white">{item.badge}</span>
               )}
             </Link>
           )
         })}
       </nav>
 
-      <div className="border-t border-border p-3 space-y-3">
+      <div className="border-t border-sidebar-border p-3 space-y-3">
         <AnimatePresence>
           {!collapsed && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center">
-              <div className="text-[9px] text-muted uppercase tracking-wider">Bangkok</div>
+              <div className="font-mono text-[9px] text-muted uppercase tracking-[0.15em]">‹ Bangkok</div>
               <div className="font-mono text-[11px] text-primary">{bangkokTime}</div>
             </motion.div>
           )}
         </AnimatePresence>
         <button onClick={handleSignOut} disabled={signingOut}
-          className="w-full flex items-center gap-3 py-2 px-3 rounded-lg text-muted hover:text-red hover:bg-red-dim transition-colors disabled:opacity-50">
-          <LogOut className="w-5 h-5 shrink-0" />
+          className="w-full flex items-center gap-3 py-2 px-3 rounded-lg text-muted hover:text-danger hover:bg-danger-dim disabled:opacity-50">
+          <LogOut className="w-5 h-5 shrink-0" strokeWidth={1.75} />
           <AnimatePresence>
             {!collapsed && (
               <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: "auto" }} exit={{ opacity: 0, width: 0 }}

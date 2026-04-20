@@ -52,7 +52,7 @@ export default function NotificationBell() {
   async function enablePush() {
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission==='default') {
       const p = await Notification.requestPermission()
-      if (p==='granted') new Notification('RIDEN Alerts Enabled',{body:'You will now receive booking updates.'})
+      if (p==='granted') new Notification('Riden Alerts Enabled',{body:'You will now receive booking updates.'})
     }
   }
 
