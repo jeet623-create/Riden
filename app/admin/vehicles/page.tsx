@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { AdminShell } from '@/components/admin/admin-shell'
+import { AdminShell } from '@/components/AdminShell'
 import { StatusBadge } from '@/components/admin/status-badge'
 import { Input } from '@/components/admin/input'
 import { motion } from 'framer-motion'

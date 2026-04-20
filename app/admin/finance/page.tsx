@@ -1,5 +1,5 @@
 'use client'
-import { AdminShell } from '@/components/admin/admin-shell'
+import { AdminShell } from '@/components/AdminShell'
 import { StatCard } from '@/components/admin/stat-card'
 import { TrendingUp, Banknote, UserCheck, Timer, Download } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
