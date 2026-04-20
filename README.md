@@ -1,2 +1,2 @@
-# RIDEN
-Deploy: 2026-04-15T17:31:16.937Z
+# Riden
+B2B tourism transport platform for Thailand. Deployed on Vercel.
