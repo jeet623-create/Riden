@@ -1,184 +1,181 @@
-
 "use client"
 
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect, Suspense } from "react"
-import { useSearchParams } from "next/navigation"
-import { motion, AnimatePresence } from "framer-motion"
+import { useState, useEffect, useMemo, useCallback } from "react"
+import Link from "next/link"
+import { Search, MessageSquare, Eye, Power, RefreshCcw, Pause, Play } from "lucide-react"
 import { toast } from "sonner"
-import { Search, X, Mail, Phone, MapPin, CreditCard, Building2, Bell } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { StatusBadge } from "@/components/dmc/status-badge"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
+import { Panel, FilterTabs, Skel, EmptyRow, Toggle, PillBadge, fmtTime } from "@/components/admin/console"
 
 type DMC = {
   id: string
   company_name: string
-  contact_person: string
+  contact_person: string | null
   email: string
-  phone: string
-  city: string
-  subscription_plan: string
-  subscription_status: string
+  phone: string | null
+  country: string | null
+  city: string | null
+  subscription_plan: string | null
+  subscription_status: string | null
+  trial_ends_at: string | null
   line_user_id: string | null
+  is_active: boolean | null
   created_at: string
 }
 
-function DmcDetailDrawer({ dmc, onClose }: { dmc: DMC | null; onClose: () => void }) {
-  if (!dmc) return null
-  return (
-    <>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" />
-      <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="fixed right-0 top-0 h-full w-full max-w-[440px] bg-surface border-l border-border z-50 flex flex-col">
-        <div className="h-14 border-b border-border px-5 flex items-center justify-between">
-          <h2 className="text-[15px] font-semibold text-foreground">DMC Details</h2>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-elevated"><X className="w-4 h-4 text-muted" /></button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-5">
-          <div className="flex items-start gap-4 mb-6">
-            <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0"><Building2 className="w-6 h-6 text-primary" /></div>
-            <div>
-              <h3 className="text-[17px] font-semibold text-foreground">{dmc.company_name}</h3>
-              <p className="text-[13px] text-muted mt-0.5">{dmc.contact_person}</p>
-              <div className="flex items-center gap-2 mt-2">
-                <StatusBadge status={dmc.subscription_status as any} />
-                <span className="text-[11px] font-mono text-muted uppercase">{dmc.subscription_plan}</span>
-              </div>
-            </div>
-          </div>
-          <div className="space-y-3">
-            {[
-              { Icon: Mail, label: "Email", value: dmc.email },
-              { Icon: Phone, label: "Phone", value: dmc.phone || "—" },
-              { Icon: MapPin, label: "City", value: dmc.city || "—" },
-              { Icon: CreditCard, label: "Plan", value: dmc.subscription_plan },
-            ].map(({ Icon, label, value }) => (
-              <div key={label} className="flex items-start gap-3 py-2.5 border-b border-border">
-                <Icon className="w-4 h-4 text-muted mt-0.5" />
-                <div>
-                  <p className="font-mono text-[10px] uppercase text-muted tracking-wider">{label}</p>
-                  <p className="text-[13px] text-foreground mt-0.5">{value}</p>
-                </div>
-              </div>
-            ))}
-            <div className="flex items-start gap-3 py-2.5 border-b border-border">
-              <div className="w-4 h-4 mt-0.5 flex items-center justify-center">
-                <div className="w-4 h-4 bg-[#06C755] rounded flex items-center justify-center"><span className="text-white text-[5px] font-bold">LINE</span></div>
-              </div>
-              <div className="flex-1">
-                <p className="font-mono text-[10px] uppercase text-muted tracking-wider">LINE</p>
-                <div className="flex items-center justify-between mt-1">
-                  {dmc.line_user_id ? (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[rgba(6,199,85,0.1)] text-[#06C755] font-mono text-[11px]"><span className="w-1.5 h-1.5 rounded-full bg-[#06C755]" />Connected</span>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <span className="text-[13px] text-muted">Not connected</span>
-                      <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px] text-muted" onClick={() => toast.success(`Reminder sent to ${dmc.company_name}`)}><Bell className="w-3 h-3 mr-1" />Remind</Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="border-t border-border p-4 flex gap-3">
-          <Button variant="secondary" className="flex-1" onClick={onClose}>Close</Button>
-          <Button className="flex-1 bg-primary">Edit DMC</Button>
-        </div>
-      </motion.div>
-    </>
-  )
-}
-
-function AdminDmcsPageInner() {
-  const searchParams = useSearchParams()
-  const lineFilter = searchParams.get("line")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [dmcs, setDmcs] = useState<DMC[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedDmc, setSelectedDmc] = useState<DMC | null>(null)
-
-  useEffect(() => {
-    async function fetchDmcs() {
-      let query = supabase.from("dmc_users").select("id,company_name,contact_person,email,phone,city,subscription_plan,subscription_status,line_user_id,created_at").order("created_at", { ascending: false })
-      if (lineFilter === "disconnected") query = query.is("line_user_id", null)
-      const { data } = await query
-      setDmcs(data || [])
-      setLoading(false)
-    }
-    fetchDmcs()
-  }, [lineFilter])
-
-  const filtered = dmcs.filter(d =>
-    d.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    d.email.toLowerCase().includes(searchQuery.toLowerCase())
-  )
-
-  return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-[22px] font-semibold text-foreground">DMCs</h1>
-          <p className="text-sm text-muted mt-0.5">{loading ? "Loading..." : `${filtered.length} ${lineFilter === "disconnected" ? "without LINE" : "total"}`}</p>
-        </div>
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-          <Input placeholder="Search DMCs..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
-        </div>
-      </div>
-
-      <div className="bg-surface border border-border rounded-xl overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-background">
-              {["Company", "Email", "Country", "Plan", "LINE", "Status", "Joined"].map(h => (
-                <th key={h} className="text-left font-mono text-[10px] uppercase text-muted tracking-wider py-3 px-4">{h}</th>
-              ))}
-              <th className="py-3 px-4" />
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i} className="border-b border-border">
-                  {Array.from({ length: 8 }).map((_, j) => (
-                    <td key={j} className="py-3 px-4"><div className="h-4 bg-surface-elevated rounded animate-pulse" /></td>
-                  ))}
-                </tr>
-              ))
-            ) : filtered.map((dmc, i) => (
-              <motion.tr key={dmc.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.03 * i }}
-                onClick={() => setSelectedDmc(dmc)} className="border-b border-border cursor-pointer hover:bg-surface-elevated transition-colors">
-                <td className="py-3 px-4">
-                  <p className="text-sm font-medium text-foreground">{dmc.company_name}</p>
-                  <p className="text-[12px] text-muted">{dmc.contact_person}</p>
-                </td>
-                <td className="py-3 px-4 text-sm text-muted">{dmc.email}</td>
-                <td className="py-3 px-4 text-sm text-muted">{dmc.city || "—"}</td>
-                <td className="py-3 px-4 font-mono text-xs text-muted uppercase">{dmc.subscription_plan}</td>
-                <td className="py-3 px-4">
-                  {dmc.line_user_id
-                    ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgba(6,199,85,0.1)] text-[#06C755] font-mono text-[10px]"><span className="w-1.5 h-1.5 rounded-full bg-[#06C755]" />Connected</span>
-                    : <span className="text-[12px] text-muted">—</span>}
-                </td>
-                <td className="py-3 px-4"><StatusBadge status={dmc.subscription_status as any} /></td>
-                <td className="py-3 px-4 font-mono text-xs text-muted">{new Date(dmc.created_at).toLocaleDateString()}</td>
-                <td className="py-3 px-4"><span className="text-xs text-primary cursor-pointer hover:underline">Details</span></td>
-              </motion.tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <AnimatePresence>
-        {selectedDmc && <DmcDetailDrawer dmc={selectedDmc} onClose={() => setSelectedDmc(null)} />}
-      </AnimatePresence>
-    </motion.div>
-  )
-}
+type Tab = "all" | "trial" | "active" | "suspended" | "expired"
 
 export default function AdminDmcsPage() {
-  return <Suspense><AdminDmcsPageInner /></Suspense>
+  const [rows, setRows] = useState<DMC[]>([])
+  const [loading, setLoading] = useState(true)
+  const [tab, setTab] = useState<Tab>("all")
+  const [q, setQ] = useState("")
+  const [counts, setCounts] = useState<Record<string, number>>({})
+
+  const fetchRows = useCallback(async () => {
+    setLoading(true)
+    const supabase = createClient()
+    const [{ data }, countsRes] = await Promise.all([
+      supabase
+        .from("dmc_users")
+        .select("id, company_name, contact_person, email, phone, country, city, subscription_plan, subscription_status, trial_ends_at, line_user_id, is_active, created_at")
+        .order("created_at", { ascending: false }),
+      Promise.all(["trial", "active", "suspended", "expired"].map(status =>
+        supabase.from("dmc_users").select("*", { count: "exact", head: true }).eq("subscription_status", status)
+      )),
+    ])
+    setRows((data ?? []) as DMC[])
+    const [tr, ac, su, ex] = countsRes
+    setCounts({ trial: tr.count ?? 0, active: ac.count ?? 0, suspended: su.count ?? 0, expired: ex.count ?? 0, all: (data ?? []).length })
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { fetchRows() }, [fetchRows])
+
+  const filtered = useMemo(() => {
+    const ql = q.toLowerCase()
+    return rows.filter(r => {
+      if (tab !== "all" && r.subscription_status !== tab) return false
+      if (!ql) return true
+      return (r.company_name ?? "").toLowerCase().includes(ql) || (r.email ?? "").toLowerCase().includes(ql)
+    })
+  }, [rows, tab, q])
+
+  async function toggleSuspend(dmc: DMC) {
+    const supabase = createClient()
+    const nextStatus = dmc.subscription_status === "suspended" ? "active" : "suspended"
+    const { error } = await supabase.from("dmc_users").update({ subscription_status: nextStatus }).eq("id", dmc.id)
+    if (error) { toast.error("Update failed: " + error.message); return }
+    toast.success(`${dmc.company_name}: ${nextStatus}`)
+    fetchRows()
+  }
+
+  return (
+    <div className="space-y-4 text-[13px]">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="font-mono text-[10px] uppercase text-muted tracking-[0.18em]">ADMIN · DMCS</div>
+          <div className="text-foreground text-[15px] font-medium">Destination Management Companies</div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" />
+            <input
+              placeholder="Company or email"
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              className="h-8 pl-8 pr-3 rounded-md bg-surface border border-border text-[12px] text-foreground placeholder:text-muted focus:outline-none focus:border-primary w-60"
+            />
+          </div>
+          <button onClick={fetchRows} className="flex items-center gap-1.5 h-8 px-2.5 rounded-md border border-border bg-surface text-[12px] text-muted hover:text-foreground hover:border-primary/40 transition-colors">
+            <RefreshCcw className="w-3 h-3" /> R
+          </button>
+        </div>
+      </div>
+
+      <FilterTabs<Tab>
+        active={tab}
+        onChange={setTab}
+        tabs={[
+          { value: "all", label: "All", count: counts.all },
+          { value: "trial", label: "Trial", count: counts.trial },
+          { value: "active", label: "Active", count: counts.active },
+          { value: "suspended", label: "Suspended", count: counts.suspended },
+          { value: "expired", label: "Expired", count: counts.expired },
+        ]}
+      />
+
+      <Panel>
+        {loading ? (
+          <Skel rows={6} />
+        ) : filtered.length === 0 ? (
+          <EmptyRow text="No DMCs match." />
+        ) : (
+          <div className="overflow-x-auto -mx-4">
+            <table className="w-full min-w-[880px]">
+              <thead>
+                <tr className="border-b border-border">
+                  {["Company", "Country", "Email", "Plan", "Status", "Trial Ends", "Created", "Actions"].map(h => (
+                    <th key={h} className="text-left font-mono text-[10px] uppercase text-muted tracking-wider py-2 px-4">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(r => {
+                  const suspended = r.subscription_status === "suspended"
+                  const tone =
+                    r.subscription_status === "active" ? "primary" :
+                    r.subscription_status === "trial" ? "warning" :
+                    r.subscription_status === "suspended" ? "danger" :
+                    r.subscription_status === "expired" ? "danger" :
+                    "muted"
+                  return (
+                    <tr key={r.id} className="border-t border-border hover:bg-surface-elevated/60 transition-colors">
+                      <td className="py-2 px-4">
+                        <Link href={`/admin/dmcs/${r.id}`} className="text-foreground hover:text-primary font-medium transition-colors">
+                          {r.company_name}
+                        </Link>
+                        {r.contact_person && <div className="text-[11px] text-muted truncate">{r.contact_person}</div>}
+                      </td>
+                      <td className="py-2 px-4 text-muted font-mono text-[11px]">{r.country ?? r.city ?? "—"}</td>
+                      <td className="py-2 px-4 text-muted font-mono text-[11px] truncate max-w-[180px]">{r.email}</td>
+                      <td className="py-2 px-4 font-mono text-[11px] text-foreground">{r.subscription_plan ?? "—"}</td>
+                      <td className="py-2 px-4"><PillBadge tone={tone as any}>{r.subscription_status ?? "—"}</PillBadge></td>
+                      <td className="py-2 px-4 font-mono text-[11px] text-muted">
+                        {r.trial_ends_at ? fmtTime(r.trial_ends_at) : "—"}
+                      </td>
+                      <td className="py-2 px-4 font-mono text-[11px] text-muted">{fmtTime(r.created_at)} ago</td>
+                      <td className="py-2 px-4">
+                        <div className="flex items-center gap-1">
+                          <Link href={`/admin/dmcs/${r.id}`} title="View" className="inline-flex items-center justify-center w-6 h-6 rounded hover:bg-primary/10 text-muted hover:text-primary">
+                            <Eye className="w-3.5 h-3.5" />
+                          </Link>
+                          <button
+                            onClick={() => toggleSuspend(r)}
+                            title={suspended ? "Reactivate" : "Suspend"}
+                            className={`inline-flex items-center justify-center w-6 h-6 rounded hover:bg-[color:var(--warning-dim)] text-muted hover:text-[color:var(--warning)]`}
+                          >
+                            {suspended ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                          </button>
+                          <button
+                            onClick={() => toast.info("Messaging in Phase 3k")}
+                            title="Send message"
+                            className="inline-flex items-center justify-center w-6 h-6 rounded hover:bg-surface-elevated text-muted hover:text-foreground"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Panel>
+    </div>
+  )
 }

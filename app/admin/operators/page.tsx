@@ -1,136 +1,183 @@
-
 "use client"
 
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Search, X, Phone, MapPin, Star } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { supabase } from "@/lib/supabase"
+import { useState, useEffect, useMemo, useCallback } from "react"
+import { Search, RefreshCcw, Pause, Play } from "lucide-react"
+import { toast } from "sonner"
+import { createClient } from "@/lib/supabase/client"
+import { Panel, FilterTabs, Skel, EmptyRow, Toggle, PillBadge, fmtTime } from "@/components/admin/console"
 
-type Operator = {
+type Op = {
   id: string
   company_name: string
-  contact_name: string
-  phone: string
-  base_location: string
-  is_also_driver: boolean
+  contact_name: string | null
+  base_location: string | null
   is_verified: boolean
-  status: string
-  rating: number
-  total_trips: number
+  status: string | null
   created_at: string
 }
 
-export default function AdminOperatorsPage() {
-  const [operators, setOperators] = useState<Operator[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selected, setSelected] = useState<Operator | null>(null)
+type Stats = { fleet: number; drivers: number; trips_this_month: number }
 
-  useEffect(() => {
-    async function fetch() {
-      const { data } = await supabase.from("operators").select("id,company_name,contact_name,phone,base_location,is_also_driver,is_verified,status,rating,total_trips,created_at").order("created_at", { ascending: false })
-      setOperators(data || [])
-      setLoading(false)
-    }
-    fetch()
+type Tab = "all" | "verified" | "unverified" | "suspended"
+
+export default function AdminOperatorsPage() {
+  const [rows, setRows] = useState<Op[]>([])
+  const [stats, setStats] = useState<Record<string, Stats>>({})
+  const [loading, setLoading] = useState(true)
+  const [tab, setTab] = useState<Tab>("all")
+  const [q, setQ] = useState("")
+
+  const fetchRows = useCallback(async () => {
+    setLoading(true)
+    const supabase = createClient()
+    const { data } = await supabase
+      .from("operators")
+      .select("id, company_name, contact_name, base_location, is_verified, status, created_at")
+      .order("created_at", { ascending: false })
+    const list = (data ?? []) as Op[]
+    setRows(list)
+
+    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
+    const statsMap: Record<string, Stats> = {}
+    await Promise.all(list.map(async op => {
+      const [fleetRes, driversRes, tripsRes] = await Promise.all([
+        supabase.from("vehicles").select("*", { count: "exact", head: true }).eq("operator_id", op.id),
+        supabase.from("drivers").select("*", { count: "exact", head: true }).eq("operator_id", op.id),
+        supabase.from("trips").select("*", { count: "exact", head: true }).eq("operator_id", op.id).gte("created_at", monthStart),
+      ])
+      statsMap[op.id] = {
+        fleet: fleetRes.count ?? 0,
+        drivers: driversRes.count ?? 0,
+        trips_this_month: tripsRes.count ?? 0,
+      }
+    }))
+    setStats(statsMap)
+    setLoading(false)
   }, [])
 
-  const filtered = operators.filter(o =>
-    o.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (o.contact_name || "").toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  useEffect(() => { fetchRows() }, [fetchRows])
+
+  const filtered = useMemo(() => {
+    const ql = q.toLowerCase()
+    return rows.filter(r => {
+      if (tab === "verified" && !r.is_verified) return false
+      if (tab === "unverified" && r.is_verified) return false
+      if (tab === "suspended" && r.status !== "suspended") return false
+      if (!ql) return true
+      return (r.company_name ?? "").toLowerCase().includes(ql) || (r.base_location ?? "").toLowerCase().includes(ql)
+    })
+  }, [rows, tab, q])
+
+  async function toggleVerified(op: Op) {
+    const supabase = createClient()
+    const { error } = await supabase.from("operators").update({ is_verified: !op.is_verified }).eq("id", op.id)
+    if (error) { toast.error("Update failed: " + error.message); return }
+    toast.success(`${op.company_name}: ${!op.is_verified ? "verified" : "unverified"}`)
+    fetchRows()
+  }
+
+  async function toggleSuspend(op: Op) {
+    const supabase = createClient()
+    const nextStatus = op.status === "suspended" ? "active" : "suspended"
+    const { error } = await supabase.from("operators").update({ status: nextStatus }).eq("id", op.id)
+    if (error) { toast.error("Update failed: " + error.message); return }
+    toast.success(`${op.company_name}: ${nextStatus}`)
+    fetchRows()
+  }
+
+  const counts = useMemo(() => ({
+    all: rows.length,
+    verified: rows.filter(r => r.is_verified).length,
+    unverified: rows.filter(r => !r.is_verified).length,
+    suspended: rows.filter(r => r.status === "suspended").length,
+  }), [rows])
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div className="space-y-4 text-[13px]">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[22px] font-semibold text-foreground">Operators</h1>
-          <p className="text-sm text-muted mt-0.5">{loading ? "Loading..." : `${filtered.length} fleet owners registered`}</p>
+          <div className="font-mono text-[10px] uppercase text-muted tracking-[0.18em]">ADMIN · OPERATORS</div>
+          <div className="text-foreground text-[15px] font-medium">Fleet operators</div>
         </div>
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-          <Input placeholder="Search operators..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" />
+            <input
+              placeholder="Company or base"
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              className="h-8 pl-8 pr-3 rounded-md bg-surface border border-border text-[12px] text-foreground placeholder:text-muted focus:outline-none focus:border-primary w-60"
+            />
+          </div>
+          <button onClick={fetchRows} className="flex items-center gap-1.5 h-8 px-2.5 rounded-md border border-border bg-surface text-[12px] text-muted hover:text-foreground hover:border-primary/40 transition-colors">
+            <RefreshCcw className="w-3 h-3" /> R
+          </button>
         </div>
       </div>
 
-      <div className="bg-surface border border-border rounded-xl overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-background">
-              {["Company", "Phone", "Base", "Also Driver", "Verified", "Status", "Joined"].map(h => (
-                <th key={h} className="text-left font-mono text-[10px] uppercase text-muted tracking-wider py-3 px-4">{h}</th>
-              ))}
-              <th className="py-3 px-4" />
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? Array.from({ length: 4 }).map((_, i) => (
-              <tr key={i} className="border-b border-border">
-                {Array.from({ length: 8 }).map((_, j) => (
-                  <td key={j} className="py-3 px-4"><div className="h-4 bg-surface-elevated rounded animate-pulse" /></td>
-                ))}
-              </tr>
-            )) : filtered.map((op, i) => (
-              <motion.tr key={op.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.03 * i }}
-                onClick={() => setSelected(op)} className="border-b border-border cursor-pointer hover:bg-surface-elevated transition-colors">
-                <td className="py-3 px-4">
-                  <p className="text-sm font-medium text-foreground">{op.company_name}</p>
-                  <p className="text-[12px] text-muted">{op.contact_name}</p>
-                </td>
-                <td className="py-3 px-4 text-sm text-muted">{op.phone}</td>
-                <td className="py-3 px-4 text-sm text-muted">{op.base_location}</td>
-                <td className="py-3 px-4 text-sm">{op.is_also_driver ? <span className="text-primary">✓</span> : <span className="text-muted">—</span>}</td>
-                <td className="py-3 px-4 text-sm">{op.is_verified ? <span className="text-primary">✓</span> : <span className="text-muted">—</span>}</td>
-                <td className="py-3 px-4">
-                  <span className={`inline-block px-2 py-0.5 rounded-full font-mono text-[10px] uppercase ${op.status === "active" ? "bg-primary/10 text-primary" : "bg-surface-elevated text-muted"}`}>{op.status}</span>
-                </td>
-                <td className="py-3 px-4 font-mono text-xs text-muted">{new Date(op.created_at).toLocaleDateString()}</td>
-                <td className="py-3 px-4"><span className="text-xs text-primary cursor-pointer hover:underline">Details</span></td>
-              </motion.tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <FilterTabs<Tab>
+        active={tab}
+        onChange={setTab}
+        tabs={[
+          { value: "all", label: "All", count: counts.all },
+          { value: "verified", label: "Verified", count: counts.verified },
+          { value: "unverified", label: "Unverified", count: counts.unverified },
+          { value: "suspended", label: "Suspended", count: counts.suspended },
+        ]}
+      />
 
-      <AnimatePresence>
-        {selected && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelected(null)} className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" />
-            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="fixed right-0 top-0 h-full w-full max-w-[420px] bg-surface border-l border-border z-50 flex flex-col">
-              <div className="h-14 border-b border-border px-5 flex items-center justify-between">
-                <h2 className="text-[15px] font-semibold text-foreground">Operator Details</h2>
-                <button onClick={() => setSelected(null)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-elevated"><X className="w-4 h-4 text-muted" /></button>
-              </div>
-              <div className="flex-1 overflow-y-auto p-5">
-                <h3 className="text-[17px] font-semibold text-foreground">{selected.company_name}</h3>
-                <p className="text-[13px] text-muted mb-4">{selected.contact_name}</p>
-                <div className="space-y-3">
-                  {[
-                    { label: "Phone", value: selected.phone },
-                    { label: "Base", value: selected.base_location },
-                    { label: "Total Trips", value: selected.total_trips?.toString() || "0" },
-                    { label: "Rating", value: selected.rating ? `${Number(selected.rating).toFixed(1)} ★` : "—" },
-                    { label: "Status", value: selected.status },
-                  ].map(r => (
-                    <div key={r.label} className="flex justify-between py-2 border-b border-border">
-                      <span className="text-sm text-muted">{r.label}</span>
-                      <span className="text-sm text-foreground font-medium">{r.value}</span>
-                    </div>
+      <Panel>
+        {loading ? (
+          <Skel rows={6} />
+        ) : filtered.length === 0 ? (
+          <EmptyRow text="No operators match." />
+        ) : (
+          <div className="overflow-x-auto -mx-4">
+            <table className="w-full min-w-[880px]">
+              <thead>
+                <tr className="border-b border-border">
+                  {["Company", "Base", "Verified", "Status", "Fleet", "Drivers", "Trips (mo)", "Joined", "Actions"].map(h => (
+                    <th key={h} className="text-left font-mono text-[10px] uppercase text-muted tracking-wider py-2 px-4">{h}</th>
                   ))}
-                </div>
-              </div>
-              <div className="border-t border-border p-4 flex gap-3">
-                <Button variant="secondary" className="flex-1" onClick={() => setSelected(null)}>Close</Button>
-                <Button className="flex-1 bg-primary">Edit</Button>
-              </div>
-            </motion.div>
-          </>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(r => {
+                  const s = stats[r.id] ?? { fleet: 0, drivers: 0, trips_this_month: 0 }
+                  return (
+                    <tr key={r.id} className="border-t border-border hover:bg-surface-elevated/60 transition-colors">
+                      <td className="py-2 px-4">
+                        <div className="text-foreground font-medium">{r.company_name}</div>
+                        {r.contact_name && <div className="text-[11px] text-muted">{r.contact_name}</div>}
+                      </td>
+                      <td className="py-2 px-4 text-muted font-mono text-[11px]">{r.base_location ?? "—"}</td>
+                      <td className="py-2 px-4">
+                        <Toggle on={r.is_verified} onClick={() => toggleVerified(r)} labelOn="verified" labelOff="unverified" />
+                      </td>
+                      <td className="py-2 px-4"><PillBadge tone={r.status === "active" ? "primary" : r.status === "suspended" ? "danger" : "muted"}>{r.status ?? "—"}</PillBadge></td>
+                      <td className="py-2 px-4 font-mono text-[12px] text-foreground">{s.fleet}</td>
+                      <td className="py-2 px-4 font-mono text-[12px] text-foreground">{s.drivers}</td>
+                      <td className="py-2 px-4 font-mono text-[12px] text-foreground">{s.trips_this_month}</td>
+                      <td className="py-2 px-4 font-mono text-[11px] text-muted">{fmtTime(r.created_at)} ago</td>
+                      <td className="py-2 px-4">
+                        <button
+                          onClick={() => toggleSuspend(r)}
+                          title={r.status === "suspended" ? "Reactivate" : "Suspend"}
+                          className="inline-flex items-center justify-center w-6 h-6 rounded hover:bg-[color:var(--warning-dim)] text-muted hover:text-[color:var(--warning)]"
+                        >
+                          {r.status === "suspended" ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
-      </AnimatePresence>
-    </motion.div>
+      </Panel>
+    </div>
   )
 }
