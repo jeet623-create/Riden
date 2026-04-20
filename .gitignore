@@ -4,3 +4,10 @@ PHASE*_PLAN.md
 1.md
 .env.local
 New Text Document*.txt
+riden-sample-d-v3.zip
+_tmp_sample/
+.next/
+node_modules/
+next-env.d.ts
+tsconfig.tsbuildinfo
+package-lock.json

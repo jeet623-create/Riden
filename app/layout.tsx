@@ -37,10 +37,36 @@ const sc = Noto_Sans_SC({
 })
 
 export const metadata: Metadata = {
-  title: 'Riden — Thailand tourism transport coordination',
-  description: 'B2B platform connecting DMCs, operators and drivers across Thailand.',
+  metadataBase: new URL('https://riden.me'),
+  title: {
+    default: 'Riden — A coordination layer for Thailand',
+    template: '%s · Riden',
+  },
+  description: 'Riden orchestrates Thai ground transport — one portal for DMCs, LINE dispatch for operators, real-time tracking for drivers. Built in Bangkok. Made for the world.',
+  keywords: ['Thailand', 'DMC', 'transport', 'tourism', 'LINE', 'bookings', 'ground transport', 'Bangkok'],
+  authors: [{ name: 'Riden (Thailand) Co., Ltd.' }],
   icons: {
     icon: '/brand/riden-monogram.svg',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://riden.me',
+    title: 'Riden — A coordination layer for Thailand',
+    description: 'One portal for DMCs. LINE dispatch for operators. Real-time tracking for drivers. The coordination layer Thai tourism has been waiting for.',
+    siteName: 'Riden',
+    images: [
+      { url: '/brand/riden-monogram.svg', width: 512, height: 512, alt: 'Riden' },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Riden — A coordination layer for Thailand',
+    description: 'One portal for DMCs. LINE dispatch for operators. Real-time tracking for drivers.',
+    images: ['/brand/riden-monogram.svg'],
+  },
+  alternates: {
+    canonical: 'https://riden.me',
   },
 }
 
@@ -62,6 +88,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           />
         </ThemeProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
+        {/* TODO: replace GA_MEASUREMENT_ID_HERE with real ID */}
+        {/* <Script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID_HERE" /> */}
+        {/* TODO: Meta Pixel — replace FB_PIXEL_ID_HERE */}
+        {/* <Script id="fb-pixel">{`!function(f,b,e,v,n,t,s){...fbq('init','FB_PIXEL_ID_HERE');}`}</Script> */}
+        {/* TODO: TikTok Pixel — replace TT_PIXEL_ID_HERE */}
+        {/* <Script id="tt-pixel">{`!function(w,d,t){... ttq.load('TT_PIXEL_ID_HERE');}`}</Script> */}
       </body>
     </html>
   )

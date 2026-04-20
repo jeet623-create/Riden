@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { countryToLang, SUPPORTED_LANGS, type Lang } from '@/lib/marketing-i18n'
 
 export async function middleware(request: NextRequest) {
   // 1. Session refresh via @supabase/ssr (keeps auth cookies fresh)
@@ -26,8 +27,7 @@ export async function middleware(request: NextRequest) {
   // Must call getUser() for session refresh; do NOT remove
   await supabase.auth.getUser()
 
-  // 2. Hostname-based rewrites (admin.*, dmc.*)
-  // Never rewrite paths that look like static files (/foo.svg, /bar.png, etc.)
+  // 2. Hostname-based rewrites (admin.*, dmc.*, apex marketing)
   const hostname = request.headers.get('host') || ''
   const url = request.nextUrl.clone()
   let newPath: string | null = null
@@ -40,6 +40,11 @@ export async function middleware(request: NextRequest) {
     } else if (hostname.startsWith('dmc.')) {
       if (url.pathname === '/') newPath = '/dmc/dashboard'
       else if (!url.pathname.startsWith('/dmc')) newPath = '/dmc' + url.pathname
+    } else {
+      // Apex / www / any other hostname → marketing site
+      // Root / is the 3D cinematic landing (static HTML in public/)
+      if (url.pathname === '/') newPath = '/landing-3d.html'
+      // All other marketing paths are handled by the (marketing) route group
     }
   }
 
@@ -53,11 +58,25 @@ export async function middleware(request: NextRequest) {
       rewriteResponse.cookies.set(cookie)
     }
     rewriteResponse.headers.set('x-pathname', finalPathname)
+    setLangCookieIfMissing(request, rewriteResponse)
     return rewriteResponse
   }
 
   response.headers.set('x-pathname', finalPathname)
+  setLangCookieIfMissing(request, response)
   return response
+}
+
+function setLangCookieIfMissing(request: NextRequest, response: NextResponse) {
+  const existing = request.cookies.get('riden_lang')?.value
+  if (existing && SUPPORTED_LANGS.includes(existing as Lang)) return
+  const country = request.headers.get('x-vercel-ip-country') || null
+  const lang = countryToLang(country)
+  response.cookies.set('riden_lang', lang, {
+    path: '/',
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: 'lax',
+  })
 }
 
 export const config = {
