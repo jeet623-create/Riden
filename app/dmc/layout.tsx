@@ -6,6 +6,12 @@ import { CustomCursor } from '@/components/custom-cursor'
 import { DmcSidebar } from '@/components/dmc/sidebar'
 import { DmcTopbar } from '@/components/dmc/topbar'
 
+// Force every /dmc/* request through the server-side auth guard.
+// Prevents browser from showing cached authenticated pages after sign-out.
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
+
 const PUBLIC_PATHS = ['/dmc/login', '/dmc/forgot-password', '/dmc/reset-password']
 
 export default async function DmcLayout({ children }: { children: React.ReactNode }) {

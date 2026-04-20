@@ -1,6 +1,10 @@
 import { AdminSidebar } from "@/components/admin/sidebar"
 import { AdminTopbar } from "@/components/admin/topbar"
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
+
 export default function AdminLayout({
   children,
 }: {
