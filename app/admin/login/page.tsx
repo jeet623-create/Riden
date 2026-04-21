@@ -1,13 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { Eye, EyeOff, Shield } from "lucide-react"
 import { Wordmark } from "@/components/brand/Wordmark"
+import { createClient } from "@/lib/supabase/client"
 
 export default function AdminLoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const nextPath = searchParams?.get("next") || "/admin/dashboard"
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -18,13 +21,32 @@ export default function AdminLoginPage() {
     e.preventDefault()
     setError("")
     setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    if (email === "admin@riden.co" && password === "admin123") {
-      router.push("/admin/dashboard")
-    } else {
-      setError("Invalid email or password")
+
+    const supabase = createClient()
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    if (signInError || !data.user?.email) {
+      setError(signInError?.message || "Invalid email or password")
       setIsLoading(false)
+      return
     }
+
+    const { data: admin, error: adminErr } = await supabase
+      .from("admin_users")
+      .select("id")
+      .eq("email", data.user.email)
+      .eq("is_active", true)
+      .maybeSingle()
+
+    if (adminErr || !admin) {
+      await supabase.auth.signOut()
+      setError("This account does not have admin access.")
+      setIsLoading(false)
+      return
+    }
+
+    const safeNext = nextPath.startsWith("/admin") ? nextPath : "/admin/dashboard"
+    router.push(safeNext)
+    router.refresh()
   }
 
   return (

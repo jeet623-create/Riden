@@ -25,7 +25,7 @@ export async function middleware(request: NextRequest) {
     }
   )
   // Must call getUser() for session refresh; do NOT remove
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
   // 2. Hostname-based rewrites (admin.*, dmc.*, apex marketing)
   const hostname = request.headers.get('host') || ''
@@ -46,6 +46,23 @@ export async function middleware(request: NextRequest) {
   }
 
   const finalPathname = newPath || url.pathname
+
+  // 2.5. Admin auth gate — unauthenticated hits to /admin/* (except login) go to /admin/login
+  const isAdminProtected =
+    !isStaticAsset &&
+    finalPathname.startsWith('/admin') &&
+    finalPathname !== '/admin/login'
+
+  if (isAdminProtected && !user) {
+    const loginUrl = request.nextUrl.clone()
+    loginUrl.pathname = hostname.startsWith('admin.') ? '/login' : '/admin/login'
+    loginUrl.search = `?next=${encodeURIComponent(finalPathname)}`
+    const redirectResponse = NextResponse.redirect(loginUrl)
+    for (const cookie of response.cookies.getAll()) {
+      redirectResponse.cookies.set(cookie)
+    }
+    return redirectResponse
+  }
 
   // 3. If rewrite needed, build rewrite response and copy auth cookies
   if (newPath) {
