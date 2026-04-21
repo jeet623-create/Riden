@@ -85,20 +85,32 @@ export default function AdminSubscriptionsPage() {
     setLoading(true)
     const supabase = createClient()
 
-    const { data: dmcData } = await supabase
+    const { data: dmcData, error: dmcErr } = await supabase
       .from("dmc_users")
       .select("id, company_name, contact_person, email, phone, country, subscription_plan, subscription_status, trial_ends_at, line_user_id, total_bookings, created_at")
       .order("created_at", { ascending: false })
+    if (dmcErr) {
+      console.error("dmc_users fetch error:", dmcErr)
+      toast.error("Failed to load DMCs: " + dmcErr.message)
+      setLoading(false)
+      return
+    }
     const dmcList = (dmcData ?? []) as DMC[]
     setDmcs(dmcList)
 
     const dmcIds = dmcList.map(d => d.id)
     if (dmcIds.length > 0) {
-      const { data: subs } = await supabase
+      const { data: subs, error: subsErr } = await supabase
         .from("subscriptions")
         .select("id, dmc_id, plan, price_thb, status, start_date, end_date, payment_proof_url, activated_at, created_at, notes")
         .in("dmc_id", dmcIds)
         .order("created_at", { ascending: false })
+      if (subsErr) {
+        console.error("subscriptions fetch error:", subsErr)
+        toast.error("Failed to load subscriptions: " + subsErr.message)
+        setLoading(false)
+        return
+      }
       const subList = (subs ?? []) as Sub[]
       const map: Record<string, Sub> = {}
       for (const s of subList) if (!map[s.dmc_id]) map[s.dmc_id] = s
@@ -123,11 +135,19 @@ export default function AdminSubscriptionsPage() {
     if (stats[selectedId]) return
     ;(async () => {
       const supabase = createClient()
-      const [{ count: bookings }, { count: trips }] = await Promise.all([
+      const [bRes, tRes] = await Promise.all([
         supabase.from("bookings").select("*", { count: "exact", head: true }).eq("dmc_id", selectedId),
         supabase.from("trips").select("*", { count: "exact", head: true }).eq("dmc_id", selectedId),
       ])
-      setStats(s => ({ ...s, [selectedId]: { bookings: bookings ?? 0, trips: trips ?? 0 } }))
+      if (bRes.error) {
+        console.error("bookings count error:", bRes.error)
+        toast.error("Failed to load booking count: " + bRes.error.message)
+      }
+      if (tRes.error) {
+        console.error("trips count error:", tRes.error)
+        toast.error("Failed to load trip count: " + tRes.error.message)
+      }
+      setStats(s => ({ ...s, [selectedId]: { bookings: bRes.count ?? 0, trips: tRes.count ?? 0 } }))
     })()
   }, [selectedId, stats])
 
