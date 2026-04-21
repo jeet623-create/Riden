@@ -40,12 +40,9 @@ export async function middleware(request: NextRequest) {
     } else if (hostname.startsWith('dmc.')) {
       if (url.pathname === '/') newPath = '/dmc/dashboard'
       else if (!url.pathname.startsWith('/dmc')) newPath = '/dmc' + url.pathname
-    } else {
-      // Apex / www / any other hostname → marketing site
-      // Root / is the 3D cinematic landing (static HTML in public/)
-      if (url.pathname === '/') newPath = '/landing-3d.html'
-      // All other marketing paths are handled by the (marketing) route group
     }
+    // Apex / www / any other hostname → marketing site (app/(marketing)/page.tsx).
+    // All marketing paths are handled by the (marketing) route group; no rewrite needed.
   }
 
   const finalPathname = newPath || url.pathname
