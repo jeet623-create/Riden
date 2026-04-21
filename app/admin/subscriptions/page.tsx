@@ -213,51 +213,54 @@ export default function AdminSubscriptionsPage() {
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
+      if (!user?.email) throw new Error("Not signed in")
+
+      const { data: admin, error: adminErr } = await supabase
+        .from("admin_users")
+        .select("id")
+        .eq("email", user.email)
+        .single()
+      if (adminErr || !admin) throw new Error("Admin user not found for current session")
 
       const proofUrl = await uploadProofIfAny(selected.id)
       const combinedNotes = [
         proofNote.trim() ? `Payment ref: ${proofNote.trim()}` : "",
         adminNotes.trim() ? `Admin: ${adminNotes.trim()}` : "",
+        proofUrl ? `Proof: ${proofUrl}` : "",
       ].filter(Boolean).join(" | ") || null
 
-      const { error: insErr } = await supabase.from("subscriptions").insert({
-        dmc_id: selected.id,
-        plan: planId,
-        price_thb: total,
-        start_date: startDate,
-        end_date: endDate,
-        status: "active",
-        payment_proof_url: proofUrl,
-        activated_by: user?.id ?? null,
-        activated_at: new Date().toISOString(),
-        notes: combinedNotes,
-      })
-      if (insErr) { throw new Error(`Subscription insert: ${insErr.message}`) }
-
-      const { error: updErr } = await supabase.from("dmc_users").update({
-        subscription_plan: planId,
-        subscription_status: "active",
-        trial_ends_at: endDate,
-        is_active: true,
-      }).eq("id", selected.id)
-      if (updErr) { throw new Error(`DMC update: ${updErr.message}`) }
-
-      // best-effort email
-      try {
-        await supabase.functions.invoke("send-email", {
-          body: {
-            type: "subscription_activated",
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/admin-subscriptions`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
             dmc_id: selected.id,
             plan: planId,
+            start_date: startDate,
             end_date: endDate,
-          },
-        })
-      } catch (e) {
-        // TODO: send-email may not support subscription_activated template yet
-        console.warn("send-email skipped:", e)
+            admin_id: admin.id,
+            notes: combinedNotes,
+          }),
+        }
+      )
+      if (!res.ok) {
+        const text = await res.text().catch(() => "")
+        throw new Error(`Activation failed (${res.status}) ${text}`.trim())
       }
+      const result: { plan?: string; dmc_name?: string; email_sent?: boolean } =
+        await res.json().catch(() => ({}))
 
-      toast.success(`${selected.company_name} activated on ${PLANS.find(p => p.id === planId)?.name ?? planId} until ${fmtDateShort(endDate)}`)
+      const planLabel = result.plan
+        ? result.plan.charAt(0).toUpperCase() + result.plan.slice(1)
+        : (PLANS.find(p => p.id === planId)?.name ?? planId)
+      const dmcLabel = result.dmc_name ?? selected.company_name
+      toast.success(
+        `${planLabel} plan activated for ${dmcLabel}${result.email_sent ? " · Email sent" : ""}`
+      )
 
       // auto-select next
       const idx = filteredDmcs.findIndex(d => d.id === selected.id)
@@ -327,7 +330,9 @@ export default function AdminSubscriptionsPage() {
           </Panel>
 
           <Panel title="RECENTLY ACTIVATED · 7d">
-            {recentActivations.length === 0 ? <EmptyRow text="None this week." /> : (
+            {Object.keys(latestSubs).length === 0 ? (
+              <EmptyRow text="No subscriptions yet. Click + Activate Plan to activate your first paying DMC." />
+            ) : recentActivations.length === 0 ? <EmptyRow text="None this week." /> : (
               <ul className="divide-y divide-border">
                 {recentActivations.map(s => {
                   const dmc = dmcs.find(d => d.id === s.dmc_id)
@@ -457,7 +462,7 @@ export default function AdminSubscriptionsPage() {
                     <input
                       value={proofNote}
                       onChange={e => setProofNote(e.target.value)}
-                      placeholder="Transfer reference, bank name, etc."
+                      placeholder="Bank transfer ref SCB-2026-001"
                       className="h-8 w-full bg-background border border-input rounded-md px-2 text-[13px] text-foreground focus:outline-none focus:border-primary"
                     />
                   </div>
