@@ -22,31 +22,55 @@ export default function AdminLoginPage() {
     setError("")
     setIsLoading(true)
 
-    const supabase = createClient()
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
-    if (signInError || !data.user?.email) {
-      setError(signInError?.message || "Invalid email or password")
+    try {
+      const supabase = createClient()
+
+      const signInPromise = supabase.auth.signInWithPassword({ email, password })
+      const signInResult = await Promise.race([
+        signInPromise,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Sign-in timed out. Check your connection and try again.")), 15000)
+        ),
+      ])
+
+      const { data, error: signInError } = signInResult
+      if (signInError || !data?.user?.email) {
+        console.error("signInWithPassword failed:", signInError)
+        setError(signInError?.message || "Invalid email or password")
+        setIsLoading(false)
+        return
+      }
+
+      const { data: admin, error: adminErr } = await supabase
+        .from("admin_users")
+        .select("id")
+        .eq("email", data.user.email)
+        .eq("is_active", true)
+        .maybeSingle()
+
+      if (adminErr) {
+        console.error("admin_users lookup failed:", adminErr)
+        await supabase.auth.signOut()
+        setError("Could not verify admin access: " + adminErr.message)
+        setIsLoading(false)
+        return
+      }
+      if (!admin) {
+        await supabase.auth.signOut()
+        setError("This account does not have admin access.")
+        setIsLoading(false)
+        return
+      }
+
+      const safeNext = nextPath.startsWith("/admin") ? nextPath : "/admin/dashboard"
+      // Full nav forces the new session cookies to be sent on the very first server request,
+      // sidestepping any RSC cache that might still think we're unauthenticated.
+      window.location.assign(safeNext)
+    } catch (err: any) {
+      console.error("Admin login error:", err)
+      setError(err?.message || "Sign-in failed. Check the console for details.")
       setIsLoading(false)
-      return
     }
-
-    const { data: admin, error: adminErr } = await supabase
-      .from("admin_users")
-      .select("id")
-      .eq("email", data.user.email)
-      .eq("is_active", true)
-      .maybeSingle()
-
-    if (adminErr || !admin) {
-      await supabase.auth.signOut()
-      setError("This account does not have admin access.")
-      setIsLoading(false)
-      return
-    }
-
-    const safeNext = nextPath.startsWith("/admin") ? nextPath : "/admin/dashboard"
-    router.push(safeNext)
-    router.refresh()
   }
 
   return (
