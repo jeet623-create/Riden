@@ -155,11 +155,15 @@ export default function AdminSubscriptionsPage() {
 
   const filteredDmcs = useMemo(() => {
     const ql = q.toLowerCase()
-    let list = dmcs
-    if (tab === "awaiting") list = dmcs.filter(d => awaitingIds.has(d.id))
-    else if (tab === "recent") {
+    let list: DMC[]
+    if (tab === "awaiting") {
+      list = dmcs.filter(d => awaitingIds.has(d.id))
+    } else if (tab === "recent") {
       const activatedIdsByRecent = new Set(recentActivations.map(s => s.dmc_id))
       list = dmcs.filter(d => activatedIdsByRecent.has(d.id))
+    } else {
+      // "all" — full roster, no status filter
+      list = dmcs
     }
     if (ql) list = list.filter(d =>
       (d.company_name ?? "").toLowerCase().includes(ql) ||
@@ -300,9 +304,12 @@ export default function AdminSubscriptionsPage() {
             <div className="relative mb-2">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" />
               <input
+                type="search"
+                name="admin-subs-search"
                 placeholder="Search"
                 value={q}
                 onChange={e => setQ(e.target.value)}
+                autoComplete="off"
                 className="h-8 w-full pl-8 pr-3 rounded-md bg-background border border-border text-[12px] text-foreground placeholder:text-muted focus:outline-none focus:border-primary"
               />
             </div>
