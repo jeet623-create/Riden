@@ -17,6 +17,10 @@ export const ja: MarketingDict = {
   hero: {
     pill: "77 県 · ひとつのネットワーク · 常時稼働",
     h1: "夜のタイを動かすレイヤー",
+    // TODO: native speaker review — split from new titleLine design.
+    titleLine1: "調整レイヤー",
+    titleLine2Pre: "のための",
+    titleEmphasis: "タイ観光",
     arrow: "↗",
     sub1: "すべての予約。すべてのドライバー。すべての県。リアルタイム。",
     sub2: "タイへのイノベーションアプローチ。タイで作り、世界へ。",

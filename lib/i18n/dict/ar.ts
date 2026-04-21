@@ -17,6 +17,10 @@ export const ar: MarketingDict = {
   hero: {
     pill: "77 مقاطعة · شبكة واحدة · دائماً متصلة",
     h1: "حيث تتحرك تايلاند ليلاً",
+    // TODO: native speaker review — split from new titleLine design.
+    titleLine1: "طبقة التنسيق",
+    titleLine2Pre: "لـ",
+    titleEmphasis: "السياحة التايلاندية",
     arrow: "↗",
     sub1: "كل حجز. كل سائق. كل مقاطعة. مباشر.",
     sub2: "نهج ابتكاري لتايلاند. صُنع في تايلاند. للعالم.",

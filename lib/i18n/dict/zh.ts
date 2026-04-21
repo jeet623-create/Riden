@@ -17,6 +17,10 @@ export const zh: MarketingDict = {
   hero: {
     pill: "77 个府 · 一个网络 · 全天在线",
     h1: "夜幕下的泰国脉动",
+    // TODO: native speaker review — split from new titleLine design.
+    titleLine1: "协调层",
+    titleLine2Pre: "服务于",
+    titleEmphasis: "泰国旅游",
     arrow: "↗",
     sub1: "每一次预订。每一位司机。每一个府。实时在线。",
     sub2: "以创新方式连接泰国。在泰国打造，为世界服务。",

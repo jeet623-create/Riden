@@ -15,6 +15,9 @@ export const en: MarketingDict = {
   hero: {
     pill: "77 PROVINCES · ONE NETWORK · ALWAYS ON",
     h1: "Where Thailand moves at night",
+    titleLine1: "The coordination layer",
+    titleLine2Pre: "for",
+    titleEmphasis: "Thai tourism",
     arrow: "↗",
     sub1: "Every booking. Every driver. Every province. Live.",
     sub2: "An innovation approach to Thailand. Made in Thailand. Made for the world.",

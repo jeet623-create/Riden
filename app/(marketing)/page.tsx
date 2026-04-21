@@ -3,11 +3,9 @@ import Link from "next/link"
 import { AmbientStarfield } from "@/components/marketing/hero/AmbientStarfield"
 import { SatelliteGlow } from "@/components/marketing/hero/SatelliteGlow"
 import { ThailandHero } from "@/components/marketing/hero/ThailandHero"
-import {
-  LiveEventCardsDesktop,
-  LiveEventCardsMobile,
-} from "@/components/marketing/hero/LiveEventCards"
+import { LiveEventCards } from "@/components/marketing/hero/LiveEventCards"
 import { NasaBar } from "@/components/marketing/hero/NasaBar"
+import { HeroAtmosphere } from "@/components/marketing/hero/HeroAtmosphere"
 import { DemoForm } from "@/components/marketing/demo-form"
 import { readLang, getDict } from "@/lib/i18n"
 
@@ -24,10 +22,11 @@ export default async function MarketingHome() {
   return (
     <div className="bg-[#05080e] text-white">
       {/* ============ HERO ============ */}
-      <section className="relative min-h-[calc(100vh-4rem)] -mt-16 pt-16 overflow-hidden">
+      <section className="relative min-h-[calc(100vh-4rem)] -mt-16 pt-16 overflow-hidden bg-[#020308]">
         <AmbientStarfield />
         <SatelliteGlow />
         <NasaBar />
+        <HeroAtmosphere />
 
         <div className="relative z-10 flex flex-col items-center justify-start px-4 pt-10 md:pt-16 pb-10 md:pb-16">
           <div
@@ -43,14 +42,17 @@ export default async function MarketingHome() {
           </div>
 
           <h1
-            className="font-display text-center italic font-semibold text-white leading-[1.05] mb-5"
+            className="font-display text-center font-semibold text-white leading-[1.05] mb-5"
             style={{
               fontSize: "clamp(36px, 8vw, 80px)",
               letterSpacing: "-0.03em",
               maxWidth: 900,
             }}
           >
-            {d.hero.h1}
+            {d.hero.titleLine1}
+            <br />
+            {d.hero.titleLine2Pre}{" "}
+            <em className="text-[#2ee5a0] font-medium italic">{d.hero.titleEmphasis}</em>
             <span className="not-italic text-[#2ee5a0] font-medium ml-1">{d.hero.arrow}</span>
           </h1>
 
@@ -62,12 +64,8 @@ export default async function MarketingHome() {
           </p>
 
           <div className="relative w-full max-w-5xl flex justify-center">
-            <LiveEventCardsDesktop />
+            <LiveEventCards />
             <ThailandHero />
-          </div>
-
-          <div className="md:hidden mt-8 w-full">
-            <LiveEventCardsMobile />
           </div>
 
           <div className="mt-10 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">

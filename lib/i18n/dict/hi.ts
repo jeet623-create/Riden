@@ -17,6 +17,10 @@ export const hi: MarketingDict = {
   hero: {
     pill: "77 प्रांत · एक नेटवर्क · हमेशा चालू",
     h1: "रात में चलता थाईलैंड",
+    // TODO: native speaker review — split from new titleLine design.
+    titleLine1: "समन्वय परत",
+    titleLine2Pre: "के लिए",
+    titleEmphasis: "थाई पर्यटन",
     arrow: "↗",
     sub1: "हर बुकिंग। हर ड्राइवर। हर प्रांत। लाइव।",
     sub2: "थाईलैंड के लिए नवाचार दृष्टिकोण। थाईलैंड में निर्मित। दुनिया के लिए।",

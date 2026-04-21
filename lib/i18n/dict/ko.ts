@@ -17,6 +17,10 @@ export const ko: MarketingDict = {
   hero: {
     pill: "77개 주 · 하나의 네트워크 · 24시간",
     h1: "밤에도 움직이는 태국",
+    // TODO: native speaker review — split from new titleLine design.
+    titleLine1: "조정 레이어",
+    titleLine2Pre: "위한",
+    titleEmphasis: "태국 관광",
     arrow: "↗",
     sub1: "모든 예약. 모든 기사. 모든 지방. 실시간.",
     sub2: "태국을 위한 혁신적 접근. 태국에서 만들어, 세계를 위해.",

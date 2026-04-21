@@ -16,7 +16,11 @@ export type MarketingDict = {
   }
   hero: {
     pill: string
+    /** @deprecated since 3m.7 — use titleLine1 + titleLine2Pre + titleEmphasis */
     h1: string
+    titleLine1: string
+    titleLine2Pre: string
+    titleEmphasis: string
     arrow: string
     sub1: string
     sub2: string
