@@ -6,6 +6,7 @@ import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { Eye, EyeOff } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import { Wordmark } from "@/components/brand/Wordmark"
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -52,6 +53,9 @@ export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-10 bg-background">
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="max-w-[380px] w-full">
+        <Link href="/" className="inline-block mb-8 text-foreground no-underline">
+          <Wordmark size="sm" />
+        </Link>
         <h1 className="font-semibold text-[22px] tracking-tight text-foreground mb-1">Set new password</h1>
         <p className="text-[13px] text-muted mb-7">Enter a new password for your account</p>
 

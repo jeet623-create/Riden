@@ -7,16 +7,20 @@ interface WordmarkProps extends HTMLAttributes<HTMLSpanElement> {
   size?: WordmarkSize
 }
 
-const CONFIG: Record<WordmarkSize, { fontSize: number; arrow: number; gap: number; mt: number }> = {
-  xs: { fontSize: 14, arrow: 8, gap: 3, mt: 0 },
-  sm: { fontSize: 18, arrow: 10, gap: 4, mt: 1 },
-  md: { fontSize: 28, arrow: 14, gap: 5, mt: 2 },
-  lg: { fontSize: 48, arrow: 22, gap: 8, mt: 3 },
-  xl: { fontSize: 72, arrow: 32, gap: 12, mt: 4 },
+// Per-size values tuned against public/brand/riden-wordmark.svg (the brand-system source of truth).
+// xl matches that SVG exactly (fontSize 72, arrow 32, stroke 4.5); smaller sizes use a slightly
+// heavier stroke ratio so the raised arrow reads as bold rather than hairline in tight UI like nav.
+const CONFIG: Record<WordmarkSize, { fs: number; arrow: number; gap: number; top: number; stroke: number }> = {
+  xs: { fs: 14, arrow: 7,  gap: 2, top: 2,  stroke: 1.5 },
+  sm: { fs: 22, arrow: 10, gap: 2, top: 3,  stroke: 2   },
+  md: { fs: 28, arrow: 12, gap: 3, top: 4,  stroke: 2.5 },
+  lg: { fs: 48, arrow: 21, gap: 5, top: 7,  stroke: 3.5 },
+  xl: { fs: 72, arrow: 32, gap: 8, top: 10, stroke: 4.5 },
 }
 
 export function Wordmark({ size = "md", className, ...props }: WordmarkProps) {
   const c = CONFIG[size]
+
   return (
     <span
       className={cn("inline-flex items-start leading-none", className)}
@@ -25,26 +29,27 @@ export function Wordmark({ size = "md", className, ...props }: WordmarkProps) {
     >
       <span
         className="font-display font-bold tracking-[-0.02em] text-current"
-        style={{ fontSize: c.fontSize, lineHeight: 1 }}
+        style={{ fontSize: c.fs, lineHeight: 1 }}
       >
         Riden
       </span>
       <svg
         width={c.arrow}
         height={c.arrow}
-        viewBox="0 0 16 16"
+        viewBox="0 0 32 32"
         fill="none"
         className="flex-shrink-0"
-        style={{ marginLeft: c.gap, marginTop: c.mt }}
+        style={{ marginLeft: c.gap, marginTop: c.top }}
         aria-hidden
       >
         <path
-          d="M 4 12 L 12 4 M 12 4 L 7 4 M 12 4 L 12 9"
+          d="M 4 28 L 28 4 M 28 4 L 14 4 M 28 4 L 28 18"
           stroke="#1D9E75"
-          strokeWidth={2}
+          strokeWidth={c.stroke}
           strokeLinecap="round"
           strokeLinejoin="round"
           fill="none"
+          vectorEffect="non-scaling-stroke"
         />
       </svg>
     </span>

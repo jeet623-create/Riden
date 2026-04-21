@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { Wordmark } from "@/components/brand/Wordmark"
 
 const COLUMNS: { heading: string; links: [string, string][] }[] = [
   {
@@ -42,12 +43,9 @@ export function MarketingFooter() {
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-10 pb-12 border-b border-white/5">
           <div className="col-span-2 md:col-span-1 max-w-xs">
-            <div className="inline-flex items-baseline">
-              <span className="font-display font-bold text-[26px] tracking-[-0.04em] text-white">Riden</span>
-              <span className="text-primary text-[16px] font-normal">↗</span>
-            </div>
+            <Wordmark size="md" className="text-white" />
             <p className="mt-4 text-[13px] leading-relaxed text-white/60">
-              A coordination layer for Thai ground transport. Built in Bangkok. Made for the world.
+              An innovation approach to Thailand. Made in Thailand. Made for the world.
             </p>
           </div>
           {COLUMNS.map(col => (

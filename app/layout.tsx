@@ -42,12 +42,9 @@ export const metadata: Metadata = {
     default: 'Riden — A coordination layer for Thailand',
     template: '%s · Riden',
   },
-  description: 'Riden orchestrates Thai ground transport — one portal for DMCs, LINE dispatch for operators, real-time tracking for drivers. Built in Bangkok. Made for the world.',
+  description: 'Riden orchestrates Thai ground transport — one portal for DMCs, LINE dispatch for operators, real-time tracking for drivers. An innovation approach to Thailand. Made in Thailand. Made for the world.',
   keywords: ['Thailand', 'DMC', 'transport', 'tourism', 'LINE', 'bookings', 'ground transport', 'Bangkok'],
   authors: [{ name: 'Riden (Thailand) Co., Ltd.' }],
-  icons: {
-    icon: '/brand/riden-monogram.svg',
-  },
   openGraph: {
     type: 'website',
     locale: 'en_US',
@@ -55,15 +52,11 @@ export const metadata: Metadata = {
     title: 'Riden — A coordination layer for Thailand',
     description: 'One portal for DMCs. LINE dispatch for operators. Real-time tracking for drivers. The coordination layer Thai tourism has been waiting for.',
     siteName: 'Riden',
-    images: [
-      { url: '/brand/riden-monogram.svg', width: 512, height: 512, alt: 'Riden' },
-    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Riden — A coordination layer for Thailand',
     description: 'One portal for DMCs. LINE dispatch for operators. Real-time tracking for drivers.',
-    images: ['/brand/riden-monogram.svg'],
   },
   alternates: {
     canonical: 'https://riden.me',

@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { Menu, X } from "lucide-react"
 import { LANG_NAMES, SUPPORTED_LANGS, type Lang } from "@/lib/marketing-i18n"
+import { Wordmark } from "@/components/brand/Wordmark"
 
 function getCookie(name: string): string | null {
   if (typeof document === "undefined") return null
@@ -38,9 +39,8 @@ export function MarketingNav() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-[rgba(3,5,9,0.6)] backdrop-blur-md border-b border-white/5">
       <div className="max-w-7xl mx-auto px-6 lg:px-10 h-16 flex items-center justify-between">
-        <Link href="/" className="inline-flex items-baseline gap-0 no-underline">
-          <span className="font-display font-bold text-[22px] tracking-[-0.04em] text-white">Riden</span>
-          <span className="text-primary text-[14px] font-normal -ml-0.5">↗</span>
+        <Link href="/" className="no-underline text-white">
+          <Wordmark size="sm" />
         </Link>
 
         <ul className="hidden md:flex items-center gap-7 list-none">
@@ -110,7 +110,7 @@ export function MarketingNav() {
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-50 bg-[#0A0C10] flex flex-col">
           <div className="h-16 flex items-center justify-between px-6 border-b border-white/5">
-            <span className="font-display font-bold text-[22px] tracking-[-0.04em] text-white">Riden<span className="text-primary text-[14px] font-normal">↗</span></span>
+            <Wordmark size="sm" className="text-white" />
             <button onClick={() => setMobileOpen(false)} className="text-white p-2"><X className="w-5 h-5" /></button>
           </div>
           <div className="flex-1 p-6 flex flex-col gap-3">

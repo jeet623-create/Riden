@@ -86,10 +86,12 @@
     align-items: flex-start;
   }
   .logo .arrow {
-    font-weight: 400;
-    font-size: 17px;
-    color: var(--teal);
-    margin-top: 3px;
+    width: 0.44em;
+    height: 0.44em;
+    margin-left: 0.11em;
+    margin-top: 0.14em;
+    flex-shrink: 0;
+    display: inline-block;
   }
   .nav-links {
     display: flex;
@@ -860,7 +862,7 @@
 
 <!-- ============ NAV ============ -->
 <nav>
-  <a class="logo" href="/">Riden<span class="arrow">↗</span></a>
+  <a class="logo" href="/">Riden<svg class="arrow" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M 4 28 L 28 4 M 28 4 L 14 4 M 28 4 L 28 18" stroke="#1D9E75" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none" vector-effect="non-scaling-stroke"/></svg></a>
   <ul class="nav-links">
     <li><a href="/for-dmcs" data-i18n="nav.system">For DMCs</a></li>
     <li><a href="/for-operators" data-i18n="nav.operators">Operators</a></li>
@@ -1168,7 +1170,7 @@
   <footer>
     <div class="footer-inner">
       <div class="f-brand">
-        <div class="logo">Riden<span class="arrow">↗</span></div>
+        <div class="logo">Riden<svg class="arrow" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M 4 28 L 28 4 M 28 4 L 14 4 M 28 4 L 28 18" stroke="#1D9E75" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none" vector-effect="non-scaling-stroke"/></svg></div>
         <p data-i18n="footer.tagline">A coordination layer for Thai ground transport. Built in Bangkok. Made for the world.</p>
       </div>
       <div>
