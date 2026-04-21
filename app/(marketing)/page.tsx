@@ -180,17 +180,20 @@ export default async function MarketingHome() {
             titleItalic={d.chapters.driver.titleItalic}
             body={d.chapters.driver.body}
           >
-            <div className="grid grid-cols-3 gap-2.5 w-full max-w-sm">
-              {["09:03 · BKK", "11:47 · HWY7", "12:15 · PTY"].map((stamp) => (
-                <div
-                  key={stamp}
-                  className="aspect-square rounded-lg border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-2.5 flex flex-col justify-end"
-                >
-                  <div className="font-mono text-[9px] tracking-[0.1em] text-white/60">
-                    {stamp}
+            <div className="w-full max-w-sm">
+              {/* Mobile: horizontal swipe carousel. Desktop: 3-col grid. */}
+              <div className="flex md:grid md:grid-cols-3 gap-2.5 overflow-x-auto md:overflow-visible snap-x snap-mandatory md:snap-none -mx-4 px-4 md:mx-0 md:px-0 pb-2 md:pb-0">
+                {["09:03 · BKK", "11:47 · HWY7", "12:15 · PTY"].map((stamp) => (
+                  <div
+                    key={stamp}
+                    className="flex-shrink-0 md:flex-shrink aspect-square w-[70%] md:w-auto snap-center rounded-lg border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-2.5 flex flex-col justify-end"
+                  >
+                    <div className="font-mono text-[9px] tracking-[0.1em] text-white/60">
+                      {stamp}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </Chapter>
 

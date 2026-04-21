@@ -105,7 +105,7 @@ export function MarketingNav({ lang, dict }: NavProps) {
 
         <button
           onClick={() => setMobileOpen(true)}
-          className="md:hidden text-white p-2"
+          className="md:hidden text-white w-11 h-11 -mr-2 flex items-center justify-center"
           aria-label="Open menu"
         >
           <Menu className="w-5 h-5" />
@@ -118,7 +118,7 @@ export function MarketingNav({ lang, dict }: NavProps) {
             <Wordmark size="sm" className="text-white" />
             <button
               onClick={() => setMobileOpen(false)}
-              className="text-white p-2"
+              className="text-white w-11 h-11 -mr-2 flex items-center justify-center"
               aria-label="Close menu"
             >
               <X className="w-5 h-5" />
@@ -140,7 +140,7 @@ export function MarketingNav({ lang, dict }: NavProps) {
                 <button
                   key={l}
                   onClick={() => switchLang(l)}
-                  className={`h-10 min-w-[44px] px-3 rounded-md text-[12px] font-mono border ${
+                  className={`h-11 min-w-[44px] px-3 rounded-md text-[13px] font-mono border ${
                     l === lang
                       ? "bg-primary/15 border-primary/40 text-primary"
                       : "border-white/10 text-white/60"

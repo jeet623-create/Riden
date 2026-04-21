@@ -81,4 +81,5 @@ export function DemoForm({ kind = "demo", title, subtitle, compact = false }: {
   )
 }
 
-const inputCls = "bg-white/[0.04] border border-white/10 rounded-md px-3.5 py-3 text-[14px] text-white placeholder:text-white/40 focus:outline-none focus:border-primary transition-colors"
+// 16px font-size on inputs prevents iOS Safari from zooming on focus; min-h 44px is touch-target minimum.
+const inputCls = "bg-white/[0.04] border border-white/10 rounded-md px-3.5 py-3 text-[16px] min-h-[44px] text-white placeholder:text-white/40 focus:outline-none focus:border-primary transition-colors"
