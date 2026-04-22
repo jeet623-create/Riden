@@ -245,30 +245,31 @@ export default function AdminSubscriptionsPage() {
         proofUrl ? `Proof: ${proofUrl}` : "",
       ].filter(Boolean).join(" | ") || null
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/admin-subscriptions`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
-            dmc_id: selected.id,
-            plan: planId,
-            start_date: startDate,
-            end_date: endDate,
-            admin_id: admin.id,
-            notes: combinedNotes,
-          }),
-        }
-      )
-      if (!res.ok) {
-        const text = await res.text().catch(() => "")
-        throw new Error(`Activation failed (${res.status}) ${text}`.trim())
+      // Uses supabase.functions.invoke so the current user's access token is
+      // sent automatically (not the anon key). Required by the hardened
+      // admin-subscriptions edge function which validates the JWT belongs to
+      // an active admin_users row.
+      const { data: result, error: invokeError } = await supabase.functions.invoke<{
+        plan?: string
+        dmc_name?: string
+        email_sent?: boolean
+        error?: string
+      }>("admin-subscriptions", {
+        body: {
+          dmc_id: selected.id,
+          plan: planId,
+          start_date: startDate,
+          end_date: endDate,
+          admin_id: admin.id,
+          notes: combinedNotes,
+        },
+      })
+      if (invokeError) {
+        throw new Error(invokeError.message || "Activation failed")
       }
-      const result: { plan?: string; dmc_name?: string; email_sent?: boolean } =
-        await res.json().catch(() => ({}))
+      if (result?.error) {
+        throw new Error(result.error)
+      }
 
       const planLabel = result.plan
         ? result.plan.charAt(0).toUpperCase() + result.plan.slice(1)
