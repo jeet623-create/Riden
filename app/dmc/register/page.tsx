@@ -48,8 +48,9 @@ export default function DMCRegisterPage() {
     })
 
     if (signUpError) {
-      setError(signUpError.message || "Registration failed.")
-      toast.error(signUpError.message || "Registration failed.")
+      const friendly = friendlyAuthError(signUpError.message)
+      setError(friendly)
+      toast.error(friendly)
       setIsLoading(false)
       return
     }
@@ -59,6 +60,18 @@ export default function DMCRegisterPage() {
       setError("Sign-up returned no user. Please try again.")
       toast.error("Sign-up returned no user. Please try again.")
       setIsLoading(false)
+      return
+    }
+
+    // If Supabase is configured to require email confirmation, signUp succeeds
+    // but returns no session. In that case we can't write to dmc_users from the
+    // browser (RLS will reject), so surface a "check your inbox" message and
+    // stop here — a confirmation-triggered DB flow should create the dmc_users
+    // row server-side. For instant-login setups (confirmation disabled) a
+    // session is present and we proceed with the insert below.
+    if (!signUpData.session) {
+      toast.success("Check your inbox to confirm your email, then sign in.")
+      router.push("/dmc/login")
       return
     }
 
@@ -250,6 +263,23 @@ export default function DMCRegisterPage() {
 
 const fieldClass =
   "w-full h-10 px-3 rounded-md border text-[14px] transition-colors focus:outline-none focus:ring-2 focus:ring-[color:var(--studio-teal)] bg-white"
+
+function friendlyAuthError(raw: string): string {
+  const msg = (raw || "").toLowerCase()
+  if (msg.includes("rate limit") || msg.includes("too many")) {
+    return "Too many sign-ups recently. Please try again in a minute, or contact support if this persists."
+  }
+  if (msg.includes("already registered") || msg.includes("user already")) {
+    return "An account with this email already exists. Try signing in instead."
+  }
+  if (msg.includes("invalid") && msg.includes("email")) {
+    return "That email address looks invalid. Please double-check and try again."
+  }
+  if (msg.includes("password")) {
+    return raw // password rules are clear enough to pass through
+  }
+  return raw || "Registration failed. Please try again."
+}
 
 function Field({
   label,
