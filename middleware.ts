@@ -2,32 +2,18 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { countryToLang, SUPPORTED_LANGS, type Lang } from '@/lib/marketing-i18n'
 
+// Public routes that never require an auth cookie refresh in middleware.
+// Skipping the Supabase getUser() roundtrip keeps these pages fast.
+const PUBLIC_ROUTES = new Set([
+  '/dmc/login',
+  '/dmc/register',
+  '/dmc/forgot-password',
+  '/dmc/reset-password',
+])
+
 export async function middleware(request: NextRequest) {
-  // 1. Session refresh via @supabase/ssr (keeps auth cookies fresh)
-  let response = NextResponse.next({ request })
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => request.cookies.getAll(),
-        setAll: (cookiesToSet) => {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
-          response = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
-  // Must call getUser() for session refresh; do NOT remove
-  const { data: { user } } = await supabase.auth.getUser()
-
-  // 2. Hostname-based rewrites (admin.*, dmc.*, apex marketing)
+  // 1. Hostname-based rewrites (admin.*, dmc.*, apex marketing) — compute first
+  //    so we know the effective route before deciding whether to touch Supabase.
   const hostname = request.headers.get('host') || ''
   const url = request.nextUrl.clone()
   let newPath: string | null = null
@@ -46,6 +32,36 @@ export async function middleware(request: NextRequest) {
   }
 
   const finalPathname = newPath || url.pathname
+
+  // 2. Session refresh via @supabase/ssr (keeps auth cookies fresh) — skipped
+  //    for known-public routes so the login/register pages don't block on a
+  //    Supabase network call.
+  let response = NextResponse.next({ request })
+  let user: { id: string } | null = null
+
+  if (!PUBLIC_ROUTES.has(finalPathname)) {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll: () => request.cookies.getAll(),
+          setAll: (cookiesToSet) => {
+            cookiesToSet.forEach(({ name, value }) =>
+              request.cookies.set(name, value)
+            )
+            response = NextResponse.next({ request })
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
+    // Must call getUser() for session refresh; do NOT remove for protected routes
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  }
 
   // 2.5. Admin auth gate — unauthenticated hits to /admin/* (except login) go to /admin/login
   const isAdminProtected =
