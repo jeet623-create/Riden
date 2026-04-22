@@ -51,7 +51,6 @@ const PLANS: Plan[] = [
   { id: "starter", name: "Starter", price: 2000, features: ["Up to 50 bookings/mo", "Basic LINE notifications", "Email support"] },
   { id: "growth", name: "Growth", price: 4000, features: ["Up to 200 bookings/mo", "Priority LINE notifications", "Priority support"] },
   { id: "pro", name: "Pro", price: 6000, features: ["Unlimited bookings", "All features", "Dedicated support"] },
-  { id: "custom", name: "Custom", price: 0, features: ["Custom pricing", "Tailored plan", "Direct sales"] },
 ]
 
 type ListTab = "awaiting" | "recent" | "all"
@@ -71,7 +70,6 @@ export default function AdminSubscriptionsPage() {
 
   // form state
   const [planId, setPlanId] = useState<string>("starter")
-  const [customPrice, setCustomPrice] = useState<string>("")
   const [startDate, setStartDate] = useState<string>(new Date().toISOString().slice(0, 10))
   const [endDate, setEndDate] = useState<string>("")
   const [proofFile, setProofFile] = useState<File | null>(null)
@@ -201,7 +199,6 @@ export default function AdminSubscriptionsPage() {
   // reset form when switching DMC
   useEffect(() => {
     setPlanId("starter")
-    setCustomPrice("")
     setStartDate(new Date().toISOString().slice(0, 10))
     setEndDate(addDaysISO(new Date().toISOString().slice(0, 10), 30))
     setProofFile(null)
@@ -210,9 +207,8 @@ export default function AdminSubscriptionsPage() {
   }, [selectedId])
 
   const total = useMemo(() => {
-    if (planId === "custom") return Number(customPrice) || 0
     return PLANS.find(p => p.id === planId)?.price ?? 0
-  }, [planId, customPrice])
+  }, [planId])
 
   async function uploadProofIfAny(dmcId: string): Promise<string | null> {
     if (!proofFile) return null
@@ -229,10 +225,6 @@ export default function AdminSubscriptionsPage() {
   async function activate() {
     if (!selected) return
     if (!startDate || !endDate) { toast.error("Billing dates required"); return }
-    if (planId === "custom") {
-      const p = Number(customPrice)
-      if (!p || p <= 0) { toast.error("Custom price must be > 0"); return }
-    }
     setSubmitting(true)
     try {
       const supabase = createClient()
@@ -408,7 +400,7 @@ export default function AdminSubscriptionsPage() {
                           </div>
                         </div>
                         <div className="font-mono text-[13px] text-foreground mt-0.5">
-                          {p.id === "custom" ? "฿ custom" : `฿${p.price.toLocaleString()}`}
+                          ฿{p.price.toLocaleString()}
                           <span className="text-[11px] text-muted ml-1">/ period</span>
                         </div>
                         <ul className="mt-2 space-y-0.5">
@@ -420,16 +412,6 @@ export default function AdminSubscriptionsPage() {
                     )
                   })}
                 </div>
-                {planId === "custom" && (
-                  <div className="mt-3">
-                    <label className="font-mono text-[10px] uppercase text-muted tracking-wider mb-1 block">Custom Price (THB)</label>
-                    <input
-                      type="number" min={0} value={customPrice}
-                      onChange={e => setCustomPrice(e.target.value)}
-                      className="h-8 w-40 bg-background border border-input rounded-md px-2 text-[13px] text-foreground focus:outline-none focus:border-primary font-mono"
-                    />
-                  </div>
-                )}
               </Panel>
 
               <Panel title="BILLING PERIOD" icon={<CalendarIcon className="w-3 h-3" />}>
