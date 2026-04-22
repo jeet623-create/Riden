@@ -42,55 +42,40 @@ export default function DMCRegisterPage() {
     setIsLoading(true)
     const supabase = createClient()
 
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
+    // Registration goes through a SECURITY DEFINER RPC (public.dmc_register)
+    // that creates the auth user pre-confirmed + fills in the dmc_users row.
+    // This bypasses Supabase's built-in signUp email flow entirely — no SMTP
+    // rate limit applies. After success we sign in to establish a session.
+    const { data: rpcData, error: rpcError } = await supabase.rpc("dmc_register", {
+      p_email: email,
+      p_password: password,
+      p_company_name: companyName,
+      p_contact_person: contactPerson,
+      p_phone: phone || null,
+      p_country: country || null,
     })
 
-    if (signUpError) {
-      const friendly = friendlyAuthError(signUpError.message)
+    if (rpcError) {
+      const friendly = friendlyAuthError(rpcError.message)
       setError(friendly)
       toast.error(friendly)
       setIsLoading(false)
       return
     }
 
-    const authUser = signUpData.user
-    if (!authUser) {
-      setError("Sign-up returned no user. Please try again.")
-      toast.error("Sign-up returned no user. Please try again.")
+    const result = rpcData as { ok?: boolean; error?: string } | null
+    if (!result?.ok) {
+      const msg = friendlyAuthError(result?.error || "Registration failed. Please try again.")
+      setError(msg)
+      toast.error(msg)
       setIsLoading(false)
       return
     }
 
-    // If Supabase is configured to require email confirmation, signUp succeeds
-    // but returns no session. In that case we can't write to dmc_users from the
-    // browser (RLS will reject), so surface a "check your inbox" message and
-    // stop here — a confirmation-triggered DB flow should create the dmc_users
-    // row server-side. For instant-login setups (confirmation disabled) a
-    // session is present and we proceed with the insert below.
-    if (!signUpData.session) {
-      toast.success("Check your inbox to confirm your email, then sign in.")
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    if (signInError) {
+      toast.success("Account created. Please sign in.")
       router.push("/dmc/login")
-      return
-    }
-
-    const { error: insertError } = await supabase.from("dmc_users").insert({
-      id: authUser.id,
-      company_name: companyName,
-      contact_person: contactPerson,
-      email,
-      phone: phone || null,
-      country: country || null,
-      subscription_plan: "trial",
-      subscription_status: "active",
-      is_active: true,
-    })
-
-    if (insertError) {
-      setError(insertError.message)
-      toast.error(insertError.message)
-      setIsLoading(false)
       return
     }
 
