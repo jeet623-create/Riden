@@ -2,7 +2,6 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { LanguageProvider } from '@/hooks/use-language'
-import { CustomCursor } from '@/components/custom-cursor'
 import { DmcSidebar } from '@/components/dmc/sidebar'
 import { DmcTopbar } from '@/components/dmc/topbar'
 
@@ -22,7 +21,6 @@ export default async function DmcLayout({ children }: { children: React.ReactNod
   if (isPublic) {
     return (
       <LanguageProvider>
-        <CustomCursor />
         {children}
       </LanguageProvider>
     )
@@ -45,7 +43,6 @@ export default async function DmcLayout({ children }: { children: React.ReactNod
 
   return (
     <LanguageProvider>
-      <CustomCursor />
       <div className="min-h-screen bg-background dot-grid">
         <DmcSidebar companyName={dmc.company_name} subscriptionPlan={dmc.subscription_plan} />
         <div className="pl-[232px] transition-all duration-300">
