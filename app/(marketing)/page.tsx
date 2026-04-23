@@ -20,73 +20,110 @@ export default async function MarketingHome() {
   return (
     <div className="bg-[#05080e] text-white">
       {/* ============ HERO ============ */}
-      <section className="relative min-h-[calc(100vh-4rem)] -mt-16 pt-16 overflow-hidden bg-[#020308]">
+      <section className="relative -mt-16 pt-16 overflow-hidden bg-[#020308]">
         <AmbientStarfield />
         <SatelliteGlow />
 
-        {/* Subtle top-to-bottom fade + soft vignette. Replaces the old grain + NASA bar. */}
+        {/* Soft top-and-bottom vignette for cinematic framing */}
         <div
           aria-hidden
           className="absolute inset-0 pointer-events-none z-40"
           style={{
             background:
-              "radial-gradient(ellipse at 50% 30%, transparent 40%, rgba(0,0,0,0.55) 100%)",
+              "radial-gradient(ellipse at 50% 35%, transparent 35%, rgba(0,0,0,0.65) 100%)",
           }}
         />
 
-        <div className="relative z-10 flex flex-col items-center justify-start px-4 pt-14 md:pt-24 pb-16 md:pb-20">
-          <div
-            className="mb-8 md:mb-10 inline-flex items-center gap-2.5 rounded-full border px-4 py-1.5 text-[11px] font-mono uppercase tracking-[0.22em]"
-            style={{
-              borderColor: "rgba(46,229,160,0.25)",
-              background: "rgba(29,158,117,0.06)",
-              color: "rgba(237,230,215,0.8)",
-            }}
-          >
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#2ee5a0] motion-safe:animate-pulse" />
-            {d.hero.pill}
-          </div>
+        <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-10 pt-10 md:pt-16 pb-16 md:pb-24">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-12 lg:gap-16 xl:gap-24 items-center">
+            {/* ─── LEFT: Content column ─── */}
+            <div className="flex flex-col items-start">
+              <div
+                className="mb-7 inline-flex items-center gap-2.5 rounded-full border px-3.5 py-1 text-[11px] font-mono uppercase tracking-[0.22em]"
+                style={{
+                  borderColor: "rgba(46,229,160,0.25)",
+                  background: "rgba(29,158,117,0.05)",
+                  color: "rgba(237,230,215,0.8)",
+                }}
+              >
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#2ee5a0] motion-safe:animate-pulse" />
+                {d.hero.pill}
+              </div>
 
-          <h1
-            className="font-display text-center font-semibold text-white leading-[1.02] mb-6"
-            style={{
-              fontSize: "clamp(40px, 8.5vw, 96px)",
-              letterSpacing: "-0.035em",
-              maxWidth: 1000,
-            }}
-          >
-            {d.hero.titleLine1}
-            <br />
-            {d.hero.titleLine2Pre}{" "}
-            <em className="text-[#2ee5a0] font-medium italic">{d.hero.titleEmphasis}</em>
-            <span className="not-italic text-[#2ee5a0] font-medium ml-1.5">{d.hero.arrow}</span>
-          </h1>
+              <h1
+                className="font-display font-semibold text-white mb-6"
+                style={{
+                  fontSize: "clamp(40px, 6.2vw, 76px)",
+                  lineHeight: 1.02,
+                  letterSpacing: "-0.035em",
+                }}
+              >
+                {d.hero.titleLine1}
+                <br />
+                {d.hero.titleLine2Pre}{" "}
+                <em className="text-[#2ee5a0] font-medium italic">{d.hero.titleEmphasis}</em>
+                <span className="not-italic text-[#2ee5a0] font-medium ml-1.5">{d.hero.arrow}</span>
+              </h1>
 
-          <p className="text-center text-white/75 mb-2 text-[16px] md:text-[19px] max-w-[620px] font-light leading-[1.5]">
-            {d.hero.sub1}
-          </p>
-          <p className="text-center text-white/45 mb-12 md:mb-14 text-[13px] md:text-[14px] tracking-wide">
-            {d.hero.sub2}
-          </p>
+              <p className="text-white/70 text-[17px] md:text-[19px] font-light leading-[1.55] mb-10 max-w-[520px]">
+                {d.hero.sub1}
+              </p>
 
-          <div className="relative w-full max-w-5xl flex justify-center">
-            <LiveEventCards />
-            <ThailandHero />
-          </div>
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center mb-10">
+                <a
+                  href="https://dmc.riden.me/dmc/register"
+                  className="inline-flex items-center justify-center rounded-full bg-[#2ee5a0] text-[#05080e] px-7 h-12 min-w-[180px] text-[14px] font-medium no-underline hover:bg-white transition-colors"
+                >
+                  {d.hero.ctaPrimary} ↗
+                </a>
+                <Link
+                  href="/for-dmcs"
+                  className="inline-flex items-center justify-center rounded-full border border-white/15 text-white px-7 h-12 min-w-[180px] text-[14px] no-underline hover:bg-white/5 hover:border-white/30 transition-colors"
+                >
+                  {d.hero.ctaSecondary}
+                </Link>
+              </div>
 
-          <div className="mt-12 md:mt-14 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-            <a
-              href="https://dmc.riden.me/dmc/register"
-              className="inline-flex items-center justify-center rounded-full bg-[#2ee5a0] text-[#05080e] px-7 h-12 min-w-[200px] text-[14px] font-medium no-underline hover:bg-white transition-colors"
-            >
-              {d.hero.ctaPrimary} ↗
-            </a>
-            <Link
-              href="/for-dmcs"
-              className="inline-flex items-center justify-center rounded-full border border-white/15 text-white px-7 h-12 min-w-[200px] text-[14px] no-underline hover:bg-white/5 hover:border-white/30 transition-colors"
-            >
-              {d.hero.ctaSecondary}
-            </Link>
+              {/* Social-proof mini-stats row */}
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-3 pt-6 border-t border-white/5 w-full max-w-[520px]">
+                {[
+                  { v: "77", l: d.metrics.provinces },
+                  { v: "2.4k", l: d.metrics.operators },
+                  { v: "99.2%", l: d.metrics.ontime },
+                ].map((s) => (
+                  <div key={s.l} className="flex items-baseline gap-2">
+                    <span className="font-display font-semibold text-white text-[18px] tracking-[-0.02em]">
+                      {s.v}
+                    </span>
+                    <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/45">
+                      {s.l}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.22em] text-white/35">
+                {d.hero.sub2}
+              </p>
+            </div>
+
+            {/* ─── RIGHT: Thailand map visual ─── */}
+            <div className="relative w-full flex justify-center lg:justify-end">
+              {/* Soft teal halo behind the map */}
+              <div
+                aria-hidden
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background:
+                    "radial-gradient(ellipse 70% 55% at 55% 45%, rgba(46,229,160,0.20), transparent 70%)",
+                  filter: "blur(24px)",
+                }}
+              />
+              <div className="relative w-full max-w-[380px] lg:max-w-[420px]">
+                <LiveEventCards />
+                <ThailandHero />
+              </div>
+            </div>
           </div>
         </div>
       </section>
