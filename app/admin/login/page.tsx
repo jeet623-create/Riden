@@ -1,14 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { Eye, EyeOff, Shield } from "lucide-react"
+import { Eye, EyeOff, Shield, Loader2 } from "lucide-react"
 import { Wordmark } from "@/components/brand/Wordmark"
 import { createClient } from "@/lib/supabase/client"
 
 export default function AdminLoginPage() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const nextPath = searchParams?.get("next") || "/admin/dashboard"
   const [email, setEmail] = useState("")
@@ -142,9 +141,13 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full h-11 bg-primary text-primary-foreground rounded-md font-medium text-[14px] hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-opacity"
+            className="w-full h-11 bg-primary text-primary-foreground rounded-md font-medium text-[14px] hover:opacity-90 disabled:opacity-80 disabled:cursor-not-allowed transition-opacity inline-flex items-center justify-center gap-1.5"
           >
-            {isLoading ? "..." : "Sign in"}
+            {isLoading ? (
+              <><Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> Signing in…</>
+            ) : (
+              "Sign in"
+            )}
           </button>
         </form>
 

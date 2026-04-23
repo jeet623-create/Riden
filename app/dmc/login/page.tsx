@@ -1,9 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { Wordmark } from "@/components/brand/Wordmark"
@@ -19,7 +19,6 @@ const SAND_MUTED = "#8E887A"
 const TEAL = "#1D9E75"
 
 export default function DMCLoginPage() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const initialError = searchParams.get("error") === "no_profile"
     ? "No DMC account linked to this login. Contact Riden support."
@@ -52,8 +51,10 @@ export default function DMCLoginPage() {
       setIsLoading(false)
       return
     }
-    router.push("/dmc/dashboard")
-    router.refresh()
+    // Hard nav: sends the fresh session cookie on the very first server request
+    // to /dmc/dashboard. Faster than router.push + router.refresh (which does
+    // two SSR passes and occasionally gets stuck on a stale RSC cache).
+    window.location.assign("/dmc/dashboard")
   }
 
   async function resendConfirmation() {
@@ -192,10 +193,14 @@ export default function DMCLoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-11 rounded-md font-medium text-[14px] text-white inline-flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed hover:opacity-90"
+              className="w-full h-11 rounded-md font-medium text-[14px] text-white inline-flex items-center justify-center gap-1.5 disabled:opacity-80 disabled:cursor-not-allowed hover:opacity-90"
               style={{ background: TEAL }}
             >
-              {isLoading ? "..." : <>Sign in <span aria-hidden>→</span></>}
+              {isLoading ? (
+                <><Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> Signing in…</>
+              ) : (
+                <>Sign in <span aria-hidden>→</span></>
+              )}
             </button>
           </form>
 
