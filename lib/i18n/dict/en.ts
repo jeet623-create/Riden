@@ -13,22 +13,45 @@ export const en: MarketingDict = {
     beginTrial: "Begin trial",
   },
   hero: {
-    pill: "77 PROVINCES · ONE NETWORK · ALWAYS ON",
+    pill: "Live across 77 provinces",
     h1: "Where Thailand moves at night",
     titleLine1: "The coordination layer",
     titleLine2Pre: "for",
     titleEmphasis: "Thai tourism",
     arrow: "↗",
     sub1: "Every booking. Every driver. Every province. Live.",
-    sub2: "An innovation approach to Thailand. Made in Thailand. Made for the world.",
+    sub2: "Built in Thailand, for the world.",
     ctaPrimary: "Begin trial",
-    ctaSecondary: "See the coordination layer",
+    ctaSecondary: "See it move",
   },
   metrics: {
     provinces: "Provinces",
     operators: "Operators",
     trips: "Trips",
     ontime: "On-time",
+  },
+  whyNow: {
+    kicker: "● WHY NOW",
+    title1: "A market the size of",
+    titleItalic: "a country, still run on",
+    sub: "WhatsApp threads, spreadsheets, and phone calls. Thailand is rebuilding its tourism engine — and choosing the system it will run on for the next decade.",
+    cards: [
+      {
+        tag: "MARKET",
+        headline: "$58B rebuilt",
+        body: "Thailand's tourism economy is projected to pass pre-pandemic highs in 2026. Ground transport is the single largest operational spend inside that number — and the least digitised.",
+      },
+      {
+        tag: "BEHAVIOUR",
+        headline: "95% on LINE",
+        body: "Every Thai driver and operator already lives inside LINE. RIDEN dispatches there — no new app, no training, no behaviour change. The distribution problem is solved.",
+      },
+      {
+        tag: "MOAT",
+        headline: "Fragmented by default",
+        body: "2,400+ operators. 77 provinces. Zero dominant platform. A coordination layer, once owned, is structurally hard to dislodge — and we are twelve months ahead.",
+      },
+    ],
   },
   chapters: {
     dmc: {

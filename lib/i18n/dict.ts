@@ -1,6 +1,4 @@
-// Marketing translation dictionary.
-// EN + TH are hand-written primary. ZH/KO/AR/HI/JA are initial auto-translations.
-// TODO: native speaker review before public launch — especially ZH/KO/AR/HI/JA.
+// Marketing translation dictionary — English and Thai only.
 
 export type MarketingDict = {
   nav: {
@@ -32,6 +30,13 @@ export type MarketingDict = {
     operators: string
     trips: string
     ontime: string
+  }
+  whyNow: {
+    kicker: string
+    title1: string
+    titleItalic: string
+    sub: string
+    cards: { tag: string; headline: string; body: string }[]
   }
   chapters: {
     dmc: {

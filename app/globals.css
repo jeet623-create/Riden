@@ -292,15 +292,3 @@ button:active, [role="button"]:active {
   code, pre, kbd, samp { font-family: var(--font-mono); }
 }
 
-/* 3m.7 — hero film-grain drift keyframes. Used by components/marketing/hero/HeroAtmosphere. */
-@keyframes ridenGrain {
-  0%   { transform: translate(0, 0); }
-  25%  { transform: translate(-1px, 1px); }
-  50%  { transform: translate(1px, -1px); }
-  75%  { transform: translate(-1px, -1px); }
-  100% { transform: translate(1px, 1px); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  [style*="ridenGrain"] { animation: none !important; }
-}

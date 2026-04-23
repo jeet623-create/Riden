@@ -16,7 +16,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
       dir={rtl ? "rtl" : "ltr"}
       lang={lang}
       className={`bg-[#030509] text-white min-h-screen flex flex-col ${
-        lang === "th" ? "font-thai" : lang === "zh" ? "" : ""
+        lang === "th" ? "font-thai" : ""
       }`}
     >
       <MarketingNav lang={lang} dict={dict.nav} />

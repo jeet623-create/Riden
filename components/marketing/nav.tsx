@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useState } from "react"
 import { Menu, X } from "lucide-react"
-import { LANG_NAMES, SUPPORTED_LANGS, type Lang } from "@/lib/marketing-i18n"
+import { SUPPORTED_LANGS, type Lang } from "@/lib/marketing-i18n"
 import type { MarketingDict } from "@/lib/i18n/dict"
 import { Wordmark } from "@/components/brand/Wordmark"
 
@@ -18,17 +18,14 @@ type NavProps = {
   dict: MarketingDict["nav"]
 }
 
+const LANG_LABEL: Record<Lang, string> = { en: "EN", th: "TH" }
+
 export function MarketingNav({ lang, dict }: NavProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [langMenuOpen, setLangMenuOpen] = useState(false)
 
   function switchLang(next: Lang) {
-    if (next === lang) {
-      setLangMenuOpen(false)
-      return
-    }
+    if (next === lang) return
     setCookie("riden_lang", next)
-    setLangMenuOpen(false)
     if (typeof window !== "undefined") window.location.reload()
   }
 
@@ -61,33 +58,26 @@ export function MarketingNav({ lang, dict }: NavProps) {
           ))}
         </ul>
 
-        <div className="hidden md:flex items-center gap-3">
-          <div className="relative">
-            <button
-              onClick={() => setLangMenuOpen((o) => !o)}
-              className="h-8 px-2.5 rounded-md text-[12px] font-mono text-white/60 hover:text-white transition-colors inline-flex items-center gap-1"
-              aria-label="Change language"
-            >
-              {LANG_NAMES[lang]}
-              <span className="text-[9px]">▾</span>
-            </button>
-            {langMenuOpen && (
-              <div className="absolute right-0 top-full mt-1 bg-[#0A0C10] border border-white/10 rounded-md overflow-hidden shadow-xl">
-                {SUPPORTED_LANGS.map((l) => (
-                  <button
-                    key={l}
-                    onClick={() => switchLang(l)}
-                    className={`block w-full text-left px-3 py-1.5 text-[12px] whitespace-nowrap ${
-                      l === lang
-                        ? "bg-primary/15 text-primary"
-                        : "text-white/80 hover:bg-white/5 hover:text-white"
-                    }`}
-                  >
-                    {LANG_NAMES[l]}
-                  </button>
-                ))}
-              </div>
-            )}
+        <div className="hidden md:flex items-center gap-4">
+          <div
+            role="group"
+            aria-label="Language"
+            className="inline-flex items-center rounded-full border border-white/10 p-0.5 bg-white/[0.02]"
+          >
+            {SUPPORTED_LANGS.map((l) => (
+              <button
+                key={l}
+                onClick={() => switchLang(l)}
+                aria-pressed={l === lang}
+                className={`h-7 px-2.5 rounded-full text-[11px] font-mono tracking-[0.1em] transition-colors ${
+                  l === lang
+                    ? "bg-white/10 text-white"
+                    : "text-white/50 hover:text-white"
+                }`}
+              >
+                {LANG_LABEL[l]}
+              </button>
+            ))}
           </div>
           <a
             href="https://dmc.riden.me/dmc/login"
@@ -135,18 +125,19 @@ export function MarketingNav({ lang, dict }: NavProps) {
                 {label}
               </Link>
             ))}
-            <div className="mt-6 flex flex-wrap gap-2">
+            <div className="mt-6 inline-flex items-center rounded-full border border-white/10 p-0.5 bg-white/[0.02] self-start">
               {SUPPORTED_LANGS.map((l) => (
                 <button
                   key={l}
                   onClick={() => switchLang(l)}
-                  className={`h-11 min-w-[44px] px-3 rounded-md text-[13px] font-mono border ${
+                  aria-pressed={l === lang}
+                  className={`h-9 px-4 rounded-full text-[12px] font-mono tracking-[0.1em] transition-colors ${
                     l === lang
-                      ? "bg-primary/15 border-primary/40 text-primary"
-                      : "border-white/10 text-white/60"
+                      ? "bg-white/10 text-white"
+                      : "text-white/50"
                   }`}
                 >
-                  {LANG_NAMES[l]}
+                  {LANG_LABEL[l]}
                 </button>
               ))}
             </div>

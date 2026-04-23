@@ -4,15 +4,13 @@ import { AmbientStarfield } from "@/components/marketing/hero/AmbientStarfield"
 import { SatelliteGlow } from "@/components/marketing/hero/SatelliteGlow"
 import { ThailandHero } from "@/components/marketing/hero/ThailandHero"
 import { LiveEventCards } from "@/components/marketing/hero/LiveEventCards"
-import { NasaBar } from "@/components/marketing/hero/NasaBar"
-import { HeroAtmosphere } from "@/components/marketing/hero/HeroAtmosphere"
 import { DemoForm } from "@/components/marketing/demo-form"
 import { readLang, getDict } from "@/lib/i18n"
 
 export const metadata: Metadata = {
-  title: "Riden — A coordination layer for Thailand",
+  title: "Riden — The coordination layer for Thai tourism",
   description:
-    "Every booking. Every driver. Every province. Live. An innovation approach to Thailand. Made in Thailand. Made for the world.",
+    "Every booking. Every driver. Every province. Live. Built in Thailand, for the world.",
 }
 
 export default async function MarketingHome() {
@@ -25,16 +23,24 @@ export default async function MarketingHome() {
       <section className="relative min-h-[calc(100vh-4rem)] -mt-16 pt-16 overflow-hidden bg-[#020308]">
         <AmbientStarfield />
         <SatelliteGlow />
-        <NasaBar />
-        <HeroAtmosphere />
 
-        <div className="relative z-10 flex flex-col items-center justify-start px-4 pt-10 md:pt-16 pb-10 md:pb-16">
+        {/* Subtle top-to-bottom fade + soft vignette. Replaces the old grain + NASA bar. */}
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none z-40"
+          style={{
+            background:
+              "radial-gradient(ellipse at 50% 30%, transparent 40%, rgba(0,0,0,0.55) 100%)",
+          }}
+        />
+
+        <div className="relative z-10 flex flex-col items-center justify-start px-4 pt-14 md:pt-24 pb-16 md:pb-20">
           <div
-            className="mb-6 md:mb-8 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-[11px] font-mono uppercase tracking-[0.2em]"
+            className="mb-8 md:mb-10 inline-flex items-center gap-2.5 rounded-full border px-4 py-1.5 text-[11px] font-mono uppercase tracking-[0.22em]"
             style={{
-              borderColor: "rgba(46,229,160,0.3)",
-              background: "rgba(29,158,117,0.08)",
-              color: "rgba(237,230,215,0.85)",
+              borderColor: "rgba(46,229,160,0.25)",
+              background: "rgba(29,158,117,0.06)",
+              color: "rgba(237,230,215,0.8)",
             }}
           >
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#2ee5a0] motion-safe:animate-pulse" />
@@ -42,24 +48,24 @@ export default async function MarketingHome() {
           </div>
 
           <h1
-            className="font-display text-center font-semibold text-white leading-[1.05] mb-5"
+            className="font-display text-center font-semibold text-white leading-[1.02] mb-6"
             style={{
-              fontSize: "clamp(36px, 8vw, 80px)",
-              letterSpacing: "-0.03em",
-              maxWidth: 900,
+              fontSize: "clamp(40px, 8.5vw, 96px)",
+              letterSpacing: "-0.035em",
+              maxWidth: 1000,
             }}
           >
             {d.hero.titleLine1}
             <br />
             {d.hero.titleLine2Pre}{" "}
             <em className="text-[#2ee5a0] font-medium italic">{d.hero.titleEmphasis}</em>
-            <span className="not-italic text-[#2ee5a0] font-medium ml-1">{d.hero.arrow}</span>
+            <span className="not-italic text-[#2ee5a0] font-medium ml-1.5">{d.hero.arrow}</span>
           </h1>
 
-          <p className="text-center text-white/70 mb-3 text-[15px] md:text-[18px] max-w-[640px]">
+          <p className="text-center text-white/75 mb-2 text-[16px] md:text-[19px] max-w-[620px] font-light leading-[1.5]">
             {d.hero.sub1}
           </p>
-          <p className="text-center text-white/50 mb-10 text-[13px] md:text-[15px] max-w-[640px]">
+          <p className="text-center text-white/45 mb-12 md:mb-14 text-[13px] md:text-[14px] tracking-wide">
             {d.hero.sub2}
           </p>
 
@@ -68,16 +74,16 @@ export default async function MarketingHome() {
             <ThailandHero />
           </div>
 
-          <div className="mt-10 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+          <div className="mt-12 md:mt-14 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
             <a
               href="https://dmc.riden.me/dmc/register"
-              className="inline-flex items-center justify-center rounded-full bg-[#2ee5a0] text-[#05080e] px-6 h-11 min-w-[180px] text-sm font-medium no-underline hover:bg-[#1D9E75] transition-colors"
+              className="inline-flex items-center justify-center rounded-full bg-[#2ee5a0] text-[#05080e] px-7 h-12 min-w-[200px] text-[14px] font-medium no-underline hover:bg-white transition-colors"
             >
               {d.hero.ctaPrimary} ↗
             </a>
             <Link
               href="/for-dmcs"
-              className="inline-flex items-center justify-center rounded-full border border-white/20 text-white px-6 h-11 min-w-[180px] text-sm no-underline hover:bg-white/5 transition-colors"
+              className="inline-flex items-center justify-center rounded-full border border-white/15 text-white px-7 h-12 min-w-[200px] text-[14px] no-underline hover:bg-white/5 hover:border-white/30 transition-colors"
             >
               {d.hero.ctaSecondary}
             </Link>
@@ -87,7 +93,7 @@ export default async function MarketingHome() {
 
       {/* ============ METRIC STRIP ============ */}
       <section className="relative z-10 border-y border-white/5 bg-black/40">
-        <div className="max-w-6xl mx-auto px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="max-w-6xl mx-auto px-6 py-14 md:py-16 grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-8">
           {[
             { v: "77", u: "", label: d.metrics.provinces },
             { v: "2.4", u: "k", label: d.metrics.operators },
@@ -95,13 +101,13 @@ export default async function MarketingHome() {
             { v: "99.2", u: "%", label: d.metrics.ontime },
           ].map((m) => (
             <div key={m.label} className="text-center md:text-left">
-              <div className="font-display font-bold text-[36px] md:text-[48px] leading-none tracking-[-0.03em] text-white">
+              <div className="font-display font-semibold text-[48px] md:text-[64px] leading-none tracking-[-0.04em] text-white">
                 {m.v}
-                <span className="text-[#2ee5a0] text-[18px] md:text-[22px] font-medium ml-0.5">
+                <span className="text-[#2ee5a0] text-[20px] md:text-[24px] font-medium ml-0.5 tracking-normal">
                   {m.u}
                 </span>
               </div>
-              <div className="mt-2 font-mono text-[10px] md:text-[11px] uppercase tracking-[0.2em] text-white/50">
+              <div className="mt-3 font-mono text-[10px] md:text-[11px] uppercase tracking-[0.22em] text-white/45">
                 {m.label}
               </div>
             </div>
@@ -109,10 +115,60 @@ export default async function MarketingHome() {
         </div>
       </section>
 
+      {/* ============ WHY NOW (INVESTOR SECTION) ============ */}
+      <section className="relative z-10 bg-[#05080e] border-b border-white/5 overflow-hidden">
+        {/* Ambient cinematic backdrop */}
+        <div
+          aria-hidden
+          className="absolute inset-0 opacity-40 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(ellipse 60% 50% at 20% 0%, rgba(46,229,160,0.08), transparent 70%)",
+          }}
+        />
+        <div className="relative max-w-6xl mx-auto px-6 py-28 md:py-36">
+          <div className="max-w-3xl mb-16 md:mb-20">
+            <div className="font-mono text-[11px] tracking-[0.22em] text-[#2ee5a0] mb-4">
+              {d.whyNow.kicker}
+            </div>
+            <h2 className="font-display text-[40px] md:text-[64px] font-semibold leading-[1.05] tracking-[-0.03em] mb-6">
+              {d.whyNow.title1}{" "}
+              <span className="italic text-white/75">{d.whyNow.titleItalic}</span>
+            </h2>
+            <p className="text-white/60 text-[16px] md:text-[19px] leading-[1.55] max-w-[620px] font-light">
+              {d.whyNow.sub}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
+            {d.whyNow.cards.map((c, i) => (
+              <div
+                key={c.tag}
+                className="group relative rounded-2xl border border-white/[0.08] bg-white/[0.015] p-7 md:p-8 overflow-hidden transition-colors hover:border-[#2ee5a0]/30 hover:bg-white/[0.03]"
+              >
+                {/* Subtle corner accent line */}
+                <div
+                  className="absolute top-0 left-0 h-px w-16 bg-gradient-to-r from-[#2ee5a0] to-transparent opacity-40 group-hover:opacity-80 group-hover:w-24 transition-all"
+                  aria-hidden
+                />
+                <div className="font-mono text-[10px] tracking-[0.22em] text-[#2ee5a0] mb-5">
+                  {String(i + 1).padStart(2, "0")} · {c.tag}
+                </div>
+                <div className="font-display font-semibold text-[28px] md:text-[32px] leading-[1.05] tracking-[-0.025em] mb-4">
+                  {c.headline}
+                </div>
+                <p className="text-white/60 text-[14px] md:text-[15px] leading-[1.6] font-light">
+                  {c.body}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ============ CHAPTERS ============ */}
       <section className="relative z-10 bg-[#05080e] border-b border-white/5">
-        <div className="max-w-6xl mx-auto px-6 py-24 md:py-32 flex flex-col gap-24 md:gap-32">
-          {/* Chapter 01 — DMC */}
+        <div className="max-w-6xl mx-auto px-6 py-24 md:py-32 flex flex-col gap-28 md:gap-36">
           <Chapter
             kicker={d.chapters.dmc.kicker}
             titlePlain={d.chapters.dmc.titleStart}
@@ -120,7 +176,7 @@ export default async function MarketingHome() {
             body={d.chapters.dmc.body}
           >
             <div
-              className="rounded-xl border p-5 max-w-sm"
+              className="rounded-2xl border p-5 max-w-sm"
               style={{
                 background: "rgba(29,158,117,0.06)",
                 borderColor: "rgba(46,229,160,0.2)",
@@ -140,7 +196,6 @@ export default async function MarketingHome() {
             </div>
           </Chapter>
 
-          {/* Chapter 02 — Operator */}
           <Chapter
             kicker={d.chapters.operator.kicker}
             titlePlain={d.chapters.operator.titleStart}
@@ -148,7 +203,7 @@ export default async function MarketingHome() {
             body={d.chapters.operator.body}
             align="right"
           >
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 w-full max-w-sm flex flex-col gap-2.5">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 w-full max-w-sm flex flex-col gap-2.5">
               <LineRow
                 who="R"
                 msg={
@@ -171,7 +226,6 @@ export default async function MarketingHome() {
             </div>
           </Chapter>
 
-          {/* Chapter 03 — Driver */}
           <Chapter
             kicker={d.chapters.driver.kicker}
             titlePlain={d.chapters.driver.titleStart}
@@ -179,12 +233,11 @@ export default async function MarketingHome() {
             body={d.chapters.driver.body}
           >
             <div className="w-full max-w-sm">
-              {/* Mobile: horizontal swipe carousel. Desktop: 3-col grid. */}
               <div className="flex md:grid md:grid-cols-3 gap-2.5 overflow-x-auto md:overflow-visible snap-x snap-mandatory md:snap-none -mx-4 px-4 md:mx-0 md:px-0 pb-2 md:pb-0">
                 {["09:03 · BKK", "11:47 · HWY7", "12:15 · PTY"].map((stamp) => (
                   <div
                     key={stamp}
-                    className="flex-shrink-0 md:flex-shrink aspect-square w-[70%] md:w-auto snap-center rounded-lg border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-2.5 flex flex-col justify-end"
+                    className="flex-shrink-0 md:flex-shrink aspect-square w-[70%] md:w-auto snap-center rounded-xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-2.5 flex flex-col justify-end"
                   >
                     <div className="font-mono text-[9px] tracking-[0.1em] text-white/60">
                       {stamp}
@@ -195,16 +248,15 @@ export default async function MarketingHome() {
             </div>
           </Chapter>
 
-          {/* Chapter 04 — Network (centered) */}
           <div className="text-center max-w-2xl mx-auto">
-            <div className="font-mono text-[11px] tracking-[0.2em] text-[#2ee5a0] mb-3">
+            <div className="font-mono text-[11px] tracking-[0.22em] text-[#2ee5a0] mb-3">
               {d.chapters.network.kicker}
             </div>
-            <h2 className="font-display text-[36px] md:text-[52px] font-semibold leading-[1.05] tracking-[-0.025em] mb-5">
+            <h2 className="font-display text-[36px] md:text-[56px] font-semibold leading-[1.05] tracking-[-0.03em] mb-6">
               {d.chapters.network.title1}{" "}
               <span className="italic">{d.chapters.network.titleItalic}</span>
             </h2>
-            <p className="text-white/70 text-[16px] md:text-[18px] leading-relaxed">
+            <p className="text-white/65 text-[16px] md:text-[18px] leading-[1.6] font-light">
               {d.chapters.network.body}
             </p>
           </div>
@@ -212,17 +264,17 @@ export default async function MarketingHome() {
       </section>
 
       {/* ============ PRICING ============ */}
-      <section className="relative z-10 bg-[#030509] border-b border-white/5 py-24">
+      <section className="relative z-10 bg-[#030509] border-b border-white/5 py-28 md:py-32">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-14">
-            <div className="font-mono text-[11px] tracking-[0.2em] text-[#2ee5a0] mb-3">
+          <div className="text-center mb-16 md:mb-20">
+            <div className="font-mono text-[11px] tracking-[0.22em] text-[#2ee5a0] mb-4">
               {d.pricing.kicker}
             </div>
-            <h2 className="font-display text-[40px] md:text-[56px] font-semibold leading-none tracking-[-0.03em] mb-4">
+            <h2 className="font-display text-[44px] md:text-[68px] font-semibold leading-none tracking-[-0.035em] mb-5">
               {d.pricing.titleStart} <span className="italic">{d.pricing.titleItalic}</span>
               <span className="text-[#2ee5a0] font-medium ml-1">↗</span>
             </h2>
-            <p className="text-white/60 text-[16px] md:text-[18px]">{d.pricing.sub}</p>
+            <p className="text-white/55 text-[15px] md:text-[17px] font-light">{d.pricing.sub}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
             {(["starter", "growth", "pro"] as const).map((key) => {
@@ -231,30 +283,38 @@ export default async function MarketingHome() {
               return (
                 <div
                   key={key}
-                  className={`rounded-2xl p-7 flex flex-col ${
+                  className={`relative rounded-2xl p-8 flex flex-col transition-transform ${
                     meta.featured
-                      ? "border-2 border-[#2ee5a0] bg-[rgba(29,158,117,0.08)]"
-                      : "border border-white/10 bg-white/[0.02]"
+                      ? "border border-[#2ee5a0]/50 bg-gradient-to-b from-[rgba(29,158,117,0.10)] to-[rgba(29,158,117,0.02)] md:-translate-y-2"
+                      : "border border-white/[0.08] bg-white/[0.015] hover:border-white/20"
                   }`}
                 >
-                  <div className="font-mono text-[10px] tracking-[0.2em] text-white/50 uppercase mb-1">
+                  {meta.featured && (
+                    <div className="absolute -top-px left-8 right-8 h-px bg-gradient-to-r from-transparent via-[#2ee5a0] to-transparent" />
+                  )}
+                  {meta.featured && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-[#2ee5a0] text-[#05080e] font-mono text-[9px] tracking-[0.18em] uppercase">
+                      Most chosen
+                    </div>
+                  )}
+                  <div className="font-mono text-[10px] tracking-[0.22em] text-white/45 uppercase mb-1.5">
                     {p.name}
                   </div>
-                  <div className="font-display font-semibold text-[22px] tracking-tight leading-tight mb-1.5">
+                  <div className="font-display font-semibold text-[20px] tracking-[-0.01em] leading-snug mb-6 text-white/90">
                     {p.tag}
                   </div>
-                  <div className="font-display font-bold text-[40px] tracking-[-0.03em] leading-none mt-4">
+                  <div className="font-display font-semibold text-[52px] tracking-[-0.035em] leading-none">
                     {meta.price}
-                    <span className="text-[14px] font-mono text-white/50 ml-1 tracking-normal">
+                    <span className="text-[14px] font-mono text-white/45 ml-1.5 tracking-normal">
                       {d.pricing.perMo}
                     </span>
                   </div>
-                  <div className="mt-1 font-mono text-[11px] text-white/50">{p.per}</div>
-                  <ul className="mt-6 flex flex-col gap-2.5 list-none p-0 text-[14px] text-white/80">
+                  <div className="mt-2 font-mono text-[11px] tracking-[0.1em] text-white/45">{p.per}</div>
+                  <ul className="mt-8 flex flex-col gap-2.5 list-none p-0 text-[14px] text-white/75 font-light">
                     {p.features.map((f) => (
                       <li
                         key={f}
-                        className="flex gap-2 before:content-['✓'] before:text-[#2ee5a0] before:flex-shrink-0"
+                        className="flex gap-2.5 before:content-['✓'] before:text-[#2ee5a0] before:flex-shrink-0"
                       >
                         <span>{f}</span>
                       </li>
@@ -262,10 +322,10 @@ export default async function MarketingHome() {
                   </ul>
                   <a
                     href={meta.cta}
-                    className={`mt-7 inline-flex items-center justify-center h-11 rounded-lg text-sm font-medium no-underline transition-colors ${
+                    className={`mt-9 inline-flex items-center justify-center h-12 rounded-full text-[13px] font-medium no-underline transition-colors ${
                       meta.featured
-                        ? "bg-[#2ee5a0] text-[#05080e] hover:bg-[#1D9E75]"
-                        : "border border-white/20 text-white hover:bg-white/5"
+                        ? "bg-[#2ee5a0] text-[#05080e] hover:bg-white"
+                        : "border border-white/20 text-white hover:bg-white/5 hover:border-white/40"
                     }`}
                   >
                     {p.cta}
@@ -278,40 +338,40 @@ export default async function MarketingHome() {
       </section>
 
       {/* ============ TESTIMONIALS ============ */}
-      <section className="relative z-10 bg-[#05080e] border-b border-white/5 py-24">
+      <section className="relative z-10 bg-[#05080e] border-b border-white/5 py-28">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-14">
-            <div className="font-mono text-[11px] tracking-[0.2em] text-[#2ee5a0] mb-3">
+          <div className="text-center mb-14 md:mb-16">
+            <div className="font-mono text-[11px] tracking-[0.22em] text-[#2ee5a0] mb-3">
               {d.testimonials.kicker}
             </div>
-            <h2 className="font-display text-[32px] md:text-[40px] font-semibold leading-tight tracking-[-0.02em]">
+            <h2 className="font-display text-[34px] md:text-[48px] font-semibold leading-tight tracking-[-0.025em]">
               {d.testimonials.title}
-              <span className="text-[#2ee5a0] font-medium ml-1">↗</span>
+              <span className="text-[#2ee5a0] font-medium ml-1.5">↗</span>
             </h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
             {d.testimonials.items.map((t, i) => {
               const meta = TESTIMONIAL_META[i]
               return (
-                <div
+                <figure
                   key={meta.name}
-                  className="rounded-xl border border-white/10 bg-white/[0.03] p-7 flex flex-col"
+                  className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-8 flex flex-col"
                 >
-                  <p className="text-white/85 text-[16px] leading-relaxed font-light mb-6 flex-1">
-                    "{t.quote}"
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-full flex items-center justify-center font-display font-bold text-white bg-gradient-to-br from-[#2ee5a0] to-[#1D9E75]">
+                  <blockquote className="text-white/85 text-[17px] leading-[1.6] font-light mb-7 flex-1 italic">
+                    “{t.quote}”
+                  </blockquote>
+                  <figcaption className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-full flex items-center justify-center font-display font-bold text-[#05080e] bg-gradient-to-br from-white to-[#2ee5a0]">
                       {meta.initials}
                     </div>
                     <div>
                       <div className="font-display font-semibold text-[14px]">{meta.name}</div>
-                      <div className="font-mono text-[10px] uppercase tracking-[0.1em] text-white/50">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/50 mt-0.5">
                         {t.role}
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </figcaption>
+                </figure>
               )
             })}
           </div>
@@ -319,55 +379,76 @@ export default async function MarketingHome() {
       </section>
 
       {/* ============ PRESS TICKER ============ */}
-      <section className="relative z-10 bg-[#030509] border-b border-white/5 py-8">
-        <div className="max-w-6xl mx-auto px-6 text-center text-white/60 text-[14px]">
-          {d.press.featuredIn}:{" "}
-          <span className="text-white">Bangkok Post</span> ·{" "}
-          <span className="text-white">TTG Asia</span> ·{" "}
-          <span className="text-white">Nikkei Asia</span> ·{" "}
-          <span className="text-white">e27</span> ·{" "}
-          <span className="text-white">Tech in Asia</span>
+      <section className="relative z-10 bg-[#030509] border-b border-white/5 py-10">
+        <div className="max-w-6xl mx-auto px-6 text-center">
+          <div className="font-mono text-[10px] tracking-[0.22em] text-white/40 uppercase mb-4">
+            {d.press.featuredIn}
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-white/70 text-[14px] font-display italic">
+            <span>Bangkok Post</span>
+            <span className="text-white/20">·</span>
+            <span>TTG Asia</span>
+            <span className="text-white/20">·</span>
+            <span>Nikkei Asia</span>
+            <span className="text-white/20">·</span>
+            <span>e27</span>
+            <span className="text-white/20">·</span>
+            <span>Tech in Asia</span>
+          </div>
         </div>
       </section>
 
       {/* ============ DEMO FORM ============ */}
-      <section id="demo" className="relative z-10 bg-[#030509] border-b border-white/5 py-24">
+      <section id="demo" className="relative z-10 bg-[#030509] border-b border-white/5 py-28">
         <div className="max-w-xl mx-auto px-6">
-          <div className="text-center mb-10">
-            <div className="font-mono text-[11px] tracking-[0.2em] text-[#2ee5a0] mb-3">
+          <div className="text-center mb-12">
+            <div className="font-mono text-[11px] tracking-[0.22em] text-[#2ee5a0] mb-3">
               {d.demo.kicker}
             </div>
-            <h2 className="font-display text-[32px] md:text-[40px] font-semibold leading-tight tracking-[-0.02em] mb-3">
+            <h2 className="font-display text-[34px] md:text-[48px] font-semibold leading-tight tracking-[-0.025em] mb-4">
               {d.demo.titleStart} <span className="italic">{d.demo.titleItalic}</span>
-              <span className="text-[#2ee5a0] font-medium ml-1">↗</span>
+              <span className="text-[#2ee5a0] font-medium ml-1.5">↗</span>
             </h2>
-            <p className="text-white/60 text-[15px]">{d.demo.sub}</p>
+            <p className="text-white/55 text-[15px] font-light">{d.demo.sub}</p>
           </div>
           <DemoForm kind="demo" />
         </div>
       </section>
 
       {/* ============ CLOSER ============ */}
-      <section className="relative z-10 bg-[#05080e] py-28 text-center">
-        <div className="max-w-3xl mx-auto px-6">
-          <h2 className="font-display text-[48px] md:text-[80px] font-semibold leading-none tracking-[-0.03em] mb-6">
+      <section className="relative z-10 bg-[#05080e] py-32 md:py-40 text-center overflow-hidden">
+        <div
+          aria-hidden
+          className="absolute inset-0 opacity-50 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(ellipse 60% 50% at 50% 100%, rgba(46,229,160,0.12), transparent 70%)",
+          }}
+        />
+        <div className="relative max-w-4xl mx-auto px-6">
+          <h2
+            className="font-display font-semibold leading-[0.95] tracking-[-0.04em] mb-8"
+            style={{ fontSize: "clamp(56px, 11vw, 128px)" }}
+          >
             {d.closer.title1}{" "}
             <span className="italic">
               {d.closer.titleItalic}
-              <span className="not-italic text-[#2ee5a0] font-medium ml-1">↗</span>
+              <span className="not-italic text-[#2ee5a0] font-medium ml-1.5">↗</span>
             </span>
           </h2>
-          <p className="text-white/70 text-[16px] md:text-[18px] mb-8">{d.closer.sub}</p>
+          <p className="text-white/65 text-[17px] md:text-[19px] mb-10 font-light max-w-xl mx-auto leading-[1.55]">
+            {d.closer.sub}
+          </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center items-stretch sm:items-center">
             <a
               href="https://dmc.riden.me/dmc/register"
-              className="inline-flex items-center justify-center rounded-full bg-[#2ee5a0] text-[#05080e] px-7 h-12 text-sm font-medium no-underline hover:bg-[#1D9E75] transition-colors"
+              className="inline-flex items-center justify-center rounded-full bg-[#2ee5a0] text-[#05080e] px-8 h-12 text-[14px] font-medium no-underline hover:bg-white transition-colors"
             >
               {d.closer.ctaPrimary} ↗
             </a>
             <a
               href="#demo"
-              className="inline-flex items-center justify-center rounded-full border border-white/20 text-white px-7 h-12 text-sm no-underline hover:bg-white/5 transition-colors"
+              className="inline-flex items-center justify-center rounded-full border border-white/20 text-white px-8 h-12 text-[14px] no-underline hover:bg-white/5 hover:border-white/40 transition-colors"
             >
               {d.closer.ctaSecondary}
             </a>
@@ -412,14 +493,14 @@ function Chapter({
       }`}
     >
       <div>
-        <div className="font-mono text-[11px] tracking-[0.2em] text-[#2ee5a0] mb-3 flex items-center gap-2">
+        <div className="font-mono text-[11px] tracking-[0.22em] text-[#2ee5a0] mb-4 flex items-center gap-2">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#2ee5a0]" />
           {kicker}
         </div>
-        <h2 className="font-display text-[36px] md:text-[52px] font-semibold leading-[1.05] tracking-[-0.025em] mb-5">
+        <h2 className="font-display text-[38px] md:text-[56px] font-semibold leading-[1.05] tracking-[-0.03em] mb-6">
           {titlePlain} <span className="italic">{titleItalic}</span>
         </h2>
-        <p className="text-white/70 text-[16px] md:text-[18px] leading-relaxed max-w-prose">
+        <p className="text-white/65 text-[16px] md:text-[18px] leading-[1.6] max-w-prose font-light">
           {body}
         </p>
       </div>
