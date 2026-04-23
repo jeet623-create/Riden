@@ -6,8 +6,8 @@ type Status = "idle" | "sending" | "success" | "error"
 
 export function DemoForm({ kind = "demo", title, subtitle, compact = false }: {
   kind?: "demo" | "contact" | "enterprise" | "operator" | "driver"
-  title?: string
-  subtitle?: string
+  title?: React.ReactNode
+  subtitle?: React.ReactNode
   compact?: boolean
 }) {
   const [status, setStatus] = useState<Status>("idle")

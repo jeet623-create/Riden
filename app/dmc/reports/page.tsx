@@ -36,7 +36,7 @@ function AnimatedBar({ width, color, delay }: { width: number; color: string; de
 
 function AnimatedNumber({ value, delay }: { value: number; delay: number }) {
   const [displayValue, setDisplayValue] = useState(0)
-  const frameRef = useRef<number>()
+  const frameRef = useRef<number | undefined>(undefined)
   useEffect(() => {
     const timer = setTimeout(() => {
       const duration = 800

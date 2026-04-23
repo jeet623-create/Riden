@@ -267,7 +267,10 @@ export default function AdminSubscriptionsPage() {
       if (invokeError) {
         throw new Error(invokeError.message || "Activation failed")
       }
-      if (result?.error) {
+      if (!result) {
+        throw new Error("Activation failed — no response from server")
+      }
+      if (result.error) {
         throw new Error(result.error)
       }
 

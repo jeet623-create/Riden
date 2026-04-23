@@ -378,7 +378,7 @@ export default function DmcDashboardPage() {
                   <td className="py-3 px-5 text-sm font-medium text-foreground">{b.client_name}</td>
                   <td className="py-3 px-5 text-sm text-muted font-mono">{b.total_days}d</td>
                   <td className="py-3 px-5">
-                    <StatusBadge status={b.status} />
+                    <StatusBadge status={b.status as any} />
                   </td>
                   <td className="py-3 px-5 text-xs text-muted font-mono">{relativeTime(b.created_at)}</td>
                 </tr>

@@ -10,13 +10,13 @@ export const THAILAND_PATH = "M334.14 534.81 L325.41 512.71 L315.82 500.06 L312.
 export const THAILAND_VIEWBOX = "0 0 500 900"
 
 export const CITIES = [
-  { id: 'bangkok',    lng: 100.52, lat: 13.74, name: 'Bangkok',    active: 12, primary: true },
-  { id: 'chiangMai',  lng: 98.98,  lat: 18.79, name: 'Chiang Mai', active: 4 },
-  { id: 'chiangRai',  lng: 99.83,  lat: 19.91, name: 'Chiang Rai', active: 2 },
-  { id: 'pattaya',    lng: 100.88, lat: 12.93, name: 'Pattaya',    active: 3 },
-  { id: 'huaHin',     lng: 99.96,  lat: 12.57, name: 'Hua Hin',    active: 2 },
-  { id: 'phuket',     lng: 98.40,  lat: 7.88,  name: 'Phuket',     active: 2 },
-  { id: 'krabi',      lng: 98.92,  lat: 8.06,  name: 'Krabi',      active: 1 },
+  { id: 'bangkok',    lng: 100.52, lat: 13.74, name: 'Bangkok',    active: 12, primary: true  },
+  { id: 'chiangMai',  lng: 98.98,  lat: 18.79, name: 'Chiang Mai', active: 4,  primary: false },
+  { id: 'chiangRai',  lng: 99.83,  lat: 19.91, name: 'Chiang Rai', active: 2,  primary: false },
+  { id: 'pattaya',    lng: 100.88, lat: 12.93, name: 'Pattaya',    active: 3,  primary: false },
+  { id: 'huaHin',     lng: 99.96,  lat: 12.57, name: 'Hua Hin',    active: 2,  primary: false },
+  { id: 'phuket',     lng: 98.40,  lat: 7.88,  name: 'Phuket',     active: 2,  primary: false },
+  { id: 'krabi',      lng: 98.92,  lat: 8.06,  name: 'Krabi',      active: 1,  primary: false },
 ] as const
 
 // Project lng/lat to SVG viewBox coordinates.
