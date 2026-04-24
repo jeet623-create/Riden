@@ -24,8 +24,9 @@ type ListRow = {
   driver_name: string | null
   op_to_driver_status: RequestStatus | null
   dmc_to_op_status: RequestStatus | null
-  overdue_48h: boolean
-  overdue_72h: boolean
+  op_payment_overdue_48h: boolean | null
+  driver_confirmation_overdue_24h: boolean | null
+  dmc_payment_overdue_72h: boolean | null
 }
 
 type ListResponse = {
@@ -37,11 +38,17 @@ type ListResponse = {
 
 type SummaryResponse = {
   ok: boolean
-  total: number
-  op_to_driver_pending: number
-  dmc_to_op_pending: number
-  overdue_48h: number
-  overdue_72h: number
+  counts: {
+    total_trips: number
+    op_to_driver: { pending: number; proof_uploaded: number; confirmed: number; disputed: number }
+    dmc_to_op: { pending: number; proof_uploaded: number; confirmed: number; disputed: number }
+    red_flags: {
+      op_payment_overdue_48h: number
+      driver_confirmation_overdue_24h: number
+      dmc_payment_overdue_72h: number
+    }
+  }
+  error?: string
 }
 
 type DetailRequest = {
@@ -281,19 +288,24 @@ export function AdminPaymentsTable() {
       </div>
 
       {/* Summary strip */}
-      {summary && (
+      {summary?.counts && (
         <div className="bg-surface border border-border rounded-xl p-3 flex flex-wrap items-center gap-4 text-sm">
-          <span className="text-muted">Total: <span className="text-foreground font-mono">{summary.total}</span></span>
-          <span className="text-muted">Op→Driver pending: <span className="text-amber-300 font-mono">{summary.op_to_driver_pending}</span></span>
-          <span className="text-muted">DMC→Op pending: <span className="text-blue-300 font-mono">{summary.dmc_to_op_pending}</span></span>
-          {summary.overdue_48h > 0 && (
+          <span className="text-muted">Total: <span className="text-foreground font-mono">{summary.counts.total_trips}</span></span>
+          <span className="text-muted">Op→Driver pending: <span className="text-amber-300 font-mono">{summary.counts.op_to_driver.pending}</span></span>
+          <span className="text-muted">DMC→Op pending: <span className="text-blue-300 font-mono">{summary.counts.dmc_to_op.pending}</span></span>
+          {summary.counts.red_flags.op_payment_overdue_48h > 0 && (
             <span className="inline-flex items-center gap-1 text-amber-300">
-              <Flag className="w-3.5 h-3.5" /> {summary.overdue_48h} overdue 48h
+              <Flag className="w-3.5 h-3.5" /> {summary.counts.red_flags.op_payment_overdue_48h} op overdue 48h
             </span>
           )}
-          {summary.overdue_72h > 0 && (
+          {summary.counts.red_flags.dmc_payment_overdue_72h > 0 && (
             <span className="inline-flex items-center gap-1 text-red-300">
-              <Flag className="w-3.5 h-3.5" /> {summary.overdue_72h} overdue 72h
+              <Flag className="w-3.5 h-3.5" /> {summary.counts.red_flags.dmc_payment_overdue_72h} dmc overdue 72h
+            </span>
+          )}
+          {summary.counts.red_flags.driver_confirmation_overdue_24h > 0 && (
+            <span className="inline-flex items-center gap-1 text-blue-300">
+              <Flag className="w-3.5 h-3.5" /> {summary.counts.red_flags.driver_confirmation_overdue_24h} driver confirm 24h
             </span>
           )}
         </div>
@@ -348,8 +360,9 @@ export function AdminPaymentsTable() {
                 </td>
                 <td className="py-2.5 px-3">
                   <div className="flex items-center gap-1">
-                    {r.overdue_72h && <Flag className="w-3.5 h-3.5 text-red-300" />}
-                    {!r.overdue_72h && r.overdue_48h && <Flag className="w-3.5 h-3.5 text-amber-300" />}
+                    {r.dmc_payment_overdue_72h && <Flag className="w-3.5 h-3.5 text-red-300" />}
+                    {r.op_payment_overdue_48h && <Flag className="w-3.5 h-3.5 text-amber-300" />}
+                    {r.driver_confirmation_overdue_24h && <Flag className="w-3.5 h-3.5 text-blue-300" />}
                   </div>
                 </td>
               </tr>
