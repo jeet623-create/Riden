@@ -51,14 +51,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   useEffect(() => { fetchPending() }, [])
 
   async function fetchPending() {
-    const SUPA = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     try {
-      const r = await fetch(SUPA + '/rest/v1/drivers?is_verified=eq.false&is_active=eq.true&select=id', {
-        headers: { apikey: KEY, Authorization: 'Bearer ' + KEY },
-      })
-      const d = await r.json()
-      setPendingCount(Array.isArray(d) ? d.length : 0)
+      const sb = createClient()
+      const { count } = await sb
+        .from('drivers')
+        .select('id', { count: 'exact', head: true })
+        .eq('is_verified', false)
+        .eq('is_active', true)
+      setPendingCount(count ?? 0)
     } catch {}
   }
 
