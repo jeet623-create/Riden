@@ -7,7 +7,7 @@ import Link from "next/link"
 import { ArrowLeft, Calendar, Car, MapPin, Users, Phone, MapPinned } from "lucide-react"
 import { toast } from "sonner"
 import { StatusBadge } from "@/components/dmc/status-badge"
-import { ForwardCardButton } from "@/components/dmc/forward-card-button"
+import { ShareDriverCard } from "@/components/dmc/share-driver-card"
 import { BookingPaymentStatus } from "@/components/dmc/booking-payment-status"
 import { createClient } from "@/lib/supabase/client"
 
@@ -251,18 +251,20 @@ function TripCard({ trip, bookingId }: { trip: Trip; bookingId: string }) {
         </div>
       </div>
 
-      {isLive && (
-        <Link
-          href={`/dmc/bookings/${bookingId}/trips/${trip.id}/live`}
-          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20"
-        >
-          <MapPin className="w-3.5 h-3.5" /> View live location
-        </Link>
-      )}
+      <div className="flex flex-wrap items-center gap-2">
+        {isLive && (
+          <Link
+            href={`/dmc/bookings/${bookingId}/trips/${trip.id}/live`}
+            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20"
+          >
+            <MapPin className="w-3.5 h-3.5" /> View live location
+          </Link>
+        )}
 
-      {hasDriver && (
-        <ForwardCardButton tripId={trip.id} />
-      )}
+        {hasDriver && (trip.status === "assigned" || trip.status === "driver_assigned" || trip.status === "operator_accepted" || trip.status === "in_progress") && (
+          <ShareDriverCard tripId={trip.id} />
+        )}
+      </div>
     </div>
   )
 }
