@@ -1,0 +1,28 @@
+{
+  "tagline": "Where Gears Meet Green.",
+  "ctaDemo": "Book a demo",
+  "ctaHowItWorks": "See how it works",
+  "scroll": "SCROLL",
+  "nav": {
+    "product": "Product",
+    "howItWorks": "How it works",
+    "forDmc": "For DMCs",
+    "forOperators": "For Operators",
+    "forDrivers": "For Drivers",
+    "pricing": "Pricing",
+    "about": "About",
+    "login": "Log in",
+    "signup": "Sign up"
+  },
+  "footer": {
+    "tagline": "Coordinates Thailand's inbound tourism transport.",
+    "copyright": "© Riden",
+    "product": "Product",
+    "company": "Company",
+    "legal": "Legal",
+    "support": "Support"
+  },
+  "home": {
+    "heroLead": "Coordinates Thailand's inbound tourism transport."
+  }
+}

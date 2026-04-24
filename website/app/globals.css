@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Locked brand tokens — see 43.md §🎨 and brand.md.
+   Do NOT recolor the teal. Do NOT remove @tailwind directives. */
+:root {
+  --bg: #0a0b0e;
+  --surface: #111318;
+  --surface-2: #16191f;
+  --border: #23262e;
+  --ink: #f3f1ea;
+  --ink-muted: #9a9ca3;
+  --ink-dim: #5a5d65;
+  --teal: #1d9e75;
+  --teal-dim: rgba(29, 158, 117, 0.14);
+  --sand: #ede8da;
+  --line-green: #06c755;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  min-height: 100vh;
+}
+
+/* Grain overlay — 3% opacity SVG noise fixed across viewport */
+.grain::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* Respect reduced motion globally */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Focus ring — teal, 2px offset */
+*:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Thai typography — taller line-height */
+:lang(th),
+:lang(th-TH) {
+  line-height: 1.7;
+}
