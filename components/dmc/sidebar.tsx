@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { LayoutDashboard, ClipboardList, Calendar, Truck, UserCheck, FileBarChart, CreditCard, MessageSquare, LogOut, ChevronLeft, ChevronRight } from "lucide-react"
+import { LayoutDashboard, ClipboardList, Calendar, Truck, UserCheck, FileBarChart, CreditCard, MessageSquare, Map, LogOut, ChevronLeft, ChevronRight } from "lucide-react"
 import { useLanguage, Language } from "@/hooks/use-language"
 import { createClient } from "@/lib/supabase/client"
 import { Wordmark } from "@/components/brand/Wordmark"
@@ -20,6 +20,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { href: "/dmc/dashboard", icon: LayoutDashboard, label: { en: "Dashboard", th: "แดชบอร์ด", zh: "仪表板", ko: "대시보드", tr: "Panel" } },
   { href: "/dmc/bookings", icon: ClipboardList, label: { en: "Bookings", th: "การจอง", zh: "预订", ko: "예약", tr: "Rezervasyonlar" } },
+  { href: "/dmc/live-map", icon: Map, label: { en: "Live Map", th: "แผนที่สด", zh: "实时地图", ko: "실시간 지도", tr: "Canlı Harita" } },
   { href: "/dmc/calendar", icon: Calendar, label: { en: "Calendar", th: "ปฏิทิน", zh: "日历", ko: "캘린더", tr: "Takvim" } },
   { href: "/dmc/operators", icon: Truck, label: { en: "Operators", th: "ผู้ให้บริการ", zh: "运营商", ko: "운영사", tr: "Operatörler" } },
   { href: "/dmc/drivers", icon: UserCheck, label: { en: "Drivers", th: "คนขับ", zh: "司机", ko: "운전사", tr: "Sürücüler" } },
