@@ -1,79 +1,95 @@
 "use client"
 
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic"
 
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { CreditCard } from "lucide-react"
+import { CreditCard, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useLanguage } from "@/hooks/use-language"
+import { createClient } from "@/lib/supabase/client"
+import { PendingPaymentsPanel } from "@/components/dmc/pending-payments-panel"
 
-interface Subscription {
+type DmcProfile = {
   id: string
-  plan: string
-  amount: number
-  startDate: string
-  endDate: string
-  isActive: boolean
+  subscription_plan: string | null
+  subscription_status: string | null
+  trial_ends_at: string | null
 }
-
-const mockSubscriptions: Subscription[] = [
-  { id: "1", plan: "Trial", amount: 0, startDate: "2024-01-01", endDate: "2024-03-01", isActive: true },
-]
-
-const currentPlan = { name: "Trial", status: "trial" as const, trialEndsAt: "2024-03-01" }
 
 export default function PaymentsPage() {
   const { t } = useLanguage()
-  const isExpiredOrTrial = currentPlan.status === "trial"
+  const [dmc, setDmc] = useState<DmcProfile | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    (async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setLoading(false); return }
+      const { data } = await supabase
+        .from("dmc_users")
+        .select("id, subscription_plan, subscription_status, trial_ends_at")
+        .eq("id", user.id)
+        .maybeSingle()
+      setDmc((data as DmcProfile) ?? null)
+      setLoading(false)
+    })()
+  }, [])
+
+  const planName = dmc?.subscription_plan ?? "trial"
+  const planStatus = dmc?.subscription_status ?? "trial"
+  const trialEnd = dmc?.trial_ends_at ?? null
+  const isTrial = planStatus === "trial"
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="p-6">
-      <div className="mb-6">
-        <h1 className="text-[22px] font-semibold text-foreground">{t({ en: "Payments & Plan", th: "การชำระเงินและแพลน", zh: "支付与计划" })}</h1>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="space-y-8">
+      <div>
+        <div className="font-mono text-[10px] uppercase text-muted tracking-[0.18em]">PAYMENTS</div>
+        <h1 className="font-display italic text-[26px] font-semibold text-foreground leading-tight">
+          {t({ en: "Payments", th: "การชำระเงิน", zh: "支付", ko: "결제", tr: "Ödemeler" })}
+        </h1>
+        <p className="text-[13px] text-muted mt-1">
+          {t({
+            en: "Operator payments and your RIDEN subscription",
+            th: "การชำระเงินให้ผู้ประกอบการและแผน RIDEN ของคุณ",
+            zh: "运营商付款和您的 RIDEN 订阅",
+            ko: "운영사 결제 및 RIDEN 구독",
+            tr: "Operatör ödemeleri ve RIDEN aboneliğiniz",
+          })}
+        </p>
       </div>
-      <div className={`bg-surface border rounded-xl p-5 flex items-center justify-between mb-6 border-amber/30`}>
-        <div>
-          <div className="font-mono text-[10px] uppercase text-muted mb-1">Current Plan</div>
-          <div className="text-[22px] font-semibold text-foreground capitalize">{currentPlan.name}</div>
-          <div className="text-[13px] text-muted mt-1">
-            Status: <span className="text-amber">{currentPlan.status}</span>
-            {currentPlan.status === "trial" && <span> · Trial ends {currentPlan.trialEndsAt}</span>}
-          </div>
+
+      {loading ? (
+        <div className="flex items-center gap-2 text-sm text-muted">
+          <Loader2 className="w-4 h-4 animate-spin" /> Loading…
         </div>
-        {isExpiredOrTrial && <Button asChild><Link href="/dmc/support">Upgrade Plan</Link></Button>}
-      </div>
+      ) : dmc ? (
+        <PendingPaymentsPanel dmcId={dmc.id} />
+      ) : null}
+
       <div className="bg-surface border border-border rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
-          <h2 className="text-[15px] font-semibold text-foreground">Payment History</h2>
+          <div className="font-mono text-[10px] uppercase text-muted tracking-[0.15em]">YOUR PLAN</div>
+          <h2 className="text-[15px] font-semibold text-foreground mt-0.5">RIDEN Subscription</h2>
         </div>
-        {mockSubscriptions.length === 0 ? (
-          <div className="py-12 text-center">
-            <CreditCard className="w-10 h-10 text-muted/30 mx-auto mb-3" />
-            <p className="text-[14px] font-medium text-foreground">No payment history yet</p>
-          </div>
-        ) : (
-          <>
-            <div className="bg-background grid grid-cols-[1fr_100px_100px_100px_100px] gap-4 px-4 py-3 border-b border-border">
-              {["Plan","Amount","Start","End","Status"].map(h => (
-                <div key={h} className="font-mono text-[10px] uppercase text-muted tracking-wider">{h}</div>
-              ))}
+        <div className="px-5 py-4 flex items-center justify-between gap-4">
+          <div>
+            <div className="text-[22px] font-semibold text-foreground capitalize">{planName}</div>
+            <div className="text-[13px] text-muted mt-1">
+              Status: <span className="text-amber capitalize">{planStatus}</span>
+              {isTrial && trialEnd && (
+                <> · Trial ends {new Date(trialEnd).toLocaleDateString()}</>
+              )}
             </div>
-            {mockSubscriptions.map((sub) => (
-              <div key={sub.id} className="grid grid-cols-[1fr_100px_100px_100px_100px] gap-4 px-4 py-3 border-b border-border last:border-b-0">
-                <div className="text-[13px] font-medium text-foreground capitalize">{sub.plan}</div>
-                <div className="font-mono text-[12px] text-green">{sub.amount === 0 ? "Free" : `฿${sub.amount.toLocaleString()}`}</div>
-                <div className="font-mono text-[11px] text-muted">{sub.startDate}</div>
-                <div className="font-mono text-[11px] text-muted">{sub.endDate}</div>
-                <div>
-                  <span className={`inline-flex px-2 py-0.5 rounded-full font-mono text-[11px] ${sub.isActive ? "bg-primary-dim text-primary" : "bg-red-dim text-red"}`}>
-                    {sub.isActive ? "Active" : "Expired"}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </>
-        )}
+          </div>
+          {isTrial && (
+            <Button asChild>
+              <Link href="/dmc/support">Upgrade plan</Link>
+            </Button>
+          )}
+        </div>
       </div>
     </motion.div>
   )

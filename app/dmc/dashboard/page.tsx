@@ -10,6 +10,7 @@ import { AlertTriangle, Clock, ArrowRight } from "lucide-react"
 import { AreaChart, Area, ResponsiveContainer } from "recharts"
 import { createClient } from "@/lib/supabase/client"
 import { StatusBadge } from "@/components/dmc/status-badge"
+import { PendingPaymentsPanel } from "@/components/dmc/pending-payments-panel"
 
 type DmcUser = {
   id: string
@@ -335,6 +336,12 @@ export default function DmcDashboardPage() {
           )
         })}
       </div>
+
+      {dmc?.id && (
+        <motion.div {...stagger(7)} className="mb-8">
+          <PendingPaymentsPanel dmcId={dmc.id} />
+        </motion.div>
+      )}
 
       <motion.div {...stagger(8)} className="bg-surface border border-border rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">

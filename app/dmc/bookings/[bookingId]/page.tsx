@@ -8,6 +8,7 @@ import { ArrowLeft, Calendar, Car, MapPin, Users, Phone, MapPinned } from "lucid
 import { toast } from "sonner"
 import { StatusBadge } from "@/components/dmc/status-badge"
 import { ForwardCardButton } from "@/components/dmc/forward-card-button"
+import { BookingPaymentStatus } from "@/components/dmc/booking-payment-status"
 import { createClient } from "@/lib/supabase/client"
 
 type Booking = {
@@ -53,6 +54,15 @@ export default function BookingDetailPage({
   const [booking, setBooking] = useState<Booking | null>(null)
   const [trips, setTrips] = useState<Trip[]>([])
   const [loading, setLoading] = useState(true)
+  const [dmcId, setDmcId] = useState<string | null>(null)
+
+  useEffect(() => {
+    (async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      setDmcId(user?.id ?? null)
+    })()
+  }, [])
 
   const load = useCallback(async () => {
     const supabase = createClient()
@@ -144,6 +154,13 @@ export default function BookingDetailPage({
         <Panel label="NOTES">
           <p className="text-sm text-foreground whitespace-pre-wrap">{booking.notes}</p>
         </Panel>
+      )}
+
+      {dmcId && (
+        <section className="space-y-4">
+          <div className="font-mono text-[10px] uppercase text-muted tracking-[0.18em]">PAYMENT STATUS</div>
+          <BookingPaymentStatus bookingId={bookingId} dmcId={dmcId} />
+        </section>
       )}
 
       <section className="space-y-4">

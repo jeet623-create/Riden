@@ -11,6 +11,7 @@ import {
   UserCheck,
   ClipboardList,
   CreditCard,
+  Wallet,
   LifeBuoy,
   LogOut,
   ChevronLeft,
@@ -26,6 +27,7 @@ const navItems = [
   { href: "/admin/drivers", icon: UserCheck, label: "Drivers" },
   { href: "/admin/bookings", icon: ClipboardList, label: "Bookings" },
   { href: "/admin/subscriptions", icon: CreditCard, label: "Subscriptions" },
+  { href: "/admin/payments", icon: Wallet, label: "Payments" },
   { href: "/admin/support", icon: LifeBuoy, label: "Support" },
 ]
 

@@ -15,6 +15,7 @@ const NAV = [
   { h: '/admin/bookings', l: 'Bookings', icon: '📋' },
   { h: '/admin/pending', l: 'Approvals', icon: '⏳', badge: true },
   { h: '/admin/subscriptions', l: 'Subscriptions', icon: '💳' },
+  { h: '/admin/payments', l: 'Payments', icon: '💰' },
   { h: '/admin/finance', l: 'Finance', icon: '$' },
   { h: '/admin/support', l: 'Support', icon: '💬' },
 ]
