@@ -398,6 +398,7 @@ export default function AdminSubscriptionsPage() {
                       key={d.id}
                       dmc={d}
                       sub={sub}
+                      invoice={latestInvoices[d.id]}
                       selected={d.id === selectedId}
                       onClick={() => setSelectedId(d.id)}
                     />
@@ -413,13 +414,29 @@ export default function AdminSubscriptionsPage() {
               <ul className="divide-y divide-border">
                 {recentActivations.map(s => {
                   const dmc = dmcs.find(d => d.id === s.dmc_id)
+                  const inv = latestInvoices[s.dmc_id]
                   return (
                     <li key={s.id} className="py-2 flex items-center gap-2">
                       <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
                       <div className="flex-1 min-w-0">
                         <div className="text-foreground truncate">{dmc?.company_name ?? s.dmc_id.slice(0, 8)}</div>
-                        <div className="text-[11px] text-muted font-mono truncate">{s.plan} · ฿{Number(s.price_thb ?? 0).toLocaleString()}</div>
+                        <div className="text-[11px] text-muted font-mono truncate">
+                          {s.plan} · ฿{Number(s.price_thb ?? 0).toLocaleString()}
+                          {inv?.invoice_number && <> · {inv.invoice_number}</>}
+                        </div>
                       </div>
+                      {inv?.html_url && (
+                        <a
+                          href={inv.html_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          className="inline-flex items-center gap-0.5 text-[11px] text-primary hover:text-primary/80 px-1.5 py-0.5 rounded border border-primary/30 hover:border-primary/60"
+                          title={`Download ${inv.invoice_number ?? "invoice"}`}
+                        >
+                          <FileText className="w-3 h-3" />
+                        </a>
+                      )}
                       <span className="font-mono text-[11px] text-muted">{fmtTime(s.activated_at)} ago</span>
                     </li>
                   )
@@ -593,8 +610,8 @@ export default function AdminSubscriptionsPage() {
 
 // ---------- Queue card ----------
 function QueueCard({
-  dmc, sub, selected, onClick,
-}: { dmc: DMC; sub?: Sub; selected: boolean; onClick: () => void }) {
+  dmc, sub, invoice, selected, onClick,
+}: { dmc: DMC; sub?: Sub; invoice?: Invoice; selected: boolean; onClick: () => void }) {
   const source = sub?.payment_proof_url ? "bank transfer" : dmc.subscription_status === "suspended" ? "suspended" : dmc.subscription_status === "trial" ? "trial ending" : "review"
   const tone =
     dmc.subscription_status === "active" ? "primary" :
@@ -616,7 +633,21 @@ function QueueCard({
         <span>·</span>
         <span>{source}</span>
       </div>
-      <div className="text-[11px] text-muted font-mono">{fmtTime(dmc.created_at)} ago</div>
+      <div className="flex items-center justify-between gap-2 mt-0.5">
+        <div className="text-[11px] text-muted font-mono">{fmtTime(dmc.created_at)} ago</div>
+        {invoice?.html_url && (
+          <a
+            href={invoice.html_url}
+            target="_blank"
+            rel="noreferrer"
+            onClick={e => e.stopPropagation()}
+            className="inline-flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 font-mono"
+            title={`Download ${invoice.invoice_number ?? "invoice"}`}
+          >
+            <FileText className="w-3 h-3" /> {invoice.invoice_number ?? "INV"}
+          </a>
+        )}
+      </div>
     </button>
   )
 }
