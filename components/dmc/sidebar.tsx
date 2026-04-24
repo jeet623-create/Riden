@@ -18,14 +18,14 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: "/dmc/dashboard", icon: LayoutDashboard, label: { en: "Dashboard", th: "แดชบอร์ด", zh: "仪表板" } },
-  { href: "/dmc/bookings", icon: ClipboardList, label: { en: "Bookings", th: "การจอง", zh: "预订" } },
-  { href: "/dmc/calendar", icon: Calendar, label: { en: "Calendar", th: "ปฏิทิน", zh: "日历" } },
-  { href: "/dmc/operators", icon: Truck, label: { en: "Operators", th: "ผู้ให้บริการ", zh: "运营商" } },
-  { href: "/dmc/drivers", icon: UserCheck, label: { en: "Drivers", th: "คนขับ", zh: "司机" } },
-  { href: "/dmc/reports", icon: FileBarChart, label: { en: "Reports", th: "รายงาน", zh: "报告" } },
-  { href: "/dmc/payments", icon: CreditCard, label: { en: "Payments", th: "การชำระเงิน", zh: "支付" } },
-  { href: "/dmc/support", icon: MessageSquare, label: { en: "Support", th: "ช่วยเหลือ", zh: "支持" } },
+  { href: "/dmc/dashboard", icon: LayoutDashboard, label: { en: "Dashboard", th: "แดชบอร์ด", zh: "仪表板", ko: "대시보드", tr: "Panel" } },
+  { href: "/dmc/bookings", icon: ClipboardList, label: { en: "Bookings", th: "การจอง", zh: "预订", ko: "예약", tr: "Rezervasyonlar" } },
+  { href: "/dmc/calendar", icon: Calendar, label: { en: "Calendar", th: "ปฏิทิน", zh: "日历", ko: "캘린더", tr: "Takvim" } },
+  { href: "/dmc/operators", icon: Truck, label: { en: "Operators", th: "ผู้ให้บริการ", zh: "运营商", ko: "운영사", tr: "Operatörler" } },
+  { href: "/dmc/drivers", icon: UserCheck, label: { en: "Drivers", th: "คนขับ", zh: "司机", ko: "운전사", tr: "Sürücüler" } },
+  { href: "/dmc/reports", icon: FileBarChart, label: { en: "Reports", th: "รายงาน", zh: "报告", ko: "보고서", tr: "Raporlar" } },
+  { href: "/dmc/payments", icon: CreditCard, label: { en: "Payments", th: "การชำระเงิน", zh: "支付", ko: "결제", tr: "Ödemeler" } },
+  { href: "/dmc/support", icon: MessageSquare, label: { en: "Support", th: "ช่วยเหลือ", zh: "支持", ko: "지원", tr: "Destek" } },
 ]
 
 interface DmcSidebarProps {

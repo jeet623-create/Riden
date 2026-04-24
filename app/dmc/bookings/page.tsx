@@ -142,24 +142,35 @@ export default function DmcBookingsPage() {
                 <motion.tr key={b.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.03 * i }}
                   className="border-b border-border hover:bg-surface-elevated transition-colors">
                   <td className="py-3 px-4">
-                    <span className="font-mono text-sm text-primary">{b.booking_ref}</span>
+                    <Link href={`/dmc/bookings/${b.id}`} className="font-mono text-sm text-primary hover:underline">
+                      {b.booking_ref}
+                    </Link>
                   </td>
-                  <td className="py-3 px-4 text-sm font-medium text-foreground">{b.client_name}</td>
+                  <td className="py-3 px-4 text-sm font-medium text-foreground">
+                    <Link href={`/dmc/bookings/${b.id}`} className="hover:underline">{b.client_name}</Link>
+                  </td>
                   <td className="py-3 px-4 text-sm text-muted">{b.total_days}d</td>
                   <td className="py-3 px-4">
                     {isDraft
                       ? <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full font-mono text-[11px] bg-[rgba(139,139,139,0.10)] text-muted">Draft</span>
-                      : <StatusBadge status={b.status as any} />}
+                      : <StatusBadge status={b.status as any} showPulse={b.status === "in_progress"} />}
                   </td>
                   <td className="py-3 px-4 font-mono text-xs text-muted">{new Date(b.created_at).toLocaleDateString()}</td>
                   <td className="py-3 px-4 text-right">
-                    {isDraft && (
+                    {isDraft ? (
                       <button
                         onClick={() => setDispatchTarget(b)}
                         className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
                       >
                         Dispatch <Send className="w-3 h-3" />
                       </button>
+                    ) : (
+                      <Link
+                        href={`/dmc/bookings/${b.id}`}
+                        className="inline-flex items-center gap-1 px-3 py-1 rounded-md border border-border text-xs text-muted hover:text-foreground hover:border-primary/40"
+                      >
+                        Open
+                      </Link>
                     )}
                   </td>
                 </motion.tr>
@@ -238,7 +249,7 @@ function DispatchModal({
           await supabase.functions.invoke("booking-created", { body: { bookingId: booking.id, operatorId: id } })
         }
       } else {
-        await supabase.functions.invoke("booking-created", { body: { bookingId: booking.id } })
+        await supabase.functions.invoke("booking-created", { body: { bookingId: booking.id, direct_to_pool: true } })
       }
     } catch (e) {
       console.warn("dispatch edge fn error", e)

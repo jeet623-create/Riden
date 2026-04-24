@@ -339,7 +339,7 @@ export default function NewBookingPage() {
         }
       } else if (dispatchState === "sent" && dispatchChoice === "pool") {
         await supabase.functions.invoke("booking-created", {
-          body: { bookingId: booking.id },
+          body: { bookingId: booking.id, direct_to_pool: true },
         })
       }
     } catch (e) {

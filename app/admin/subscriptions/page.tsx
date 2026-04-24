@@ -45,6 +45,15 @@ type Sub = {
   notes: string | null
 }
 
+type Invoice = {
+  id: string
+  subscription_id: string | null
+  dmc_id: string
+  html_url: string
+  invoice_number: string | null
+  created_at: string
+}
+
 type Plan = { id: string; name: string; price: number; features: string[] }
 
 const PLANS: Plan[] = [
@@ -61,6 +70,7 @@ export default function AdminSubscriptionsPage() {
 
   const [dmcs, setDmcs] = useState<DMC[]>([])
   const [latestSubs, setLatestSubs] = useState<Record<string, Sub>>({})
+  const [latestInvoices, setLatestInvoices] = useState<Record<string, Invoice>>({})
   const [recentActivations, setRecentActivations] = useState<Sub[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<ListTab>("awaiting")
@@ -116,6 +126,20 @@ export default function AdminSubscriptionsPage() {
 
       const sevenDaysAgoIso = new Date(Date.now() - 7 * 86400000).toISOString()
       setRecentActivations(subList.filter(s => s.status === "active" && s.activated_at && s.activated_at >= sevenDaysAgoIso).slice(0, 5))
+
+      const subIds = subList.map(s => s.id)
+      if (subIds.length > 0) {
+        const { data: invs } = await supabase
+          .from("invoices")
+          .select("id, subscription_id, dmc_id, html_url, invoice_number, created_at")
+          .in("subscription_id", subIds)
+          .order("created_at", { ascending: false })
+        const invMap: Record<string, Invoice> = {}
+        for (const inv of (invs ?? []) as Invoice[]) {
+          if (!invMap[inv.dmc_id]) invMap[inv.dmc_id] = inv
+        }
+        setLatestInvoices(invMap)
+      }
     }
 
     setLoading(false)
@@ -282,6 +306,36 @@ export default function AdminSubscriptionsPage() {
         `${planLabel} plan activated for ${dmcLabel}${result.email_sent ? " · Email sent" : ""}`
       )
 
+      // Generate invoice HTML (non-blocking — failures don't undo activation)
+      try {
+        const { data: latestSub } = await supabase
+          .from("subscriptions")
+          .select("id")
+          .eq("dmc_id", selected.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (latestSub?.id) {
+          const { data: inv, error: invErr } = await supabase.functions.invoke<{ html_url?: string; error?: string }>(
+            "generate-invoice",
+            { body: { subscription_id: latestSub.id } }
+          )
+          if (!invErr && inv?.html_url) {
+            toast.success("Invoice ready", {
+              description: "Download the HTML invoice",
+              action: {
+                label: "Download",
+                onClick: () => window.open(inv.html_url, "_blank"),
+              },
+            })
+          } else if (invErr || inv?.error) {
+            console.warn("generate-invoice:", invErr?.message ?? inv?.error)
+          }
+        }
+      } catch (e) {
+        console.warn("generate-invoice failed", e)
+      }
+
       // auto-select next
       const idx = filteredDmcs.findIndex(d => d.id === selected.id)
       const next = filteredDmcs[idx + 1] ?? filteredDmcs[idx - 1] ?? null
@@ -386,7 +440,7 @@ export default function AdminSubscriptionsPage() {
             </Panel>
           ) : (
             <div className="space-y-4">
-              <DmcSummary dmc={selected} sub={selectedSub} stats={stats[selected.id]} />
+              <DmcSummary dmc={selected} sub={selectedSub} stats={stats[selected.id]} invoice={latestInvoices[selected.id]} />
 
               <Panel title="PLAN SELECTION">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -493,14 +547,27 @@ export default function AdminSubscriptionsPage() {
 
               <div className="flex items-center justify-between pt-2">
                 <div className="flex items-center gap-2 text-[12px]">
-                  <button
-                    disabled
-                    title="Invoice PDF coming in Phase 3i"
-                    className="h-8 px-3 rounded-md border border-border bg-surface text-muted text-[12px] inline-flex items-center gap-1.5 opacity-60 cursor-not-allowed"
-                  >
-                    <FileText className="w-3.5 h-3.5" /> Download Invoice PDF
-                  </button>
-                  <span className="text-[11px] text-muted italic font-display">Coming in Phase 3i</span>
+                  {latestInvoices[selected.id]?.html_url ? (
+                    <a
+                      href={latestInvoices[selected.id].html_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="h-8 px-3 rounded-md border border-primary/40 bg-primary/10 text-primary text-[12px] inline-flex items-center gap-1.5 hover:bg-primary/20"
+                    >
+                      <FileText className="w-3.5 h-3.5" /> Download invoice
+                    </a>
+                  ) : (
+                    <button
+                      disabled
+                      title="Invoice is generated on activation"
+                      className="h-8 px-3 rounded-md border border-border bg-surface text-muted text-[12px] inline-flex items-center gap-1.5 opacity-60 cursor-not-allowed"
+                    >
+                      <FileText className="w-3.5 h-3.5" /> No invoice yet
+                    </button>
+                  )}
+                  {latestInvoices[selected.id]?.invoice_number && (
+                    <span className="text-[11px] text-muted font-mono">{latestInvoices[selected.id].invoice_number}</span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -555,7 +622,7 @@ function QueueCard({
 }
 
 // ---------- Summary ----------
-function DmcSummary({ dmc, sub, stats }: { dmc: DMC; sub?: Sub; stats?: { bookings: number; trips: number } }) {
+function DmcSummary({ dmc, sub, stats, invoice }: { dmc: DMC; sub?: Sub; stats?: { bookings: number; trips: number }; invoice?: Invoice }) {
   const trialLeft = daysUntil(dmc.trial_ends_at)
   return (
     <Panel>
@@ -590,13 +657,18 @@ function DmcSummary({ dmc, sub, stats }: { dmc: DMC; sub?: Sub; stats?: { bookin
               Full detail <ExternalLink className="w-3 h-3" />
             </Link>
           </div>
-          {sub?.payment_proof_url && (
-            <div className="mt-3 text-[12px]">
+          <div className="mt-3 flex flex-wrap items-center gap-4 text-[12px]">
+            {sub?.payment_proof_url && (
               <a href={sub.payment_proof_url} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
                 <Eye className="w-3.5 h-3.5" /> Last payment proof
               </a>
-            </div>
-          )}
+            )}
+            {invoice?.html_url && (
+              <a href={invoice.html_url} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                <FileText className="w-3.5 h-3.5" /> {invoice.invoice_number ?? "Invoice"}
+              </a>
+            )}
+          </div>
         </div>
       </div>
     </Panel>

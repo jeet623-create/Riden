@@ -1,23 +1,45 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react"
 
-export type Language = "en" | "th" | "zh"
+export type Language = "en" | "th" | "zh" | "ko" | "tr"
+
+export const SUPPORTED_LANGUAGES: Language[] = ["en", "th", "zh", "ko", "tr"]
+
+const STORAGE_KEY = "riden_dmc_lang"
 
 interface LanguageContextType {
   language: Language
   setLanguage: (lang: Language) => void
-  t: (translations: Record<Language, string>) => string
+  t: (translations: Partial<Record<Language, string>>) => string
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined)
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState<Language>("en")
+function isValidLang(v: string | null | undefined): v is Language {
+  return !!v && (SUPPORTED_LANGUAGES as readonly string[]).includes(v)
+}
 
-  const t = useCallback((translations: Record<Language, string>) => {
-    return translations[language] || translations.en
-  }, [language])
+export function LanguageProvider({ children }: { children: ReactNode }) {
+  const [language, setLanguageState] = useState<Language>("en")
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(STORAGE_KEY)
+      if (isValidLang(stored)) setLanguageState(stored)
+    } catch {}
+  }, [])
+
+  const setLanguage = useCallback((lang: Language) => {
+    setLanguageState(lang)
+    try { window.localStorage.setItem(STORAGE_KEY, lang) } catch {}
+  }, [])
+
+  const t = useCallback(
+    (translations: Partial<Record<Language, string>>) =>
+      translations[language] ?? translations.en ?? "",
+    [language]
+  )
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>

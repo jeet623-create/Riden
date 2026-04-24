@@ -34,8 +34,10 @@ type DisplayNotification = {
 
 const languages: { code: Language; label: string }[] = [
   { code: "en", label: "EN" },
-  { code: "th", label: "TH" },
+  { code: "th", label: "ไทย" },
   { code: "zh", label: "中文" },
+  { code: "ko", label: "한국" },
+  { code: "tr", label: "TR" },
 ]
 
 export function DmcTopbar() {
