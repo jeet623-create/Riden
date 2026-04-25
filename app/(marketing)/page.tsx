@@ -6,6 +6,7 @@ import { ThailandHero } from "@/components/marketing/hero/ThailandHero"
 import { LiveEventCards } from "@/components/marketing/hero/LiveEventCards"
 import { DemoForm } from "@/components/marketing/demo-form"
 import { Reveal } from "@/components/marketing/Reveal"
+import { PlacesMarquee } from "@/components/marketing/PlacesMarquee"
 import { readLang, getDict } from "@/lib/i18n"
 
 export const metadata: Metadata = {
@@ -96,9 +97,9 @@ export default async function MarketingHome() {
               <Reveal immediate delay={0.55}>
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-3 pt-6 border-t border-white/5 w-full max-w-[520px]">
                   {[
-                    { v: "77", l: d.metrics.provinces },
-                    { v: "2.4k", l: d.metrics.operators },
-                    { v: "99.2%", l: d.metrics.ontime },
+                    { v: "77", l: "PROVINCES" },
+                    { v: "7", l: "LANGUAGES" },
+                    { v: "60d", l: "FREE TRIAL" },
                   ].map((s) => (
                     <div key={s.l} className="flex items-baseline gap-2">
                       <span className="font-display font-semibold text-white text-[18px] tracking-[-0.02em]">
@@ -142,10 +143,10 @@ export default async function MarketingHome() {
       <section className="relative z-10 border-y border-white/5 bg-black/40">
         <div className="max-w-6xl mx-auto px-6 py-14 md:py-16 grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-8">
           {[
-            { v: "77", u: "", label: d.metrics.provinces },
-            { v: "2.4", u: "k", label: d.metrics.operators },
-            { v: "12.8", u: "k /mo", label: d.metrics.trips },
-            { v: "99.2", u: "%", label: d.metrics.ontime },
+            { v: "77", u: "", label: "PROVINCES COVERED" },
+            { v: "7", u: "", label: "LANGUAGES" },
+            { v: "0", u: "", label: "APPS TO INSTALL" },
+            { v: "60", u: "d", label: "FREE TRIAL" },
           ].map((m, i) => (
             <Reveal key={m.label} delay={i * 0.08}>
               <div className="text-center md:text-left">
@@ -283,13 +284,59 @@ export default async function MarketingHome() {
           >
             <div className="w-full max-w-sm">
               <div className="flex md:grid md:grid-cols-3 gap-2.5 overflow-x-auto md:overflow-visible snap-x snap-mandatory md:snap-none -mx-4 px-4 md:mx-0 md:px-0 pb-2 md:pb-0">
-                {["09:03 · BKK", "11:47 · HWY7", "12:15 · PTY"].map((stamp) => (
+                {[
+                  {
+                    stamp: "09:03 · BKK",
+                    src: "https://images.unsplash.com/photo-1563492065599-3520f775eeed?auto=format&fit=crop&w=600&q=80",
+                    alt: "Bangkok pickup",
+                  },
+                  {
+                    stamp: "11:47 · HWY7",
+                    src: "https://images.unsplash.com/photo-1528181304800-259b08848526?auto=format&fit=crop&w=600&q=80",
+                    alt: "Thai highway in transit",
+                  },
+                  {
+                    stamp: "12:15 · PTY",
+                    src: "https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?auto=format&fit=crop&w=600&q=80",
+                    alt: "Pattaya drop-off",
+                  },
+                ].map((card) => (
                   <div
-                    key={stamp}
-                    className="flex-shrink-0 md:flex-shrink aspect-square w-[70%] md:w-auto snap-center rounded-xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-2.5 flex flex-col justify-end"
+                    key={card.stamp}
+                    className="relative flex-shrink-0 md:flex-shrink aspect-square w-[70%] md:w-auto snap-center overflow-hidden rounded-xl border border-white/10"
                   >
-                    <div className="font-mono text-[9px] tracking-[0.1em] text-white/60">
-                      {stamp}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={card.src}
+                      alt={card.alt}
+                      loading="lazy"
+                      className="absolute inset-0 h-full w-full object-cover opacity-90 transition-opacity duration-500 hover:opacity-100"
+                    />
+                    {/* Vignette + GPS-stamp overlay */}
+                    <div
+                      aria-hidden
+                      className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/30"
+                    />
+                    {/* Crosshair tick marks — feels like an ops camera grab */}
+                    <div
+                      aria-hidden
+                      className="absolute left-2 top-2 h-3 w-3 border-l border-t border-[#2ee5a0]/80"
+                    />
+                    <div
+                      aria-hidden
+                      className="absolute right-2 top-2 h-3 w-3 border-r border-t border-[#2ee5a0]/80"
+                    />
+                    <div
+                      aria-hidden
+                      className="absolute left-2 bottom-2 h-3 w-3 border-l border-b border-[#2ee5a0]/80"
+                    />
+                    <div
+                      aria-hidden
+                      className="absolute right-2 bottom-2 h-3 w-3 border-r border-b border-[#2ee5a0]/80"
+                    />
+                    <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between font-mono text-[9px] tracking-[0.12em] text-white/85">
+                      <span>{card.stamp}</span>
+                      <span className="text-[#2ee5a0]">●</span>
                     </div>
                   </div>
                 ))}
@@ -435,27 +482,8 @@ export default async function MarketingHome() {
         </div>
       </section>
 
-      {/* ============ PRESS TICKER ============ */}
-      <section className="relative z-10 bg-[#030509] border-b border-white/5 py-10">
-        <div className="max-w-6xl mx-auto px-6 text-center">
-          <Reveal>
-            <div className="font-mono text-[10px] tracking-[0.22em] text-white/40 uppercase mb-4">
-              {d.press.featuredIn}
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-white/70 text-[14px] font-display italic">
-              <span>Bangkok Post</span>
-              <span className="text-white/20">·</span>
-              <span>TTG Asia</span>
-              <span className="text-white/20">·</span>
-              <span>Nikkei Asia</span>
-              <span className="text-white/20">·</span>
-              <span>e27</span>
-              <span className="text-white/20">·</span>
-              <span>Tech in Asia</span>
-            </div>
-          </Reveal>
-        </div>
-      </section>
+      {/* ============ PLACES MARQUEE — cinematic Thailand reel ============ */}
+      <PlacesMarquee />
 
       {/* ============ DEMO FORM ============ */}
       <section id="demo" className="relative z-10 bg-[#030509] border-b border-white/5 py-28">
