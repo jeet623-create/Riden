@@ -1,24 +1,27 @@
-import { Nav } from "@/components/marketing/v2/Nav"
-import { Footer } from "@/components/marketing/v2/Footer"
-import { GrainOverlay } from "@/components/marketing/v2/GrainOverlay"
-import { CustomCursor } from "@/components/marketing/v2/CustomCursor"
+import { MarketingNav } from "@/components/marketing/nav"
+import { MarketingFooter } from "@/components/marketing/footer"
+import { readLang, getDict } from "@/lib/i18n"
+import { isRTL } from "@/lib/marketing-i18n"
 
-// Marketing layout — v2 chrome (editorial nav, dark home, magnetic CTA, grain).
-// All public pages share these primitives. /v2 keeps its own showcase wrapper.
+// Opt into dynamic rendering so each request reads the riden_lang cookie fresh.
 export const dynamic = "force-dynamic"
 
-export default function MarketingLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
+  const lang = await readLang()
+  const dict = getDict(lang)
+  const rtl = isRTL(lang)
+
   return (
-    <div className="flex min-h-screen flex-col bg-[#0a0b0e] text-[#f3f1ea]">
-      <GrainOverlay />
-      <CustomCursor />
-      <Nav />
-      <main className="flex-1">{children}</main>
-      <Footer />
+    <div
+      dir={rtl ? "rtl" : "ltr"}
+      lang={lang}
+      className={`bg-[#030509] text-white min-h-screen flex flex-col ${
+        lang === "th" ? "font-thai" : ""
+      }`}
+    >
+      <MarketingNav lang={lang} dict={dict.nav} />
+      <main className="flex-1 pt-16">{children}</main>
+      <MarketingFooter dict={dict.footer} />
     </div>
   )
 }
