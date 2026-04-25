@@ -10,6 +10,7 @@ import { GrainOverlay } from "@/components/marketing/v2/GrainOverlay"
 import { CustomCursor } from "@/components/marketing/v2/CustomCursor"
 import { MagneticButton } from "@/components/marketing/v2/MagneticButton"
 import { HeroParticles } from "@/components/marketing/v2/HeroParticles"
+import { LiveCounters } from "@/components/marketing/v2/LiveCounters"
 
 // Step 2 of 43.md — brand foundation showcase with a taste of Step 3 motion.
 // /v2 lives OUTSIDE app/(marketing) so the existing marketing nav doesn't
@@ -110,6 +111,9 @@ export default function V2Page() {
           </motion.div>
         </div>
       </section>
+
+      {/* LIVE COUNTERS — Step 03 anchor */}
+      <LiveCounters />
 
       {/* PRIMITIVES INVENTORY */}
       <section
