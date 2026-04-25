@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { Wordmark } from "@/components/brand/Wordmark"
 import { Nav } from "@/components/marketing/v2/Nav"
@@ -9,7 +8,7 @@ import { DotGrid } from "@/components/marketing/v2/DotGrid"
 import { GrainOverlay } from "@/components/marketing/v2/GrainOverlay"
 import { CustomCursor } from "@/components/marketing/v2/CustomCursor"
 import { MagneticButton } from "@/components/marketing/v2/MagneticButton"
-import { HeroParticles } from "@/components/marketing/v2/HeroParticles"
+import { ThailandNetwork } from "@/components/marketing/v2/ThailandNetwork"
 import { LiveCounters } from "@/components/marketing/v2/LiveCounters"
 
 // Step 2 of 43.md — brand foundation showcase with a taste of Step 3 motion.
@@ -19,12 +18,6 @@ import { LiveCounters } from "@/components/marketing/v2/LiveCounters"
 export const dynamic = "force-dynamic"
 
 export default function V2Page() {
-  const [reduced, setReduced] = useState(false)
-  useEffect(() => {
-    if (typeof window === "undefined") return
-    setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches)
-  }, [])
-
   return (
     <div className="min-h-screen bg-[#0a0b0e] text-[#f3f1ea]">
       <GrainOverlay />
@@ -32,82 +25,106 @@ export default function V2Page() {
 
       <Nav />
 
-      {/* HERO — Step 2 brand foundation with animated entrance + R3F particles */}
+      {/* HERO — wordmark on left, live Thailand network on right */}
       <section className="relative min-h-[calc(100vh-56px)] overflow-hidden">
         <DotGrid />
-        {!reduced && <HeroParticles />}
 
-        <div className="relative z-[2] mx-auto flex min-h-[calc(100vh-56px)] max-w-[1280px] flex-col justify-center px-6 py-20">
-          <motion.p
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="font-mono text-[10px] tracking-[0.22em] text-[#9a9ca3]"
-          >
-            DIRECTION 09 · STEP 02 / 17
-          </motion.p>
+        <div className="relative z-[2] mx-auto grid min-h-[calc(100vh-56px)] max-w-[1280px] grid-cols-1 items-center gap-12 px-6 py-20 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
+          {/* LEFT — copy column */}
+          <div>
+            <motion.p
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="font-mono text-[10px] tracking-[0.22em] text-[#9a9ca3]"
+            >
+              <span className="mr-3 inline-block h-1.5 w-1.5 translate-y-[-2px] rounded-full bg-[#1D9E75] motion-safe:animate-pulse" />
+              BUILT IN BANGKOK · LIVE NETWORK
+            </motion.p>
 
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+              className="mt-8"
+            >
+              <Wordmark size="xl" className="text-[#f3f1ea]" />
+            </motion.div>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut", delay: 0.45 }}
+              className="mt-6 max-w-xl font-display text-3xl font-bold leading-[1.05] tracking-[-0.01em] text-[#f3f1ea] sm:text-5xl"
+            >
+              The coordination layer for Thailand&apos;s inbound tourism.
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut", delay: 0.6 }}
+              className="mt-5 max-w-xl text-base leading-relaxed text-[#9a9ca3] sm:text-lg"
+            >
+              Every booking. Every driver. Every province. One live system —
+              replacing WhatsApp threads, Excel sheets, and missed pickups
+              with a network that just runs.
+            </motion.p>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.85 }}
+              className="mt-6 font-mono text-[11px] tracking-[0.22em] text-[#5a5d65]"
+            >
+              WHERE GEARS MEET GREEN.
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 1.0 }}
+              className="mt-10 flex flex-wrap items-center gap-3"
+            >
+              <MagneticButton href="/contact" variant="primary">
+                Book a demo ↗
+              </MagneticButton>
+              <MagneticButton href="#network" variant="ghost">
+                See it run
+              </MagneticButton>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 1.4 }}
+              className="mt-16 flex items-center gap-3"
+            >
+              <span className="font-mono text-[10px] tracking-[0.22em] text-[#5a5d65]">
+                SCROLL
+              </span>
+              <div className="relative h-10 w-px overflow-hidden bg-[#23262e]">
+                <motion.div
+                  className="absolute left-0 top-0 h-full w-px bg-[#1D9E75]"
+                  animate={{ y: ["-100%", "100%"] }}
+                  transition={{
+                    duration: 1.8,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                />
+              </div>
+            </motion.div>
+          </div>
+
+          {/* RIGHT — Thailand live network */}
           <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
-            className="mt-8"
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
+            className="relative mx-auto w-full max-w-[480px] lg:max-w-none"
           >
-            <Wordmark size="xl" className="text-[#f3f1ea]" />
-          </motion.div>
-
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut", delay: 0.45 }}
-            className="mt-6 max-w-2xl font-display italic text-2xl leading-tight text-[#9a9ca3] sm:text-3xl"
-          >
-            Coordinates Thailand&apos;s inbound tourism transport.
-          </motion.p>
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.75 }}
-            className="mt-3 font-mono text-[11px] tracking-[0.22em] text-[#5a5d65]"
-          >
-            WHERE GEARS MEET GREEN.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.95 }}
-            className="mt-12 flex flex-wrap items-center gap-3"
-          >
-            <MagneticButton href="/contact" variant="primary">
-              Book a demo ↗
-            </MagneticButton>
-            <MagneticButton href="#primitives" variant="ghost">
-              See the foundation
-            </MagneticButton>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 1.4 }}
-            className="mt-24 flex items-center gap-3"
-          >
-            <span className="font-mono text-[10px] tracking-[0.22em] text-[#5a5d65]">
-              SCROLL
-            </span>
-            <div className="relative h-10 w-px overflow-hidden bg-[#23262e]">
-              <motion.div
-                className="absolute left-0 top-0 h-full w-px bg-[#1D9E75]"
-                animate={{ y: ["-100%", "100%"] }}
-                transition={{
-                  duration: 1.8,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-            </div>
+            <ThailandNetwork />
           </motion.div>
         </div>
       </section>
