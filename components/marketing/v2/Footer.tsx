@@ -11,11 +11,11 @@ const COLUMNS: {
   {
     label: "PRODUCT",
     items: [
-      { href: "/v2#for", label: "For DMCs", text: "For DMCs" } as any,
+      { href: "/for-dmcs", text: "For DMCs" },
       { href: "/for-operators", text: "For operators" },
       { href: "/for-drivers", text: "For drivers" },
       { href: "/pricing", text: "Pricing" },
-    ] as any,
+    ],
   },
   {
     label: "STUDIO",

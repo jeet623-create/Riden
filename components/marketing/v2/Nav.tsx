@@ -7,8 +7,9 @@ import { MagneticButton } from "./MagneticButton"
 // Editorial nav — thin top bar, Syne wordmark on the left, mono links across,
 // teal "begin trial" CTA on the right. No emoji, no gradient, no shadow.
 const LINKS = [
-  { href: "/v2#how", label: "PRODUCT" },
-  { href: "/v2#for", label: "FOR" },
+  { href: "/for-dmcs", label: "FOR DMCS" },
+  { href: "/for-operators", label: "OPERATORS" },
+  { href: "/for-drivers", label: "DRIVERS" },
   { href: "/pricing", label: "PRICING" },
   { href: "/about", label: "STUDIO" },
 ]
@@ -18,7 +19,7 @@ export function Nav() {
     <header className="sticky top-0 z-40 border-b border-[#23262e]/70 bg-[#0a0b0e]/85 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-[1280px] items-center justify-between px-6">
         <Link
-          href="/v2"
+          href="/"
           className="text-[#f3f1ea] transition-opacity hover:opacity-80"
           aria-label="Riden home"
         >
