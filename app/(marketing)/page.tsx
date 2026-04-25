@@ -145,7 +145,7 @@ export default async function MarketingHome() {
           {[
             { v: "77", u: "", label: "PROVINCES COVERED" },
             { v: "7", u: "", label: "LANGUAGES" },
-            { v: "0", u: "", label: "APPS TO INSTALL" },
+            { v: "24/7", u: "", label: "LINE COORDINATION" },
             { v: "60", u: "d", label: "FREE TRIAL" },
           ].map((m, i) => (
             <Reveal key={m.label} delay={i * 0.08}>
